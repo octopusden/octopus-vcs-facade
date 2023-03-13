@@ -1,0 +1,16 @@
+{
+  "id": "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
+  "short_id": "9320183f",
+  "created_at": "2018-02-22T12:11:09.000Z",
+  "parent_ids": [
+    "00cc61dd4c3eca64d12e6beceff1a40a436962f5"
+  ],
+  "title": "TEST-2 Third commit",
+  "message": "TEST-2 Third commit",
+  "author_name": "Anton Plotnikov",
+  "author_email": "aplotnikov@domain.corp",
+  "authored_date": "2018-02-22T12:11:09.000Z",
+  "committer_name": "Anton Plotnikov",
+  "committer_email": "aplotnikov@domain.corp",
+  "committed_date": "2018-02-22T12:11:09.000Z"
+}

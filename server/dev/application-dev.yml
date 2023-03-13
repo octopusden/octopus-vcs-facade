@@ -1,0 +1,28 @@
+eureka:
+  client:
+    enabled: false
+
+gitlab:
+  enabled: false
+
+bitbucket:
+  host: # envFile property
+  token: # envFile property
+  health-check:
+    repo: # envFile property
+    rootCommit: # envFile property
+    lastRelease: # envFile property
+    expectedCommits: # envFile property
+
+vcs-facade:
+  job:
+    executor:
+      corePoolSize: 4
+      maxPoolSize: 10
+      queueCapacity: 500
+    fast-work-timout-secs: 0
+    retry-interval-secs: 1
+
+logging:
+  level:
+    org.octopusden.vcsfacade.controller: trace

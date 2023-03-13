@@ -1,0 +1,66 @@
+[
+  {
+    "name": "commit-3-tag",
+    "message": "",
+    "target": "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
+    "commit": {
+      "id": "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
+      "short_id": "9320183f",
+      "created_at": "2018-02-22T12:11:09.000Z",
+      "parent_ids": [
+        "00cc61dd4c3eca64d12e6beceff1a40a436962f5"
+      ],
+      "title": "TEST-2 Third commit",
+      "message": "TEST-2 Third commit\n",
+      "author_name": "Anton Plotnikov",
+      "author_email": "aplotnikov@domain.corp",
+      "authored_date": "2018-02-22T12:11:09.000Z",
+      "committer_name": "Anton Plotnikov",
+      "committer_email": "aplotnikov@domain.corp",
+      "committed_date": "2018-02-22T12:11:09.000Z"
+    },
+    "release": null
+  },
+  {
+    "name": "commit-2-tag",
+    "message": "",
+    "target": "00cc61dd4c3eca64d12e6beceff1a40a436962f5",
+    "commit": {
+      "id": "00cc61dd4c3eca64d12e6beceff1a40a436962f5",
+      "short_id": "00cc61dd",
+      "created_at": "2018-02-22T12:10:48.000Z",
+      "parent_ids": [
+        "321d4908aef10bafa1488f9b053270acc29f3d78"
+      ],
+      "title": "TEST-1 Second commit",
+      "message": "TEST-1 Second commit\n",
+      "author_name": "Anton Plotnikov",
+      "author_email": "aplotnikov@domain.corp",
+      "authored_date": "2018-02-22T12:10:48.000Z",
+      "committer_name": "Anton Plotnikov",
+      "committer_email": "aplotnikov@domain.corp",
+      "committed_date": "2018-02-22T12:10:48.000Z"
+    },
+    "release": null
+  },
+  {
+    "name": "commit-1-tag",
+    "message": "",
+    "target": "321d4908aef10bafa1488f9b053270acc29f3d78",
+    "commit": {
+      "id": "321d4908aef10bafa1488f9b053270acc29f3d78",
+      "short_id": "321d4908",
+      "created_at": "2018-02-22T12:10:24.000Z",
+      "parent_ids": [],
+      "title": "TEST-1 First commit",
+      "message": "TEST-1 First commit\n",
+      "author_name": "Anton Plotnikov",
+      "author_email": "aplotnikov@domain.corp",
+      "authored_date": "2018-02-22T12:10:24.000Z",
+      "committer_name": "Anton Plotnikov",
+      "committer_email": "aplotnikov@domain.corp",
+      "committed_date": "2018-02-22T12:10:24.000Z"
+    },
+    "release": null
+  }
+]
