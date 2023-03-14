@@ -10,7 +10,7 @@ plugins {
 }
 
 allprojects {
-    group = "org.octopusden.vcsfacade"
+    group = "org.octopusden.octopus.vcsfacade"
 }
 
 nexusPublishing {
