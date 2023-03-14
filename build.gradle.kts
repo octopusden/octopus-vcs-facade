@@ -5,16 +5,30 @@ plugins {
     java
     idea
     id("org.jetbrains.kotlin.jvm") apply (false)
+    id("io.github.gradle-nexus.publish-plugin")
+    signing
 }
 
 allprojects {
     group = "org.octopusden.vcsfacade"
 }
 
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username.set(System.getenv("MAVEN_USERNAME"))
+            password.set(System.getenv("MAVEN_PASSWORD"))
+        }
+    }
+}
+
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "idea")
     apply(plugin = "java")
+    apply(plugin = "signing")
 
     repositories {
         mavenCentral()
