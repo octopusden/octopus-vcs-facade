@@ -7,6 +7,7 @@ pluginManagement {
         id("org.jetbrains.kotlin.plugin.jpa") version (kotlinVersion)
         id("org.jetbrains.kotlin.plugin.allopen") version (kotlinVersion)
         id("org.jetbrains.kotlin.plugin.noarg") version (kotlinVersion)
+        id("io.github.gradle-nexus.publish-plugin") version("1.1.0") apply(false)
     }
     repositories {
         gradlePluginPortal()
