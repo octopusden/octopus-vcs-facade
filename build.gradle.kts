@@ -1,4 +1,4 @@
-import org.octopusden.task.MigrateMockData
+import org.octopusden.octopus.task.MigrateMockData
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -29,6 +29,11 @@ subprojects {
     apply(plugin = "idea")
     apply(plugin = "java")
     apply(plugin = "signing")
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
 
     repositories {
         mavenCentral()

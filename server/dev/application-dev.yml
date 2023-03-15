@@ -25,4 +25,4 @@ vcs-facade:
 
 logging:
   level:
-    org.octopusden.vcsfacade.controller: trace
+    org.octopusden.octopus.vcsfacade.controller: trace
