@@ -3,7 +3,7 @@
     <module name="vcs-facade.vcs-facade.main" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="org.octopusden.vcsfacade.*" />
+        <option name="PATTERN" value="org.octopusden.octopus.vcsfacade.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>
@@ -18,7 +18,7 @@
         <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
       </ENTRIES>
     </extension>
-    <option name="SPRING_BOOT_MAIN_CLASS" value="org.octopusden.vcsfacade.VcsFacadeApplication" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="org.octopusden.octopus.vcsfacade.VcsFacadeApplication" />
     <option name="ACTIVE_PROFILES" value="dev" />
     <option name="ALTERNATIVE_JRE_PATH" />
     <option name="SHORTEN_COMMAND_LINE" value="NONE" />
