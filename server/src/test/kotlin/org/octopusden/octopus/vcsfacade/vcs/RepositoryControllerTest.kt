@@ -87,8 +87,9 @@ class RepositoryControllerTest : BaseVcsFacadeTest() {
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/commits/$commitId")
+            MockMvcRequestBuilders.get("/repository/commit")
                 .param("vcsPath", vcsPath)
+                .param("commitId", commitId)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))

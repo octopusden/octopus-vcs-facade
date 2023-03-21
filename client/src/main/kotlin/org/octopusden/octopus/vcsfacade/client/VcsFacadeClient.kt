@@ -27,7 +27,7 @@ interface VcsFacadeClient {
     fun getCommits(@Param("issueKey") issueKey: String): List<Commit>
 
     @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET repository/commits/{cid}?vcsPath={vcsPath}")
+    @RequestLine("GET repository/commit/?vcsPath={vcsPath}&commitId={cid}")
     fun getCommit(@Param("vcsPath") vcsPath: String, @Param("cid") cid: String): Commit
 
     @Throws(IllegalStateException::class)

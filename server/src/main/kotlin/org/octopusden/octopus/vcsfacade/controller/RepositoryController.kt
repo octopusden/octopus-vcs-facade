@@ -56,8 +56,16 @@ class RepositoryController(
         RepositoryResponse(commits)
     }.data
 
+    @Deprecated(
+        message="Deprecated endpoint. Does not allow usage of a git ref containing slash as commitId",
+        replaceWith = ReplaceWith("getCommit(vcsPath, commitId)")
+    )
     @GetMapping("commits/{commitId}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommitById(@PathVariable("commitId") commitId: String, @RequestParam("vcsPath") vcsPath: String) =
+        getCommit(vcsPath, commitId)
+
+    @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitId: String) =
         vcsManager.findCommit(vcsPath, commitId)
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])

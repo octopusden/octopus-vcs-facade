@@ -33,7 +33,7 @@ const val BITBUCKET_PROJECT = "test-project"
 const val BITBUCKET_REPOSITORY = "test-repository"
 
 const val MAIN_BRANCH = "master"
-const val FEATURE_BRANCH = "feature"
+const val FEATURE_BRANCH = "feature/FEATURE-1"
 
 const val MESSAGE_INIT = "initial commit"
 const val MESSAGE_1 = "TEST-1 First commit"
@@ -563,6 +563,11 @@ abstract class BaseVcsFacadeTest {
                 bitbucketVcsUrl,
                 MESSAGE_3.commitId(),
                 MESSAGE_3.commitId() to MESSAGE_3
+            ),
+            Arguments.of(
+                bitbucketVcsUrl,
+                FEATURE_BRANCH,
+                FEATURE_MESSAGE_1.commitId() to FEATURE_MESSAGE_1
             )
         )
     }
