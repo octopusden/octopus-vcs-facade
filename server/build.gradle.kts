@@ -111,12 +111,8 @@ sourceSets {
     }
 }
 
-tasks.named("migrateMockData") {
-    dependsOn("composeUp")
-}
-
 tasks.withType<Test> {
-    dependsOn("migrateMockData")
+    dependsOn("composeUp")
 }
 
 dockerCompose.isRequiredBy(tasks["test"])
@@ -143,17 +139,18 @@ dependencies {
     }
     implementation("io.micrometer:micrometer-registry-prometheus:1.9.5")
 
-    implementation("org.gitlab4j:gitlab4j-api:4.14.1")
+    implementation("org.gitlab4j:gitlab4j-api:5.3.0")
 
     implementation("org.springdoc:springdoc-openapi-ui:1.6.7")
 
-    implementation("org.octopusden.infrastructure:bitbucket-client:${project.properties["external-systems-client.version"]}") {
+    implementation("org.octopusden.octopus.octopus-external-systems-clients:bitbucket-client:${project.properties["external-systems-client.version"]}") {
         exclude(group = "org.slf4j")
     }
 
     testImplementation("org.jetbrains.spek:spek-api:1.1.5")
     testRuntimeOnly("org.jetbrains.spek:spek-junit-platform-engine:1.1.5")
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.7")
+    implementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":test-common"))
 }

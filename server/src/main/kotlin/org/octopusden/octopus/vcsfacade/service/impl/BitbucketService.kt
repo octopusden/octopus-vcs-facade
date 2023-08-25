@@ -1,15 +1,16 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
-import org.octopusden.infrastructure.bitbucket.client.BitbucketBasicCredentialProvider
-import org.octopusden.infrastructure.bitbucket.client.BitbucketBearerTokenCredentialProvider
-import org.octopusden.infrastructure.bitbucket.client.BitbucketClassicClient
-import org.octopusden.infrastructure.bitbucket.client.BitbucketClient
-import org.octopusden.infrastructure.bitbucket.client.BitbucketClientParametersProvider
-import org.octopusden.infrastructure.bitbucket.client.BitbucketCredentialProvider
-import org.octopusden.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
-import org.octopusden.infrastructure.bitbucket.client.getBranches
-import org.octopusden.infrastructure.bitbucket.client.getCommits
-import org.octopusden.infrastructure.bitbucket.client.getTags
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBasicCredentialProvider
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBearerTokenCredentialProvider
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicClient
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClient
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClientParametersProvider
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentialProvider
+import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
+import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketLinkName
+import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
+import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
+import org.octopusden.octopus.infrastructure.bitbucket.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
@@ -22,7 +23,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import java.util.Date
-import org.octopusden.infrastructure.bitbucket.client.exception.NotFoundException as BitbucketClientNotFoundException
 
 @Service
 @ConditionalOnProperty(prefix = "bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
@@ -56,12 +56,6 @@ class BitbucketService(
      */
     override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
         validateParams(fromId, fromDate)
-        val requestParameters = baseRequestParameters()
-        requestParameters["until"] = toId
-
-        fromId?.let { fromIdValue ->
-            requestParameters["since"] = fromIdValue
-        }
         val (project, repository) = vcsPath.toProjectAndRepository()
         val bitbucketCommits = execute("") { bitbucketClient.getCommits(project, repository, fromId, fromDate, toId) }
 
@@ -83,7 +77,7 @@ class BitbucketService(
             .map { c ->
                 with(c.toCommit) {
                     val vcsUrl =
-                        (c.repository.links.clone.find { it.name == org.octopusden.infrastructure.bitbucket.client.dto.BitbucketLinkName.SSH }
+                        (c.repository.links.clone.find { it.name == BitbucketLinkName.SSH }
                             ?.href
                             ?: throw IllegalStateException("Repository SSH Link must be present"))
                     Commit(id, message, authorTimestamp, author.name, parents.map { p -> p.id }, vcsUrl)
@@ -152,7 +146,7 @@ class BitbucketService(
         private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
             try {
                 return clientFunction.invoke()
-            } catch (e: BitbucketClientNotFoundException) {
+            } catch (e: org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException) {
                 log.error("$errorMessage: ${e.message}")
                 throw NotFoundException(e.message ?: e::class.qualifiedName!!)
             }

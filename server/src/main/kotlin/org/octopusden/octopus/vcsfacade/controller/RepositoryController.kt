@@ -32,7 +32,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import java.util.stream.Collectors
 
 
 @RestController
@@ -114,28 +113,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ): SearchIssueInRangesResponse =
         processJob(requestId ?: UUID.randomUUID().toString()) {
-            val rangeCommits = searchRequest.ranges
-                .flatMap { range ->
-                    vcsManager.getCommits(range.vcsPath, range.fromCid, range.fromDate, range.toCid)
-                        .map { commit -> commit.id to range }
-                }
-                .groupBy({ it.first }, { it.second })
-
-            val commitIssueMap = searchRequest.issues
-                .flatMap { issue ->
-                    vcsManager.findCommits(issue)
-                        .map { commit ->
-                            val range = rangeCommits[commit.id]
-                            issue to range
-                        }
-                }.groupBy({ (issue, _) -> issue }, { (_, ranges) -> ranges })
-
-                .map { it.key to it.value.filterNotNull().toSet() }
-                .stream()
-                .collect(Collectors.toMap({ pair -> pair.first },
-                    { pair -> pair.second.flatten().toSet() },
-                    { a, b -> a + b }
-                ))
+            val commitIssueMap = vcsManager.getIssueRanges(searchRequest)
             return@processJob SearchIssueInRangesResponse(commitIssueMap)
         }
 

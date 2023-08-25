@@ -18,10 +18,10 @@ import java.util.Stack
 
 @Service
 @ConditionalOnProperty(prefix = "gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
-class GitlabClient(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
+class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
 
     override val repoPrefix: String = "git@"
-    private val gitLabApi: GitLabApi = GitLabApi(gitLabProperties.host, gitLabProperties.token)
+    private val gitLabApi: GitLabApi = GitLabApi.oauth2Login(gitLabProperties.host, gitLabProperties.username, gitLabProperties.password)
 
     /**
      * fromId and fromDate are not works together, must be specified one of it or not one
@@ -29,11 +29,14 @@ class GitlabClient(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(git
     override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
         validateParams(fromId, fromDate)
         val project = getProject(vcsPath)
+        val toIdValue = getBranchCommit(vcsPath, toId)?.id ?: toId
+        getCommit(vcsPath, toIdValue)
+
         val commits = gitLabApi.commitsApi
-            .getCommits(project.id, toId, null, null, 100)
+            .getCommits(project.id, toIdValue, null, null, 100)
             .asSequence()
             .flatten()
-            .map { Commit(it.id, it.message, it.committedDate, it.authorName, it.parentIds, vcsPath) }
+            .map { commit -> Commit(commit.id, commit.message, commit.committedDate, commit.authorName, commit.parentIds, vcsPath) }
             .toList()
 
         val graph = buildGraph(commits)
@@ -42,16 +45,17 @@ class GitlabClient(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(git
         } else {
             log.debug("Graph size=${graph.size}")
         }
-        val releasedCommits = fromId?.let {
+
+        val releasedCommits = fromId?.let { fromIdValue ->
             val exceptionFunction: (commitId: String) -> NotFoundException = { commit ->
-                getCommit(vcsPath, it)
+                getCommit(vcsPath, fromIdValue)
                 NotFoundException("Can't find commit '$commit' in graph but it exists in the '$vcsPath'")
             }
-            graph.findReleasedCommits(it, exceptionFunction)
-        }
-            ?: emptySet()
-        val rootCommit = graph[toId]
-            ?: throw NotFoundException("Can't find commit '$toId' in '$vcsPath'")
+            graph.findReleasedCommits(fromIdValue, exceptionFunction)
+        }?: emptySet()
+
+        val rootCommit = graph[toIdValue]
+            ?: throw NotFoundException("Commit '$toIdValue' does not exist in repository '${project.name}'.")
 
         // Classical dfs to find all commits that should be passed to release
         val stack = Stack<Commit>().also { it.push(rootCommit) }
@@ -87,16 +91,10 @@ class GitlabClient(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(git
 
     override fun getCommit(vcsPath: String, commitId: String): Commit {
         val project = getProject(vcsPath)
-        return try {
+        return execute("Commit '$commitId' does not exist in repository '${project.name}'.") {
             val commit = gitLabApi.commitsApi
-                    .getCommit(project.id, commitId)
+                .getCommit(project.id, commitId)
             Commit(commit.id, commit.message, commit.committedDate, commit.authorName, commit.parentIds, vcsPath)
-        } catch (e: GitLabApiException) {
-            if (e.httpStatus == 404) {
-                throw NotFoundException("Can't find commit '$commitId' in '$vcsPath'")
-            }
-
-            throw IllegalStateException(e.message)
         }
     }
 
@@ -104,19 +102,46 @@ class GitlabClient(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(git
         vcsPath: String,
         pullRequestRequest: PullRequestRequest
     ): PullRequestResponse {
-        throw UnsupportedOperationException("Gitlab client does not support Pull Request Creation")
+        val project = getProject(vcsPath)
+        val (namespace, projectName) = vcsPath.toNamespaceAndProject()
+        val sourceBranch = pullRequestRequest.sourceBranch.toShortBranchName()
+        val targetBranch = pullRequestRequest.targetBranch.toShortBranchName()
+
+        execute("Source branch 'absent' not found in '$namespace:$projectName'") { gitLabApi.repositoryApi.getBranch(project.id, sourceBranch) }
+        execute("Target branch 'absent' not found in '$namespace:$projectName'") { gitLabApi.repositoryApi.getBranch(project.id, targetBranch) }
+
+        val mergeRequest = gitLabApi.mergeRequestApi.createMergeRequest(
+            project.id,
+            sourceBranch,
+            targetBranch,
+            pullRequestRequest.title,
+            pullRequestRequest.description,
+            0L
+        )
+        return PullRequestResponse(mergeRequest.id)
+    }
+
+    private fun getBranchCommit(vcsPath: String, branch: String) : org.gitlab4j.api.models.Commit? {
+        val shortBranchName = branch.toShortBranchName()
+        val project = getProject(vcsPath)
+        return gitLabApi.repositoryApi.getBranches(project, shortBranchName).firstOrNull { b -> b.name == shortBranchName }?.commit
     }
 
     private fun getProject(vcsPath: String): Project {
+        val (namespace, project) = vcsPath.toNamespaceAndProject()
+        execute("Project $namespace does not exist.") { gitLabApi.groupApi.getGroup(namespace) }
+        return execute("Repository $namespace/$project does not exist.") {
+            gitLabApi.projectApi.getProject(namespace, project)
+        }
+    }
+
+    private  fun <T> execute(message: String, func: () -> T ): T {
         try {
-            return vcsPath.toNamespaceAndProject().let { (namespace, project) ->
-                gitLabApi.projectApi.getProject(namespace, project)
-            }
+            return func()
         } catch (e: GitLabApiException) {
             if (e.httpStatus == 404) {
-                throw NotFoundException("Repository '$vcsPath' is not found")
+                throw NotFoundException(message)
             }
-
             throw IllegalStateException(e.message)
         }
     }
@@ -137,9 +162,10 @@ class GitlabClient(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(git
         }
         return visited
     }
+    private fun String.toShortBranchName() = this.replace("^refs/heads/".toRegex(), "")
 
     companion object {
-        private val log = LoggerFactory.getLogger(GitlabClient::class.java)
+        private val log = LoggerFactory.getLogger(GitlabService::class.java)
     }
 }
 

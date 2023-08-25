@@ -2,6 +2,8 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.service.VCSClient
@@ -11,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
 import org.springframework.stereotype.Service
+import java.util.stream.Collectors
 
 @Service
 class VCSManagerImpl(
@@ -20,6 +23,9 @@ class VCSManagerImpl(
 
     override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
         logger.debug("Extract commit range $vcsPath: ${fromId ?: fromDate} <-> $toId")
+        if (fromId == toId) {
+            return emptyList()
+        }
         val started = System.currentTimeMillis()
         return getVcsClient(vcsPath).getCommits(vcsPath, fromId, fromDate, toId)
             .also { commits ->
@@ -50,6 +56,30 @@ class VCSManagerImpl(
         pullRequestRequest: PullRequestRequest
     ) =
         getVcsClient(vcsPath).createPullRequest(vcsPath, pullRequestRequest)
+
+    override fun getIssueRanges(searchRequest: SearchIssuesInRangesRequest): Map<String, Set<RepositoryRange>> {
+        val messageRanges = searchRequest.ranges
+            .flatMap { range ->
+                getCommits(range.vcsPath, range.fromCid, range.fromDate, range.toCid)
+                    .map { commit -> commit.message to range }
+            }
+            .groupBy({ (message, _) -> message }, { (_, range) -> range })
+
+        return searchRequest.issues
+            .map { issue ->
+                issue to messageRanges.entries
+                    .filter { (message, ranges) -> message.contains(issue) }
+                    .flatMap { (_, ranges) -> ranges }
+            }.groupBy({ (issue, _) -> issue }, { (_, ranges) -> ranges })
+            .entries
+            .stream()
+            .collect(
+                Collectors.toMap({ (issue, _) -> issue },
+                { (_, ranges) -> ranges.flatten().toSet() },
+                { a, b -> a + b }
+            ))
+            .filter { (_, ranges) -> ranges.isNotEmpty() }
+    }
 
     override fun health(): Health {
         return vcsProperties

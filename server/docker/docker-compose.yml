@@ -1,15 +1,11 @@
 version: '3'
 
 services:
-  mockserver:
-    container_name: ut-mockserver
-    image: ${DOCKER_REGISTRY}/mockserver/mockserver:mockserver-5.11.1
-    ports:
-      - "1080:1080"
-
   bitbucket:
-    container_name: ut-bitbucket
+    container_name: vcs-facade-ut-bitbucket
     image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:8.6.1-jdk11
+    depends_on:
+      - bitbucket-db
     ports:
       - "7999:7999"
       - "7990:7990"
@@ -27,9 +23,29 @@ services:
       JDBC_URL: jdbc:postgresql://bitbucket-db:5432/bitbucket
 
   bitbucket-db:
-    container_name: ut-bitbucket-db
-    image: ${DOCKER_REGISTRY}/postgres:12-alpine
+    container_name: vcs-facade-ut-bitbucket-db
+    image: ${DOCKER_REGISTRY}/postgres:13-alpine
     environment:
       POSTGRES_USER: bitbucket
       POSTGRES_PASSWORD: bitbucket
       POSTGRES_DB: bitbucket
+
+  gitlab:
+    container_name: vcs-facade-ut-gitlab
+    image: ${DOCKER_REGISTRY}/gitlab/gitlab-ce:16.2.4-ce.0
+    depends_on:
+      - gitlab-db
+    ports:
+      - "8990:8990"
+    volumes:
+      - ./gitlab.rb:/etc/gitlab/gitlab.rb
+
+  gitlab-db:
+    container_name: vcs-facade-ut-gitlab-db
+    image: ${DOCKER_REGISTRY}/postgres:13-alpine
+    environment:
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: gitlab
+      POSTGRES_DB: gitlab
+    ports:
+      - "6432:5432"

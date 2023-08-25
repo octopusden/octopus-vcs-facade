@@ -1,20 +1,5 @@
 package org.octopusden.octopus.vcsfacade
 
-import org.octopusden.infastructure.bitbucket.test.BitbucketTestClient
-import org.octopusden.infastructure.bitbucket.test.dto.ChangeSet
-import org.octopusden.infastructure.bitbucket.test.dto.NewChangeSet
-import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.util.*
-import java.util.concurrent.TimeUnit
-import java.util.stream.Stream
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -24,55 +9,42 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.platform.commons.logging.LoggerFactory
+import org.octopusden.octopus.infrastructure.common.test.TestClient
+import org.octopusden.octopus.infrastructure.common.test.dto.ChangeSet
+import org.octopusden.octopus.infrastructure.common.test.dto.NewChangeSet
+import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.concurrent.TimeUnit
+import java.util.stream.Stream
 
 typealias CheckError = (Pair<Int, String>) -> Unit
 
-const val BITBUCKET_USER = "admin"
-const val BITBUCKET_PASSWORD = "admin"
-const val BITBUCKET_PROJECT = "test-project"
-const val BITBUCKET_REPOSITORY = "test-repository"
-
-const val MAIN_BRANCH = "master"
-const val FEATURE_BRANCH = "feature/FEATURE-1"
-
-const val MESSAGE_INIT = "initial commit"
-const val MESSAGE_1 = "TEST-1 First commit"
-const val MESSAGE_2 = "TEST-1 Second commit"
-const val MESSAGE_3 = "TEST-2 Third commit"
-
-const val FEATURE_MESSAGE_1 = "FEATURE-1 First commit"
-
-const val TAG_1 = "commit-1-tag"
-const val TAG_2 = "commit-2-tag"
-const val TAG_3 = "commit-3-tag"
-
-const val DEFAULT_ID = "fake-jdhfoshadf9823647928364918gfksjdf-fake"
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-abstract class BaseVcsFacadeTest {
-    abstract val gitlabHost: String
-    abstract val bitbucketHost: String
+abstract class BaseVcsFacadeTest(
+    private val vcsHost: String,
+    private val testClient: TestClient,
+    private val vcsRootFormat: String
 
-    private val bitbucketTestClient: BitbucketTestClient by lazy {
-        BitbucketTestClient(
-            "localhost:7990",
-            BITBUCKET_USER,
-            BITBUCKET_PASSWORD
-        )
-    }
+) {
+
     private val commitMessagesChangeSets by lazy { mutableMapOf<String, ChangeSet>() }
-
-    private val bitbucketVcsUrl by lazy { "ssh://git@$bitbucketHost/$BITBUCKET_PROJECT/$BITBUCKET_REPOSITORY.git" }
-    private val gitlabVcsUrl by lazy { "git@$gitlabHost/gitlab:test-data/vcs-facade-healthcheck.git" }
 
     @BeforeAll
     fun beforeAllVcsFacadeTests() {
-        generateBitbucketData()
+        generateTestData()
     }
 
     @AfterAll
     fun afterAllVcsFacadeTests() {
-        bitbucketTestClient.clearData()
+        testClient.clearData()
     }
 
     @ParameterizedTest
@@ -207,7 +179,7 @@ abstract class BaseVcsFacadeTest {
     @Test
     fun createPullRequestTest() {
         createPullRequest(
-            bitbucketVcsUrl,
+            vcsRootFormat.format(PROJECT, REPOSITORY),
             PullRequestRequest(FEATURE_BRANCH, MAIN_BRANCH, "Test PR title", "Test PR description"),
             200,
             { Assertions.assertTrue { it.id > 0 } },
@@ -235,29 +207,29 @@ abstract class BaseVcsFacadeTest {
 
     private val exceptionsMessageInfo by lazy {
         mapOf(
-            "absent-bitbucket-repo" to "Repository $BITBUCKET_PROJECT/absent does not exist.",
-            "commitById_2" to "Commit '$DEFAULT_ID' does not exist in repository '$BITBUCKET_REPOSITORY'.",
-            "commitById_3" to "Repository 'git@$gitlabHost/gitlab:test-data/absent.git' is not found",
+            "absent-bitbucket-repo" to "Repository $PROJECT/absent does not exist.",
+            "commitById_2" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
 
-            "commitsException_1" to "Commit '$DEFAULT_ID' does not exist in repository '$BITBUCKET_REPOSITORY'.",
-            "commitsException_2" to "Can't find commit '$DEFAULT_ID' in '$gitlabVcsUrl'",
+            "commitsException_1" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
             "commitsException_3" to "Params 'fromId' and 'fromDate' can not be used together",
-            "commitsException_5" to "Repository 'git@$gitlabHost/gitlab:test-data/absent.git' is not found",
 
-            "commitsException_6" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '$bitbucketVcsUrl'",
-
-            "tags_2" to "Repository 'git@$gitlabHost/gitlab:test-data/absent.git' is not found",
+            "commitsException_6" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '${
+                vcsRootFormat.format(
+                    PROJECT,
+                    REPOSITORY
+                )
+            }'",
 
             "pr_1" to "Project absent does not exist.",
-            "pr_2" to "Source branch 'absent' not found in '$BITBUCKET_PROJECT:$BITBUCKET_REPOSITORY'",
-            "pr_3" to "Target branch 'absent' not found in '$BITBUCKET_PROJECT:$BITBUCKET_REPOSITORY'"
+            "pr_2" to "Source branch 'absent' not found in '$PROJECT:$REPOSITORY'",
+            "pr_3" to "Target branch 'absent' not found in '$PROJECT:$REPOSITORY'"
         )
     }
 
 
     private fun getExceptionMessage(name: String): String {
         val message = exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
-        return message.replace("gitHost", gitlabHost)
+        return message.replace("gitHost", vcsHost)
     }
 
     private val checkError: CheckError =
@@ -317,8 +289,8 @@ abstract class BaseVcsFacadeTest {
             .let { Date(it) }
     }
 
-    private fun generateBitbucketData() {
-        log.debug { "Generate Bitbucket Dataset" }
+    private fun generateTestData() {
+        log.debug { "Generate Test Dataset" }
         val message1Id = MESSAGE_1.commit().id
         TAG_1.tag(message1Id)
         FEATURE_MESSAGE_1.commit(FEATURE_BRANCH, message1Id, 3)
@@ -332,13 +304,13 @@ abstract class BaseVcsFacadeTest {
         waitBeforeSec: Long = 0
     ): ChangeSet {
         TimeUnit.SECONDS.sleep(waitBeforeSec)
-        val changeSet = bitbucketTestClient.commit(NewChangeSet(this, bitbucketVcsUrl, branch), parent)
+        val changeSet = testClient.commit(NewChangeSet(this, vcsRootFormat.format(PROJECT, REPOSITORY), branch), parent)
         commitMessagesChangeSets[this] = changeSet
         return changeSet
     }
 
     private fun String.tag(id: String) {
-        bitbucketTestClient.tag(bitbucketVcsUrl, id, this)
+        testClient.tag(vcsRootFormat.format(PROJECT, REPOSITORY), id, this)
     }
 
     protected fun String.changeSet(): ChangeSet =
@@ -351,81 +323,44 @@ abstract class BaseVcsFacadeTest {
     //<editor-fold defaultstate="collapsed" desc="test data">
     private fun commits(): Stream<Arguments> {
         return Stream.of(
-            //<editor-fold defaultstate="collapsed" desc="gitlab data">
+            //<editor-fold defaultstate="collapsed" desc="test data">
             Arguments.of(
-                gitlabVcsUrl,
-                null,
-                null,
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1)
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                null,
-                "2018-02-22T15:10:40.000+03:00".isoToDate(),
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                listOf(MESSAGE_3, MESSAGE_2)
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                "321d4908aef10bafa1488f9b053270acc29f3d78",
-                null,
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                listOf(MESSAGE_3, MESSAGE_2)
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                null,
-                null,
-                "00cc61dd4c3eca64d12e6beceff1a40a436962f5",
-                listOf(MESSAGE_2, MESSAGE_1)
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                null,
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                listOf(MESSAGE_3)
-            ),
-            //</editor-fold>
-            //<editor-fold defaultstate="collapsed" desc="bitbucket data">
-            Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MESSAGE_3.commitId(),
                 listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 MESSAGE_2.dateBeforeCommit(),
                 MESSAGE_3.commitId(),
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(),
                 null,
                 MESSAGE_3.commitId(),
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MESSAGE_2.commitId(),
                 listOf(MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_3.commitId(),
                 null,
                 MESSAGE_3.commitId(),
                 emptyList<String>()
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MAIN_BRANCH,
@@ -437,83 +372,9 @@ abstract class BaseVcsFacadeTest {
 
     private fun commitsException(): Stream<Arguments> {
         return Stream.of(
-            //<editor-fold defaultstate="collapsed" desc="gitlab data">
-            Arguments.of(
-                "git@$gitlabHost/gitlab:test-data/absent.git",
-                null,
-                null,
-                DEFAULT_ID,
-                "commitsException_5",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                null,
-                null,
-                DEFAULT_ID,
-                "commitsException_2",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                DEFAULT_ID,
-                null,
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                "commitsException_2",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                "321d4908aef10bafa1488f9b053270acc29f3d78",
-                null,
-                DEFAULT_ID,
-                "commitsException_2",
-                400
-            ),
-            Arguments.of(
-                "git@$gitlabHost/gitlab:test-data/absent.git",
-                null,
-                null,
-                DEFAULT_ID,
-                "commitsException_5",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                null,
-                null,
-                DEFAULT_ID,
-                "commitsException_2",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                DEFAULT_ID,
-                null,
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                "commitsException_2",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                "321d4908aef10bafa1488f9b053270acc29f3d78",
-                null,
-                DEFAULT_ID,
-                "commitsException_2",
-                400
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                "321d4908aef10bafa1488f9b053270acc29f3d78",
-                "2018-02-22T15:10:40.000+03:00".isoToDate(),
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                "commitsException_3",
-                400
-            ),
-            //</editor-fold>
             //<editor-fold defaultstate="collapsed" desc="bitbucket data">
             Arguments.of(
-                "ssh://git@$bitbucketHost/$BITBUCKET_PROJECT/absent.git",
+                vcsRootFormat.format(PROJECT, "absent"),
                 null,
                 null,
                 DEFAULT_ID,
@@ -521,7 +382,7 @@ abstract class BaseVcsFacadeTest {
                 400
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 DEFAULT_ID,
@@ -529,7 +390,7 @@ abstract class BaseVcsFacadeTest {
                 400
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 DEFAULT_ID,
                 null,
                 MESSAGE_2.commitId(),
@@ -537,7 +398,7 @@ abstract class BaseVcsFacadeTest {
                 400
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(),
                 null,
                 DEFAULT_ID,
@@ -546,7 +407,7 @@ abstract class BaseVcsFacadeTest {
             ),
 
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(),
                 MESSAGE_2.dateBeforeCommit(),
                 MESSAGE_3.commitId(),
@@ -560,12 +421,12 @@ abstract class BaseVcsFacadeTest {
     private fun commitById(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_3.commitId(),
                 MESSAGE_3.commitId() to MESSAGE_3
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 FEATURE_BRANCH,
                 FEATURE_MESSAGE_1.commitId() to FEATURE_MESSAGE_1
             )
@@ -575,21 +436,15 @@ abstract class BaseVcsFacadeTest {
     private fun commitByIdException(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                "ssh://git@$bitbucketHost/$BITBUCKET_PROJECT/absent.git",
+                vcsRootFormat.format(PROJECT, "absent"),
                 MESSAGE_3.commitId(),
                 "absent-bitbucket-repo",
                 400
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 DEFAULT_ID,
                 "commitById_2",
-                400
-            ),
-            Arguments.of(
-                "git@$gitlabHost/gitlab:test-data/absent.git",
-                "9320183f5d5f5868fdb82b36e3abd6f9d1424114",
-                "commitById_3",
                 400
             )
         )
@@ -598,19 +453,11 @@ abstract class BaseVcsFacadeTest {
     private fun tags(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 listOf(
                     Tag(MESSAGE_3.commitId(), TAG_3),
                     Tag(MESSAGE_2.commitId(), TAG_2),
                     Tag(MESSAGE_1.commitId(), TAG_1)
-                )
-            ),
-            Arguments.of(
-                gitlabVcsUrl,
-                listOf(
-                    Tag("9320183f5d5f5868fdb82b36e3abd6f9d1424114", TAG_3),
-                    Tag("00cc61dd4c3eca64d12e6beceff1a40a436962f5", TAG_2),
-                    Tag("321d4908aef10bafa1488f9b053270acc29f3d78", TAG_1)
                 )
             )
         )
@@ -619,19 +466,14 @@ abstract class BaseVcsFacadeTest {
     private fun tagsException(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                "ssh://git@$bitbucketHost/$BITBUCKET_PROJECT/absent.git",
+                vcsRootFormat.format(PROJECT, "absent"),
                 "absent-bitbucket-repo",
-                400
-            ),
-            Arguments.of(
-                "git@$gitlabHost/gitlab:test-data/absent.git",
-                "tags_2",
                 400
             )
         )
     }
 
-    private fun issueCommits(): Stream<Arguments> {
+    protected open fun issueCommits(): Stream<Arguments> {
         return Stream.of(
             Arguments.of("ABSENT-1", emptyList<String>()),
             Arguments.of("TEST-1", listOf(MESSAGE_2.commitId(), MESSAGE_1.commitId()))
@@ -641,11 +483,11 @@ abstract class BaseVcsFacadeTest {
     private fun issuesInRanges(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MESSAGE_3.commitId()
@@ -653,17 +495,29 @@ abstract class BaseVcsFacadeTest {
                 ),
                 SearchIssueInRangesResponse(
                     mapOf(
-                        "TEST-1" to setOf(RepositoryRange(bitbucketVcsUrl, null, null, MESSAGE_3.commitId())),
-                        "TEST-2" to setOf(RepositoryRange(bitbucketVcsUrl, null, null, MESSAGE_3.commitId()))
+                        "TEST-1" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                null,
+                                null,
+                                MESSAGE_3.commitId()
+                            )),
+                        "TEST-2" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                null,
+                                null,
+                                MESSAGE_3.commitId()
+                            ))
                     )
                 )
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         "refs/heads/$MAIN_BRANCH"
@@ -671,17 +525,29 @@ abstract class BaseVcsFacadeTest {
                 ),
                 SearchIssueInRangesResponse(
                     mapOf(
-                        "TEST-1" to setOf(RepositoryRange(bitbucketVcsUrl, null, null, "refs/heads/$MAIN_BRANCH")),
-                        "TEST-2" to setOf(RepositoryRange(bitbucketVcsUrl, null, null, "refs/heads/$MAIN_BRANCH"))
+                        "TEST-1" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                null,
+                                null,
+                                "refs/heads/$MAIN_BRANCH"
+                            )),
+                        "TEST-2" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                null,
+                                null,
+                                "refs/heads/$MAIN_BRANCH"
+                            ))
                     )
                 )
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         MESSAGE_3.dateBeforeCommit(),
                         "refs/heads/$MAIN_BRANCH"
@@ -689,10 +555,9 @@ abstract class BaseVcsFacadeTest {
                 ),
                 SearchIssueInRangesResponse(
                     mapOf(
-                        "TEST-1" to setOf(),
                         "TEST-2" to setOf(
                             RepositoryRange(
-                                bitbucketVcsUrl,
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 MESSAGE_3.dateBeforeCommit(),
                                 "refs/heads/$MAIN_BRANCH"
@@ -702,11 +567,11 @@ abstract class BaseVcsFacadeTest {
                 )
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MESSAGE_3.commitId()
@@ -714,16 +579,22 @@ abstract class BaseVcsFacadeTest {
                 ),
                 SearchIssueInRangesResponse(
                     mapOf(
-                        "TEST-1" to setOf(RepositoryRange(bitbucketVcsUrl, null, null, MESSAGE_3.commitId())),
+                        "TEST-1" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                null,
+                                null,
+                                MESSAGE_3.commitId()
+                            )),
                     )
                 )
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("ABSENT-1"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MESSAGE_3.commitId()
@@ -732,11 +603,11 @@ abstract class BaseVcsFacadeTest {
                 SearchIssueInRangesResponse(emptyMap())
             ),
             Arguments.of(
-                bitbucketVcsUrl,
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("ABSENT-1"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MAIN_BRANCH
@@ -753,7 +624,7 @@ abstract class BaseVcsFacadeTest {
                 setOf("TEST-1"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         DEFAULT_ID
@@ -766,7 +637,7 @@ abstract class BaseVcsFacadeTest {
                 setOf("RELENG-1637", "RELENG-1609"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         MESSAGE_3.commitId(),
                         null,
                         MESSAGE_1.commitId()
@@ -779,7 +650,7 @@ abstract class BaseVcsFacadeTest {
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        bitbucketVcsUrl,
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         DEFAULT_ID
@@ -793,28 +664,28 @@ abstract class BaseVcsFacadeTest {
 
     private fun pullRequestsException(): Stream<Arguments> = Stream.of(
         Arguments.of(
-            "ssh://git@$bitbucketHost/absent/$BITBUCKET_REPOSITORY.git",
+            vcsRootFormat.format("absent", REPOSITORY),
             FEATURE_BRANCH,
             MAIN_BRANCH,
             "pr_1",
             400
         ),
         Arguments.of(
-            "ssh://git@$bitbucketHost/$BITBUCKET_PROJECT/absent.git",
+            vcsRootFormat.format(PROJECT, "absent"),
             FEATURE_BRANCH,
             MAIN_BRANCH,
             "absent-bitbucket-repo",
             400
         ),
         Arguments.of(
-            bitbucketVcsUrl,
+            vcsRootFormat.format(PROJECT, REPOSITORY),
             "absent",
             MAIN_BRANCH,
             "pr_2",
             400
         ),
         Arguments.of(
-            bitbucketVcsUrl,
+            vcsRootFormat.format(PROJECT, REPOSITORY),
             FEATURE_BRANCH,
             "absent",
             "pr_3",
@@ -824,6 +695,31 @@ abstract class BaseVcsFacadeTest {
     //</editor-fold>
 
     companion object {
+        const val BITBUCKET_USER = "admin"
+        const val BITBUCKET_PASSWORD = "admin"
+
+        const val GITLAB_USER = "root"
+        const val GITLAB_PASSWORD = "VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0="
+
+        const val PROJECT = "test-project"
+        const val REPOSITORY = "test-repository"
+
+        const val MAIN_BRANCH = "master"
+        const val FEATURE_BRANCH = "feature/FEATURE-1"
+
+        const val MESSAGE_INIT = "initial commit"
+        const val MESSAGE_1 = "TEST-1 First commit"
+        const val MESSAGE_2 = "TEST-1 Second commit"
+        const val MESSAGE_3 = "TEST-2 Third commit"
+
+        const val FEATURE_MESSAGE_1 = "FEATURE-1 First commit"
+
+        const val TAG_1 = "commit-1-tag"
+        const val TAG_2 = "commit-2-tag"
+        const val TAG_3 = "commit-3-tag"
+
+        const val DEFAULT_ID = "fake-jdhfoshadf9823647928364918gfksjdf-fake"
+
         protected val log = LoggerFactory.getLogger(this::class.java)
     }
 }

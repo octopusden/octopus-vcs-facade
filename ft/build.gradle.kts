@@ -65,12 +65,8 @@ tasks.named("composeUp") {
     dependsOn(":vcs-facade:dockerBuildImage")
 }
 
-tasks.named("migrateMockData") {
-    dependsOn("composeUp")
-}
-
 tasks.named("ft") {
-    dependsOn("migrateMockData")
+    dependsOn("composeUp")
 }
 
 idea.module {
