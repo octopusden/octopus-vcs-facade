@@ -28,14 +28,9 @@ import java.util.stream.Stream
 typealias CheckError = (Pair<Int, String>) -> Unit
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-abstract class BaseVcsFacadeTest(
-    private val vcsHost: String,
-    private val testClient: TestClient,
-    private val vcsRootFormat: String
+abstract class BaseVcsFacadeTest(private val testClient: TestClient, private val vcsRootFormat: String) {
 
-) {
-
-    private val commitMessagesChangeSets by lazy { mutableMapOf<String, ChangeSet>() }
+    private val commitMessagesChangeSets = mutableMapOf<String, ChangeSet>()
 
     @BeforeAll
     fun beforeAllVcsFacadeTests() {
@@ -208,12 +203,12 @@ abstract class BaseVcsFacadeTest(
     private val exceptionsMessageInfo by lazy {
         mapOf(
             "absent-bitbucket-repo" to "Repository $PROJECT/absent does not exist.",
-            "commitById_2" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
+
+            "commitById" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
 
             "commitsException_1" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
-            "commitsException_3" to "Params 'fromId' and 'fromDate' can not be used together",
-
-            "commitsException_6" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '${
+            "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
+            "commitsException_3" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '${
                 vcsRootFormat.format(
                     PROJECT,
                     REPOSITORY
@@ -228,8 +223,7 @@ abstract class BaseVcsFacadeTest(
 
 
     private fun getExceptionMessage(name: String): String {
-        val message = exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
-        return message.replace("gitHost", vcsHost)
+        return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
     }
 
     private val checkError: CheckError =
@@ -411,7 +405,7 @@ abstract class BaseVcsFacadeTest(
                 MESSAGE_1.commitId(),
                 MESSAGE_2.dateBeforeCommit(),
                 MESSAGE_3.commitId(),
-                "commitsException_3",
+                "commitsException_2",
                 400
             )
             //</editor-fold>
@@ -444,7 +438,7 @@ abstract class BaseVcsFacadeTest(
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 DEFAULT_ID,
-                "commitById_2",
+                "commitById",
                 400
             )
         )
@@ -643,7 +637,7 @@ abstract class BaseVcsFacadeTest(
                         MESSAGE_1.commitId()
                     )
                 ),
-                "commitsException_6",
+                "commitsException_3",
                 400
             ),
             Arguments.of(

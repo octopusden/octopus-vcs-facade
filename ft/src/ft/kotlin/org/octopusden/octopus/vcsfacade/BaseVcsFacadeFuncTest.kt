@@ -13,8 +13,8 @@ import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
 import java.util.Date
 
-abstract class BaseVcsFacadeFuncTest(vcsHost: String, testClient: TestClient, vcsRootFormat: String) :
-    BaseVcsFacadeTest(vcsHost, testClient, vcsRootFormat) {
+abstract class BaseVcsFacadeFuncTest(testClient: TestClient, vcsRootFormat: String) :
+    BaseVcsFacadeTest(testClient, vcsRootFormat) {
 
     override fun requestTags(
         repository: String,

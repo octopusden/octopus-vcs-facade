@@ -83,7 +83,6 @@ dependencies {
     ftImplementation("com.fasterxml.jackson.core:jackson-databind")
     ftImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-    ftImplementation("ch.qos.logback:logback-core:1.2.3")
-    ftImplementation("ch.qos.logback:logback-classic:1.2.3")
     ftImplementation("org.slf4j:slf4j-api:1.7.30")
+    ftImplementation("org.slf4j:slf4j-simple:2.0.7")
 }

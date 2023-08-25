@@ -1,5 +1,8 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
+import org.gitlab4j.api.GitLabApi
+import org.gitlab4j.api.GitLabApiException
+import org.gitlab4j.api.models.Project
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
@@ -7,9 +10,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.service.VCSClient
-import org.gitlab4j.api.GitLabApi
-import org.gitlab4j.api.GitLabApiException
-import org.gitlab4j.api.models.Project
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -21,7 +21,21 @@ import java.util.Stack
 class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
 
     override val repoPrefix: String = "git@"
-    private val gitLabApi: GitLabApi = GitLabApi.oauth2Login(gitLabProperties.host, gitLabProperties.username, gitLabProperties.password)
+
+    private val gitlabApiFunc: () -> GitLabApi = {
+        val authException by lazy {
+            IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
+        }
+        gitLabProperties.token
+            ?.let { GitLabApi(gitLabProperties.host, gitLabProperties.token) }
+            ?: GitLabApi.oauth2Login(
+                gitLabProperties.host,
+                gitLabProperties.username ?: throw authException,
+                gitLabProperties.password ?: throw authException
+            )
+    }
+
+    private val gitLabApi by lazy { gitlabApiFunc() }
 
     /**
      * fromId and fromDate are not works together, must be specified one of it or not one

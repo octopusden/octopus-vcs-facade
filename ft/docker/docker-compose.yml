@@ -4,6 +4,9 @@ services:
   vcs-facade:
     container_name: vcs-facade-ft-vcs-facade
     image: ${OCTOPUS_GITHUB_DOCKER_REGISTRY}/octopusden/vcs-facade:${APP_VERSION:-1.0-SNAPSHOT}
+    depends_on:
+      - gitlab
+      - bitbucket
     ports:
       - "8080:8080"
     volumes:

@@ -38,8 +38,8 @@ private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-abstract class BaseRepositoryControllerTest(vcsHost: String, testClient: TestClient, vcsRootFormat: String) :
-    BaseVcsFacadeTest(vcsHost, testClient, vcsRootFormat) {
+abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootFormat: String) :
+    BaseVcsFacadeTest(testClient, vcsRootFormat) {
 
     @Autowired
     private lateinit var mvc: MockMvc
