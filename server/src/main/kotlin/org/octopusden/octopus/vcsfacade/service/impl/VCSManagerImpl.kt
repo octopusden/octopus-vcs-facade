@@ -68,7 +68,7 @@ class VCSManagerImpl(
         return searchRequest.issues
             .map { issue ->
                 issue to messageRanges.entries
-                    .filter { (message, ranges) -> message.contains(issue) }
+                    .filter { (message, ranges) -> message.matches(issue.toIssueRegex()) }
                     .flatMap { (_, ranges) -> ranges }
             }.groupBy({ (issue, _) -> issue }, { (_, ranges) -> ranges })
             .entries
@@ -80,6 +80,8 @@ class VCSManagerImpl(
             ))
             .filter { (_, ranges) -> ranges.isNotEmpty() }
     }
+
+    fun String.toIssueRegex() = "^(.*[^a-zA-Z0-9])*$this([^a-zA-Z0-9].*)*\$".toRegex()
 
     override fun health(): Health {
         return vcsProperties
