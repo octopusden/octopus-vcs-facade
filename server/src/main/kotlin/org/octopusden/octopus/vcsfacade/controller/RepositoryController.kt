@@ -113,8 +113,8 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ): SearchIssueInRangesResponse =
         processJob(requestId ?: UUID.randomUUID().toString()) {
-            val commitIssueMap = vcsManager.getIssueRanges(searchRequest)
-            return@processJob SearchIssueInRangesResponse(commitIssueMap)
+            val issueRanges = vcsManager.getIssueRanges(searchRequest)
+            SearchIssueInRangesResponse(issueRanges)
         }
 
     @PostMapping("pull-requests")
