@@ -2,8 +2,11 @@ version: '3'
 
 services:
   vcs-facade:
-    container_name: ft-vcs-facade
+    container_name: vcs-facade-ft-vcs-facade
     image: ${OCTOPUS_GITHUB_DOCKER_REGISTRY}/octopusden/vcs-facade:${APP_VERSION:-1.0-SNAPSHOT}
+    depends_on:
+      - gitlab
+      - bitbucket
     ports:
       - "8080:8080"
     volumes:
@@ -14,8 +17,10 @@ services:
       - SPRING_PROFILES_ACTIVE=ft
 
   bitbucket:
-    container_name: ft-bitbucket
+    container_name: vcs-facade-ft-bitbucket
     image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:8.6.1-jdk11
+    depends_on:
+      - bitbucket-db
     ports:
       - "7999:7999"
       - "7990:7990"
@@ -33,15 +38,29 @@ services:
       JDBC_URL: jdbc:postgresql://bitbucket-db:5432/bitbucket
 
   bitbucket-db:
-    container_name: ft-bitbucket-db
-    image: ${DOCKER_REGISTRY}/postgres:12-alpine
+    container_name: vcs-facade-ft-bitbucket-db
+    image: ${DOCKER_REGISTRY}/postgres:13-alpine
     environment:
       POSTGRES_USER: bitbucket
       POSTGRES_PASSWORD: bitbucket
       POSTGRES_DB: bitbucket
 
-  mockserver:
-    container_name: ft-mockserver
-    image: ${DOCKER_REGISTRY}/mockserver/mockserver:mockserver-5.11.1
+  gitlab:
+    container_name: vcs-facade-ft-gitlab
+    image: ${DOCKER_REGISTRY}/gitlab/gitlab-ce:16.2.4-ce.0
+    depends_on:
+      - gitlab-db
     ports:
-      - "1080:1080"
+      - "8990:8990"
+    volumes:
+      - ./gitlab.rb:/etc/gitlab/gitlab.rb
+
+  gitlab-db:
+    container_name: vcs-facade-ft-gitlab-db
+    image: ${DOCKER_REGISTRY}/postgres:13-alpine
+    environment:
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: gitlab
+      POSTGRES_DB: gitlab
+    ports:
+      - "6432:5432"

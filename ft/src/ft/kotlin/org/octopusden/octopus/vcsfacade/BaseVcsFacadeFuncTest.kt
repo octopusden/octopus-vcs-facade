@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade
 
+import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
@@ -10,15 +11,10 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotComp
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
-import java.util.*
+import java.util.Date
 
-class VcsFacadeTest : BaseVcsFacadeTest() {
-
-    override val gitlabHost: String
-        get() = "mockserver:1080"
-
-    override val bitbucketHost: String
-        get() = "bitbucket:7990"
+abstract class BaseVcsFacadeFuncTest(testClient: TestClient, vcsRootFormat: String) :
+    BaseVcsFacadeTest(testClient, vcsRootFormat) {
 
     override fun requestTags(
         repository: String,

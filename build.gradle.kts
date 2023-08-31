@@ -1,4 +1,3 @@
-import org.octopusden.octopus.task.MigrateMockData
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -58,9 +57,5 @@ subprojects {
             suppressWarnings = true
             jvmTarget = "1.8"
         }
-    }
-
-    val migrateMockData by tasks.creating(MigrateMockData::class) {
-        this.testDataDir = rootDir.toString() + File.separator + "test-data"
     }
 }

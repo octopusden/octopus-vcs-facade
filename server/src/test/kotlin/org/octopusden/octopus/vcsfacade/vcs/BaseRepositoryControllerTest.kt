@@ -2,6 +2,10 @@ package org.octopusden.octopus.vcsfacade.vcs
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
+import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
 import org.octopusden.octopus.vcsfacade.CheckError
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
@@ -12,12 +16,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.*
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -29,6 +27,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.*
 
 private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 
@@ -37,12 +38,8 @@ private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-class RepositoryControllerTest : BaseVcsFacadeTest() {
-
-    override val gitlabHost: String
-        get() = "localhost:1080"
-    override val bitbucketHost: String
-        get() = "localhost:7990"
+abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootFormat: String) :
+    BaseVcsFacadeTest(testClient, vcsRootFormat) {
 
     @Autowired
     private lateinit var mvc: MockMvc

@@ -3,8 +3,10 @@ eureka:
     enabled: false
 
 gitlab:
-  host: http://mockserver:1080/gitlab
-  token: gitlab-secured-token
+  host: http://gitlab:8990
+  token:
+  username: root
+  password: VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0=
   health-check:
     repo: git@mockserver:1080/gitlab:test-data/vcs-facade-healthcheck.git
     rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
