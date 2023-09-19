@@ -48,6 +48,26 @@ class VCSConfig {
             enabled ?: true
         )
 
+    @ConfigurationProperties("gitea")
+    @ConstructorBinding
+    @ConditionalOnProperty(prefix = "bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+    class GiteaProperties(
+        host: String,
+        token: String?,
+        username: String?,
+        password: String?,
+        healthCheck: HealthCheck,
+        enabled: Boolean?
+    ) :
+        VCSProperties(
+            host,
+            if (token?.isNotBlank() == true) token else null,
+            if (token?.isNotBlank() == true) null else username,
+            if (token?.isNotBlank() == true) null else password,
+            healthCheck,
+            enabled ?: true
+        )
+
     abstract class VCSProperties(
         val host: String,
         val token: String?,

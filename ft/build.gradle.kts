@@ -61,6 +61,23 @@ val ft by tasks.creating(Test::class) {
 
 dockerCompose.isRequiredBy(ft)
 
+tasks["composeUp"].doLast {
+    logger.info("Create test-admin in Gitea")
+    val process = ProcessBuilder(
+        "docker", "exec", "vcs-facade-ft-gitea",
+        "/tmp/add_admin.sh"
+    ).start()
+    process.waitFor(10, TimeUnit.SECONDS)
+
+    val output = process.inputStream.bufferedReader().readText()
+    logger.info(output)
+
+    val error = process.errorStream.bufferedReader().readText()
+    if (error.isNotEmpty()) {
+        throw GradleException(error)
+    }
+}
+
 tasks.named("composeUp") {
     dependsOn(":vcs-facade:dockerBuildImage")
 }

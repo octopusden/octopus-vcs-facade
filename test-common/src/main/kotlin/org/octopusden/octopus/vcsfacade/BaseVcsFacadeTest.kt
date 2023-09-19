@@ -28,8 +28,9 @@ import java.util.stream.Stream
 typealias CheckError = (Pair<Int, String>) -> Unit
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-abstract class BaseVcsFacadeTest(private val testClient: TestClient, private val vcsRootFormat: String) {
+abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRootFormat: String) {
 
+    protected abstract val exceptionsMessageInfo: Map<String, String>
     private val commitMessagesChangeSets = mutableMapOf<String, ChangeSet>()
 
     @BeforeAll
@@ -200,28 +201,6 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, private val
         )
     }
 
-    private val exceptionsMessageInfo by lazy {
-        mapOf(
-            "absent-bitbucket-repo" to "Repository $PROJECT/absent does not exist.",
-
-            "commitById" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
-
-            "commitsException_1" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
-            "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
-            "commitsException_3" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '${
-                vcsRootFormat.format(
-                    PROJECT,
-                    REPOSITORY
-                )
-            }'",
-
-            "pr_1" to "Project absent does not exist.",
-            "pr_2" to "Source branch 'absent' not found in '$PROJECT:$REPOSITORY'",
-            "pr_3" to "Target branch 'absent' not found in '$PROJECT:$REPOSITORY'"
-        )
-    }
-
-
     private fun getExceptionMessage(name: String): String {
         return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
     }
@@ -366,7 +345,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, private val
 
     private fun commitsException(): Stream<Arguments> {
         return Stream.of(
-            //<editor-fold defaultstate="collapsed" desc="bitbucket data">
+            //<editor-fold defaultstate="collapsed" desc="test data">
             Arguments.of(
                 vcsRootFormat.format(PROJECT, "absent"),
                 null,
@@ -694,6 +673,9 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, private val
 
         const val GITLAB_USER = "root"
         const val GITLAB_PASSWORD = "VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0="
+
+        const val GITEA_USER = "test-admin"
+        const val GITEA_PASSWORD = "test-admin"
 
         const val PROJECT = "test-project"
         const val REPOSITORY = "test-repository"

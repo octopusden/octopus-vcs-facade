@@ -38,7 +38,21 @@ services:
     ports:
       - "8990:8990"
     volumes:
-      - ./gitlab.rb:/etc/gitlab/gitlab.rb
+      - ./gitlab/gitlab.rb:/etc/gitlab/gitlab.rb
+
+  gitea:
+    image: ${DOCKER_REGISTRY}/gitea/gitea:1.20.4
+    container_name: vcs-facade-ut-gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    volumes:
+      - ./gitea/app.ini:/data/gitea/conf/app.ini
+      - ./gitea/add_admin.sh:/tmp/add_admin.sh
+    ports:
+      - "3000:3000"
+      - "222:22"
 
   gitlab-db:
     container_name: vcs-facade-ut-gitlab-db

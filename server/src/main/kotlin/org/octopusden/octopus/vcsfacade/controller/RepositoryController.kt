@@ -75,10 +75,11 @@ class RepositoryController(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ): List<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
-        val commits =
-            vcsManager.getCommits(vcsPath, from, fromDate, to).flatMap { IssueKeyParser.findIssueKeys(it.message) }
+        val issues =
+            vcsManager.getCommits(vcsPath, from, fromDate, to)
+                .flatMap { IssueKeyParser.findIssueKeys(it.message) }
                 .distinct()
-        RepositoryResponse(commits)
+        RepositoryResponse(issues)
     }.data
 
     @GetMapping("issues/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])

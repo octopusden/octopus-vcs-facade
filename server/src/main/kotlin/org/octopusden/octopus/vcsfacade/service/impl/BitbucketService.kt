@@ -57,7 +57,9 @@ class BitbucketService(
     override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
         validateParams(fromId, fromDate)
         val (project, repository) = vcsPath.toProjectAndRepository()
-        val bitbucketCommits = execute("") { bitbucketClient.getCommits(project, repository, fromId, fromDate, toId) }
+        val bitbucketCommits = execute("getCommits($vcsPath, $fromId, $fromDate, $toId)") {
+            bitbucketClient.getCommits(project, repository, fromId, fromDate, toId)
+        }
 
         fromId?.let { fromIdValue ->
             if (fromIdValue != execute("") { bitbucketClient.getCommit(project, repository, toId) }.id
@@ -73,7 +75,7 @@ class BitbucketService(
     }
 
     override fun getCommits(issueKey: String): List<Commit> {
-        return execute("") { bitbucketClient.getCommits(issueKey) }
+        return execute("getCommits($issueKey)") { bitbucketClient.getCommits(issueKey) }
             .map { c ->
                 with(c.toCommit) {
                     val vcsUrl =
@@ -87,7 +89,7 @@ class BitbucketService(
 
     override fun getTags(vcsPath: String): List<Tag> {
         val (project, repository) = vcsPath.toProjectAndRepository()
-        return execute("") { bitbucketClient.getTags(project, repository) }
+        return execute("getTags($vcsPath)") { bitbucketClient.getTags(project, repository) }
             .map { Tag(it.latestCommit, it.displayId) }
     }
 
@@ -142,7 +144,6 @@ class BitbucketService(
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(BitbucketService::class.java)
-        private fun baseRequestParameters(): MutableMap<String, Any> = mutableMapOf("limit" to 10000)
         private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
             try {
                 return clientFunction.invoke()

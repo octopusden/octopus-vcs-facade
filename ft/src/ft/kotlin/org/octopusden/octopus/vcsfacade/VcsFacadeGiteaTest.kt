@@ -1,13 +1,14 @@
 package org.octopusden.octopus.vcsfacade
 
 import org.junit.jupiter.params.provider.Arguments
-import org.octopusden.octopus.infrastructure.gitlab.test.GitlabTestClient
+import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
 import java.util.stream.Stream
 
-class VcsFacadeGitlabTest : BaseVcsFacadeFuncTest(
-    GitlabTestClient("http://localhost:8990", GITLAB_USER, GITLAB_PASSWORD),
-    "git@gitlab:8990:%s/%s.git"
-) {
+class VcsFacadeGiteaTest :
+    BaseVcsFacadeFuncTest(
+        GiteaTestClient("http://localhost:3000", GITEA_USER, GITEA_PASSWORD),
+        "git@gitea:3000:%s/%s.git"
+    ) {
 
     //ToDo find implementation
     override fun issueCommits(): Stream<Arguments> = Stream.of(
@@ -16,11 +17,11 @@ class VcsFacadeGitlabTest : BaseVcsFacadeFuncTest(
 
     override val exceptionsMessageInfo: Map<String, String> by lazy {
         mapOf(
-            "absent-bitbucket-repo" to "Repository $PROJECT/absent does not exist.",
+            "absent-bitbucket-repo" to "The target couldn't be found.",
 
-            "commitById" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
+            "commitById" to DEFAULT_ID,
 
-            "commitsException_1" to "Commit '$DEFAULT_ID' does not exist in repository '$REPOSITORY'.",
+            "commitsException_1" to DEFAULT_ID,
             "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
             "commitsException_3" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '${
                 vcsRootFormat.format(
@@ -29,7 +30,7 @@ class VcsFacadeGitlabTest : BaseVcsFacadeFuncTest(
                 )
             }'",
 
-            "pr_1" to "Project absent does not exist.",
+            "pr_1" to "GetUserByName",
             "pr_2" to "Source branch 'absent' not found in '$PROJECT:$REPOSITORY'",
             "pr_3" to "Target branch 'absent' not found in '$PROJECT:$REPOSITORY'"
         )
