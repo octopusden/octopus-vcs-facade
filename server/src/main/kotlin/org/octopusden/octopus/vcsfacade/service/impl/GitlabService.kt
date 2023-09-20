@@ -20,8 +20,8 @@ import java.util.Stack
 import java.util.concurrent.TimeUnit
 
 @Service
-@ConditionalOnProperty(prefix = "gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
-class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
+@ConditionalOnProperty(prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
 
     override val repoPrefix: String = "git@"
 
@@ -228,7 +228,7 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(GitlabServiceImpl::class.java)
+        private val log = LoggerFactory.getLogger(GitlabService::class.java)
     }
 }
 

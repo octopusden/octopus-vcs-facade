@@ -1,6 +1,15 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="VcsFacade (Development)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <module name="vcs-facade.vcs-facade.main" />
+    <option name="ACTIVE_PROFILES" value="dev" />
+    <additionalParameters>
+      <param>
+        <option name="enabled" value="true" />
+        <option name="name" value="spring.config.additional-location" />
+        <option name="value" value="server/dev/" />
+      </param>
+    </additionalParameters>
+    <module name="octopus-vcs-facade.vcs-facade.main" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="org.octopusden.octopus.vcsfacade.VcsFacadeApplication" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="org.octopusden.octopus.vcsfacade.*" />
@@ -18,10 +27,6 @@
         <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
       </ENTRIES>
     </extension>
-    <option name="SPRING_BOOT_MAIN_CLASS" value="org.octopusden.octopus.vcsfacade.VcsFacadeApplication" />
-    <option name="ACTIVE_PROFILES" value="dev" />
-    <option name="ALTERNATIVE_JRE_PATH" />
-    <option name="SHORTEN_COMMAND_LINE" value="NONE" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

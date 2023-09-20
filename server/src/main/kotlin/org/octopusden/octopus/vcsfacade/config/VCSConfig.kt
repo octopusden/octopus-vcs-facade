@@ -8,9 +8,14 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class VCSConfig {
 
-    @ConfigurationProperties("gitlab")
+    @ConfigurationProperties("vcs-facade.vcs.gitlab")
     @ConstructorBinding
-    @ConditionalOnProperty(prefix = "gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(
+        prefix = "vcs-facade.vcs.gitlab",
+        name = ["enabled"],
+        havingValue = "true",
+        matchIfMissing = true
+    )
     class GitLabProperties(
         host: String,
         token: String?,
@@ -28,9 +33,14 @@ class VCSConfig {
             enabled ?: true
         )
 
-    @ConfigurationProperties("bitbucket")
+    @ConfigurationProperties("vcs-facade.vcs.bitbucket")
     @ConstructorBinding
-    @ConditionalOnProperty(prefix = "bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(
+        prefix = "vcs-facade.vcs.bitbucket",
+        name = ["enabled"],
+        havingValue = "true",
+        matchIfMissing = true
+    )
     class BitbucketProperties(
         host: String,
         token: String?,
@@ -48,9 +58,14 @@ class VCSConfig {
             enabled ?: true
         )
 
-    @ConfigurationProperties("gitea")
+    @ConfigurationProperties("vcs-facade.vcs.gitea")
     @ConstructorBinding
-    @ConditionalOnProperty(prefix = "bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(
+        prefix = "vcs-facade.vcs.gitea",
+        name = ["enabled"],
+        havingValue = "true",
+        matchIfMissing = true
+    )
     class GiteaProperties(
         host: String,
         token: String?,

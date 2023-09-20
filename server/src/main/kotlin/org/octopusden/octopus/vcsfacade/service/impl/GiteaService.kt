@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service
 import java.util.Date
 
 @Service
-@ConditionalOnProperty(prefix = "gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true)
 class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(giteaProperties) {
 
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {

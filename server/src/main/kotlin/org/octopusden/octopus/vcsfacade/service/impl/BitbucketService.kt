@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service
 import java.util.Date
 
 @Service
-@ConditionalOnProperty(prefix = "bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
 class BitbucketService(
     bitbucketProperties: VCSConfig.BitbucketProperties,
 ) : VCSClient(bitbucketProperties) {
