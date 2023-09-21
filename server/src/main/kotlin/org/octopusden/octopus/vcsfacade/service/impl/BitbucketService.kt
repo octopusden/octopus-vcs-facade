@@ -54,7 +54,7 @@ class BitbucketService(
     /**
      * fromId and fromDate are not works together, must be specified one of it or not one
      */
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
+    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
         validateParams(fromId, fromDate)
         val (project, repository) = vcsPath.toProjectAndRepository()
         val bitbucketCommits = execute("getCommits($vcsPath, $fromId, $fromDate, $toId)") {
@@ -126,6 +126,8 @@ class BitbucketService(
             PullRequestResponse(pullRequest.id)
         }
     }
+
+    override fun getLog(): Logger = log
 
     private fun getBranchLatestCommit(project: String, repository: String, branchName: String): String? {
         val shortBranchName = branchName.replace("^refs/heads/".toRegex(), "")

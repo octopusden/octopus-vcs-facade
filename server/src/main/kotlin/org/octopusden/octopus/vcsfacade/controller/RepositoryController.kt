@@ -50,7 +50,7 @@ class RepositoryController(
         @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<Commit> = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ): Collection<Commit> = processJob(requestId ?: UUID.randomUUID().toString()) {
         val commits = vcsManager.getCommits(vcsPath, from, fromDate, to)
         RepositoryResponse(commits)
     }.data
@@ -74,7 +74,7 @@ class RepositoryController(
         @RequestParam(name = "from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ): Collection<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
         val issues =
             vcsManager.getCommits(vcsPath, from, fromDate, to)
                 .flatMap { IssueKeyParser.findIssueKeys(it.message) }
@@ -86,7 +86,7 @@ class RepositoryController(
     fun getCommitsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<Commit> =
+    ): Collection<Commit> =
         processJob(requestId ?: UUID.randomUUID().toString()) {
             val commits = vcsManager.findCommits(issueKey)
             RepositoryResponse(commits)
@@ -97,7 +97,7 @@ class RepositoryController(
     fun getTagsForRepository(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<Tag> =
+    ): Collection<Tag> =
         processJob(requestId ?: UUID.randomUUID().toString()) {
             val commits = vcsManager.getTagsForRepository(vcsPath)
             RepositoryResponse(commits)

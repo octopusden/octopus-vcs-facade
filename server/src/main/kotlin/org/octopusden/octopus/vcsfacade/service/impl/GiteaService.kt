@@ -20,6 +20,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.service.VCSClient
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -49,30 +50,16 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
 
     override val repoPrefix: String = "git@"
 
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
+    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
         validateParams(fromId, fromDate)
         val (organization, repository) = vcsPath.toOrganizationAndRepository()
+        val toCommit = execute("") { getCommit(vcsPath, toId) }
 
-        val toIdCommit = getCommit(vcsPath, toId)
-
-        val calculatedFromDate =
-            fromId?.let { fromIdValue ->
-                execute("") { client.getCommit(organization, repository, fromIdValue).commit.author.date }
-            } ?: fromDate
-
-        val giteaCommits = execute("getCommits($vcsPath, $fromId, $fromDate, ${toIdCommit.id})") {
-            client.getCommits(organization, repository, calculatedFromDate, toId)
+        val giteaCommits = execute("getCommits($vcsPath, $fromId, $fromDate, $toCommit)") {
+            client.getCommits(organization, repository, null, toCommit.id)
         }
 
-        fromId?.let { fromIdValue ->
-            val fromCommit = execute("") { client.getCommit(organization, repository, toId) }
-
-            if (fromIdValue != fromCommit.sha && giteaCommits.none { bc -> bc.parents.any { p -> p.sha == fromIdValue } }) {
-                throw NotFoundException("Can't find commit '$fromIdValue' in graph but it exists in the '$vcsPath'")
-            }
-        }
-
-        return giteaCommits.map { c -> c.toCommit(vcsPath) }
+        return filterCommitGraph(vcsPath, organization, giteaCommits.map { c -> c.toCommit(vcsPath) }, fromId, fromDate, toCommit.id)
     }
 
     override fun getCommits(issueKey: String): List<Commit> {
@@ -111,6 +98,8 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
             ).toPullRequestResponse()
         }
     }
+
+    override fun getLog(): Logger = log
 
     private fun String.toOrganizationAndRepository(): Pair<String, String> =
         replace("$repoPrefix${getHost()}[^:]*:".toRegex(), "").replace(".git$".toRegex(), "").split("/").let {
