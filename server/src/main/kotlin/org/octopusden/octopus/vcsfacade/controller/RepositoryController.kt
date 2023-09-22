@@ -64,8 +64,8 @@ class RepositoryController(
         getCommit(vcsPath, commitId)
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitId: String) =
-        vcsManager.findCommit(vcsPath, commitId)
+    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
+        vcsManager.findCommit(vcsPath, commitIdOrRef)
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommitsForReleaseIssues(

@@ -10,7 +10,6 @@ import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithD
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequest
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
-import org.octopusden.octopus.infrastructure.gitea.client.getBranches
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
 import org.octopusden.octopus.infrastructure.gitea.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
@@ -53,7 +52,7 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
     override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
         validateParams(fromId, fromDate)
         val (organization, repository) = vcsPath.toOrganizationAndRepository()
-        val toCommit = execute("") { getCommit(vcsPath, toId) }
+        val toCommit = getCommit(vcsPath, toId)
 
         val giteaCommits = execute("getCommits($vcsPath, $fromId, $fromDate, $toCommit)") {
             client.getCommits(organization, repository, null, toCommit.id)
@@ -73,15 +72,11 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
         }
     }
 
-    override fun getCommit(vcsPath: String, commitId: String): Commit {
+    override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
         val (organization, repository) = vcsPath.toOrganizationAndRepository()
 
-        return execute("getCommit($vcsPath, $commitId)") {
-            client.getCommit(
-                organization,
-                repository,
-                getBranchLatestCommit(organization, repository, commitId) ?: commitId
-            ).toCommit(vcsPath)
+        return execute("getCommit($vcsPath, $commitIdOrRef)") {
+            client.getCommit(organization, repository, commitIdOrRef).toCommit(vcsPath)
         }
     }
 
@@ -105,12 +100,6 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
         replace("$repoPrefix${getHost()}[^:]*:".toRegex(), "").replace(".git$".toRegex(), "").split("/").let {
             it[0] to it[1]
         }
-
-    private fun getBranchLatestCommit(organization: String, repository: String, branchName: String): String? {
-        val shortBranchName = branchName.replace("^refs/heads/".toRegex(), "")
-        return client.getBranches(organization, repository)
-            .firstOrNull { b -> b.name == shortBranchName }?.commit?.id
-    }
 
     private fun GiteaCommit.toCommit(vcsPath: String) =
         Commit(sha, commit.message, commit.author.date, commit.author.name, parents.map { it.sha }, vcsPath)

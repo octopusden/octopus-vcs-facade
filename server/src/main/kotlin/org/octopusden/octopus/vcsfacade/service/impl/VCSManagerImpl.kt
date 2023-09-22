@@ -48,8 +48,8 @@ class VCSManagerImpl(
         return getVcsClient(vcsPath).getTags(vcsPath)
     }
 
-    override fun findCommit(vcsPath: String, commitId: String): Commit =
-            getVcsClient(vcsPath).getCommit(vcsPath, commitId)
+    override fun findCommit(vcsPath: String, commitIdOrRef: String): Commit =
+            getVcsClient(vcsPath).getCommit(vcsPath, commitIdOrRef)
 
     override fun createPullRequest(
         vcsPath: String,

@@ -32,7 +32,7 @@ abstract class VCSClient(vcsProperties: VCSConfig.VCSProperties) {
     abstract fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit>
     abstract fun getCommits(issueKey: String): List<Commit>
     abstract fun getTags(vcsPath: String): List<Tag>
-    abstract fun getCommit(vcsPath: String, commitId: String): Commit
+    abstract fun getCommit(vcsPath: String, commitIdOrRef: String): Commit
     abstract fun createPullRequest(
         vcsPath: String,
         pullRequestRequest: PullRequestRequest

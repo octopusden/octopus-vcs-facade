@@ -75,11 +75,11 @@ class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gi
         }
     }
 
-    override fun getCommit(vcsPath: String, commitId: String): Commit {
+    override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
         val project = getProject(vcsPath)
-        return retryableExecution("Commit '$commitId' does not exist in repository '${project.name}'.") {
+        return retryableExecution("Commit '$commitIdOrRef' does not exist in repository '${project.name}'.") {
             val commit = client.commitsApi
-                .getCommit(project.id, commitId)
+                .getCommit(project.id, commitIdOrRef)
             Commit(commit.id, commit.message, commit.committedDate, commit.authorName, commit.parentIds, vcsPath)
         }
     }

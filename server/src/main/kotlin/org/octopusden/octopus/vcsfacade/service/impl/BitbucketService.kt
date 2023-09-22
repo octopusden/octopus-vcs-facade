@@ -93,14 +93,14 @@ class BitbucketService(
             .map { Tag(it.latestCommit, it.displayId) }
     }
 
-    override fun getCommit(vcsPath: String, commitId: String): Commit {
+    override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
         val (project, repository) = vcsPath.toProjectAndRepository()
         return with(
-            execute("getCommit($vcsPath, $commitId)") {
+            execute("getCommit($vcsPath, $commitIdOrRef)") {
                 bitbucketClient.getCommit(
                     project,
                     repository,
-                    getBranchLatestCommit(project, repository, commitId) ?: commitId
+                    getBranchLatestCommit(project, repository, commitIdOrRef) ?: commitIdOrRef
                 )
             }
         ) {
