@@ -8,11 +8,11 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.service.VCSClient
 import org.octopusden.octopus.vcsfacade.service.VCSManager
-import java.util.*
 import org.slf4j.LoggerFactory
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
 import org.springframework.stereotype.Service
+import java.util.Date
 import java.util.stream.Collectors
 
 @Service
@@ -21,7 +21,7 @@ class VCSManagerImpl(
         private val vcsProperties: List<VCSConfig.VCSProperties>
 ) : VCSManager, HealthIndicator {
 
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
+    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
         logger.debug("Extract commit range $vcsPath: ${fromId ?: fromDate} <-> $toId")
         if (fromId == toId) {
             return emptyList()
@@ -48,8 +48,8 @@ class VCSManagerImpl(
         return getVcsClient(vcsPath).getTags(vcsPath)
     }
 
-    override fun findCommit(vcsPath: String, commitId: String): Commit =
-            getVcsClient(vcsPath).getCommit(vcsPath, commitId)
+    override fun findCommit(vcsPath: String, commitIdOrRef: String): Commit =
+            getVcsClient(vcsPath).getCommit(vcsPath, commitIdOrRef)
 
     override fun createPullRequest(
         vcsPath: String,
@@ -68,7 +68,7 @@ class VCSManagerImpl(
         return searchRequest.issues
             .map { issue ->
                 issue to messageRanges.entries
-                    .filter { (message, ranges) -> message.matches(issue.toIssueRegex()) }
+                    .filter { (message, _) -> message.matches(issue.toIssueRegex()) }
                     .flatMap { (_, ranges) -> ranges }
             }.groupBy({ (issue, _) -> issue }, { (_, ranges) -> ranges })
             .entries

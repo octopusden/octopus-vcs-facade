@@ -2,19 +2,35 @@ eureka:
   client:
     enabled: false
 
-gitlab:
-  enabled: false
-
-bitbucket:
-  host: # envFile property
-  token: # envFile property
-  health-check:
-    repo: # envFile property
-    rootCommit: # envFile property
-    lastRelease: # envFile property
-    expectedCommits: # envFile property
-
 vcs-facade:
+  vcs:
+    gitlab:
+      enabled: # envFile property
+      host: # envFile property
+      token: # envFile property
+      health-check:
+        repo: # envFile property
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+    bitbucket:
+      enabled: # envFile property
+      host: # envFile property
+      token: # envFile property
+      health-check:
+        repo: # envFile property
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+    gitea:
+      enabled: # envFile property
+      host: # envFile property
+      token: # envFile property
+      health-check:
+        repo: # envFile property
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
   job:
     executor:
       corePoolSize: 4

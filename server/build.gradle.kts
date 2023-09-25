@@ -81,6 +81,23 @@ tasks.getByName("composeUp").doFirst {
     }
 }
 
+tasks["composeUp"].doLast {
+    logger.info("Create test-admin in Gitea")
+    val process = ProcessBuilder(
+        "docker", "exec", "vcs-facade-ut-gitea",
+        "/tmp/add_admin.sh"
+    ).start()
+    process.waitFor(10, TimeUnit.SECONDS)
+
+    val output = process.inputStream.bufferedReader().readText()
+    logger.info(output)
+
+    val error = process.errorStream.bufferedReader().readText()
+    if (error.isNotEmpty()) {
+        throw GradleException(error)
+    }
+}
+
 docker {
     springBootApplication {
         baseImage.set("$dockerRegistry/openjdk:11")
@@ -144,6 +161,9 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-ui:1.6.7")
 
     implementation("org.octopusden.octopus.octopus-external-systems-clients:bitbucket-client:${project.properties["external-systems-client.version"]}") {
+        exclude(group = "org.slf4j")
+    }
+    implementation("org.octopusden.octopus.octopus-external-systems-clients:gitea-client:${project.properties["external-systems-client.version"]}") {
         exclude(group = "org.slf4j")
     }
 

@@ -50,7 +50,7 @@ class RepositoryController(
         @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<Commit> = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ): Collection<Commit> = processJob(requestId ?: UUID.randomUUID().toString()) {
         val commits = vcsManager.getCommits(vcsPath, from, fromDate, to)
         RepositoryResponse(commits)
     }.data
@@ -64,8 +64,8 @@ class RepositoryController(
         getCommit(vcsPath, commitId)
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitId: String) =
-        vcsManager.findCommit(vcsPath, commitId)
+    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
+        vcsManager.findCommit(vcsPath, commitIdOrRef)
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommitsForReleaseIssues(
@@ -74,18 +74,19 @@ class RepositoryController(
         @RequestParam(name = "from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
-        val commits =
-            vcsManager.getCommits(vcsPath, from, fromDate, to).flatMap { IssueKeyParser.findIssueKeys(it.message) }
+    ): Collection<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
+        val issues =
+            vcsManager.getCommits(vcsPath, from, fromDate, to)
+                .flatMap { IssueKeyParser.findIssueKeys(it.message) }
                 .distinct()
-        RepositoryResponse(commits)
+        RepositoryResponse(issues)
     }.data
 
     @GetMapping("issues/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommitsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<Commit> =
+    ): Collection<Commit> =
         processJob(requestId ?: UUID.randomUUID().toString()) {
             val commits = vcsManager.findCommits(issueKey)
             RepositoryResponse(commits)
@@ -96,7 +97,7 @@ class RepositoryController(
     fun getTagsForRepository(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): List<Tag> =
+    ): Collection<Tag> =
         processJob(requestId ?: UUID.randomUUID().toString()) {
             val commits = vcsManager.getTagsForRepository(vcsPath)
             RepositoryResponse(commits)

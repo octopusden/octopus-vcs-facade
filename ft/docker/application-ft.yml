@@ -2,29 +2,38 @@ eureka:
   client:
     enabled: false
 
-gitlab:
-  host: http://gitlab:8990
-  token:
-  username: root
-  password: VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0=
-  health-check:
-    repo: git@mockserver:1080/gitlab:test-data/vcs-facade-healthcheck.git
-    rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-    lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-    expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-
-bitbucket:
-  host: http://bitbucket:7990
-  token:
-  username: admin
-  password: admin
-  health-check:
-    repo: ssh://git@mockserver:1080/bitbucket/releng/vcs-facade-healthcheck.git
-    rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-    lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-    expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-
 vcs-facade:
+  vcs:
+    gitlab:
+      host: http://gitlab:8990
+      token:
+      username: root
+      password: VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0=
+      health-check:
+        repo: git@mockserver:1080/gitlab:test-data/vcs-facade-healthcheck.git
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+    bitbucket:
+      host: http://bitbucket:7990
+      token:
+      username: admin
+      password: admin
+      health-check:
+        repo: ssh://git@mockserver:1080/bitbucket/releng/vcs-facade-healthcheck.git
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+    gitea:
+      host: http://gitea:3000
+      token:
+      username: test-admin
+      password: test-admin
+      health-check:
+        repo: ssh://git@mockserver:1080/bitbucket/releng/vcs-facade-healthcheck.git
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
   job:
     executor:
       corePoolSize: 4

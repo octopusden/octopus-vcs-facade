@@ -10,18 +10,18 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.service.VCSClient
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
-import java.util.Stack
 import java.util.concurrent.TimeUnit
 
 @Service
-@ConditionalOnProperty(prefix = "gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
-class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
+@ConditionalOnProperty(prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
 
     override val repoPrefix: String = "git@"
 
@@ -44,7 +44,7 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
     /**
      * fromId and fromDate are not works together, must be specified one of it or not one
      */
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
+    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
         validateParams(fromId, fromDate)
         val project = getProject(vcsPath)
         val toIdValue = getBranchCommit(vcsPath, toId)?.id ?: toId
@@ -59,44 +59,7 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
                 .toList()
         }
 
-        val graph = buildGraph(commits)
-        if (log.isTraceEnabled) {
-            log.trace("Graph has ${graph.size} items: $graph")
-        } else {
-            log.debug("Graph size=${graph.size}")
-        }
-
-        val releasedCommits = fromId?.let { fromIdValue ->
-            val exceptionFunction: (commitId: String) -> NotFoundException = { commit ->
-                getCommit(vcsPath, fromIdValue)
-                NotFoundException("Can't find commit '$commit' in graph but it exists in the '$vcsPath'")
-            }
-            graph.findReleasedCommits(fromIdValue, exceptionFunction)
-        }?: emptySet()
-
-        val rootCommit = graph[toIdValue]
-            ?: throw NotFoundException("Commit '$toIdValue' does not exist in repository '${project.name}'.")
-
-        // Classical dfs to find all commits that should be passed to release
-        val stack = Stack<Commit>().also { it.push(rootCommit) }
-        val visited = mutableSetOf<Commit>()
-        while (stack.isNotEmpty()) {
-            val currentCommit = stack.pop()
-            visited += currentCommit
-            currentCommit.parents
-                .map { graph[it]!! }
-                .filter { it !in visited && it !in releasedCommits }
-                .forEach { stack.add(it) }
-        }
-
-        val filter = fromId?.let { _ ->
-            { true }
-        }
-            ?: fromDate?.let { fromDateValue -> { c: Commit -> c.date >= fromDateValue } }
-            ?: { true }
-
-        return visited.filter(filter)
-            .toList()
+        return filterCommitGraph(vcsPath, project.name, commits, fromId, fromDate, toIdValue)
     }
 
     override fun getCommits(issueKey: String) = emptyList<Commit>()
@@ -112,11 +75,11 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
         }
     }
 
-    override fun getCommit(vcsPath: String, commitId: String): Commit {
+    override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
         val project = getProject(vcsPath)
-        return retryableExecution("Commit '$commitId' does not exist in repository '${project.name}'.") {
+        return retryableExecution("Commit '$commitIdOrRef' does not exist in repository '${project.name}'.") {
             val commit = client.commitsApi
-                .getCommit(project.id, commitId)
+                .getCommit(project.id, commitIdOrRef)
             Commit(commit.id, commit.message, commit.committedDate, commit.authorName, commit.parentIds, vcsPath)
         }
     }
@@ -146,6 +109,8 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
         return PullRequestResponse(mergeRequest.id)
     }
 
+    override fun getLog(): Logger = log
+
     private fun getBranchCommit(vcsPath: String, branch: String) : org.gitlab4j.api.models.Commit? {
         val shortBranchName = branch.toShortBranchName()
         val project = getProject(vcsPath)
@@ -161,23 +126,6 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
         return retryableExecution("Repository $namespace/$project does not exist.") {
             client.projectApi.getProject(namespace, project)
         }
-    }
-
-    private fun buildGraph(commits: List<Commit>) = commits.map { commit -> commit.id to commit }.toMap()
-
-    private fun CommitGraph.findReleasedCommits(
-        lastReleaseId: String,
-        errorFunction: (commitId: String) -> Exception
-    ): Set<Commit> {
-        val releaseCommit = get(lastReleaseId) ?: throw errorFunction.invoke(lastReleaseId)
-        val visited = mutableSetOf<Commit>()
-        val stack = Stack<Commit>().also { it.push(releaseCommit) }
-        while (stack.isNotEmpty()) {
-            val currentCommit = stack.pop()
-            visited += currentCommit
-            currentCommit.parents.map { get(it)!! }.filter { it !in visited }.forEach { stack.push(it) }
-        }
-        return visited
     }
 
     private fun String.toShortBranchName() = this.replace("^refs/heads/".toRegex(), "")
@@ -228,11 +176,9 @@ class GitlabServiceImpl(gitLabProperties: VCSConfig.GitLabProperties) : VCSClien
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(GitlabServiceImpl::class.java)
+        private val log = LoggerFactory.getLogger(GitlabService::class.java)
     }
 }
-
-private typealias CommitGraph = Map<String, Commit>
 
 fun String.toNamespaceAndProject() = split(":").last()
     .replace("\\.git$".toRegex(), "")

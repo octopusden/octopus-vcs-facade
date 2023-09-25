@@ -1,0 +1,123 @@
+package org.octopusden.octopus.vcsfacade.service.impl
+
+import org.octopusden.octopus.infrastructure.client.commons.ClientParametersProvider
+import org.octopusden.octopus.infrastructure.client.commons.CredentialProvider
+import org.octopusden.octopus.infrastructure.client.commons.StandardBasicCredCredentialProvider
+import org.octopusden.octopus.infrastructure.client.commons.StandardBearerTokenCredentialProvider
+import org.octopusden.octopus.infrastructure.gitea.client.GiteaClassicClient
+import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
+import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithDefaultReviewers
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequest
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
+import org.octopusden.octopus.infrastructure.gitea.client.getCommits
+import org.octopusden.octopus.infrastructure.gitea.client.getTags
+import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
+import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
+import org.octopusden.octopus.vcsfacade.config.VCSConfig
+import org.octopusden.octopus.vcsfacade.service.VCSClient
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.stereotype.Service
+import java.util.Date
+
+@Service
+@ConditionalOnProperty(prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(giteaProperties) {
+
+    private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
+        override fun getApiUrl(): String {
+            return giteaProperties.host
+        }
+
+        override fun getAuth(): CredentialProvider {
+            val authException by lazy {
+                IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
+            }
+            return giteaProperties.token
+                ?.let { StandardBearerTokenCredentialProvider(it) }
+                ?: StandardBasicCredCredentialProvider(
+                    giteaProperties.username ?: throw authException,
+                    giteaProperties.password ?: throw authException
+                )
+        }
+    })
+
+    override val repoPrefix: String = "git@"
+
+    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
+        validateParams(fromId, fromDate)
+        val (organization, repository) = vcsPath.toOrganizationAndRepository()
+        val toCommit = getCommit(vcsPath, toId)
+
+        val giteaCommits = execute("getCommits($vcsPath, $fromId, $fromDate, $toCommit)") {
+            client.getCommits(organization, repository, null, toCommit.id)
+        }
+
+        return filterCommitGraph(vcsPath, organization, giteaCommits.map { c -> c.toCommit(vcsPath) }, fromId, fromDate, toCommit.id)
+    }
+
+    override fun getCommits(issueKey: String): List<Commit> {
+        return emptyList()
+    }
+
+    override fun getTags(vcsPath: String): List<Tag> {
+        val (organization, repository) = vcsPath.toOrganizationAndRepository()
+        return execute("getTags($vcsPath)") {
+            client.getTags(organization, repository).map { giteaTag -> giteaTag.toTag() }
+        }
+    }
+
+    override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
+        val (organization, repository) = vcsPath.toOrganizationAndRepository()
+
+        return execute("getCommit($vcsPath, $commitIdOrRef)") {
+            client.getCommit(organization, repository, commitIdOrRef).toCommit(vcsPath)
+        }
+    }
+
+    override fun createPullRequest(vcsPath: String, pullRequestRequest: PullRequestRequest): PullRequestResponse {
+        val (organization, repository) = vcsPath.toOrganizationAndRepository()
+        return execute("createPullRequest($vcsPath, $pullRequestRequest, ${pullRequestRequest.targetBranch})") {
+            client.createPullRequestWithDefaultReviewers(
+                organization,
+                repository,
+                pullRequestRequest.sourceBranch,
+                pullRequestRequest.targetBranch,
+                pullRequestRequest.title,
+                pullRequestRequest.description
+            ).toPullRequestResponse()
+        }
+    }
+
+    override fun getLog(): Logger = log
+
+    private fun String.toOrganizationAndRepository(): Pair<String, String> =
+        replace("$repoPrefix${getHost()}[^:]*:".toRegex(), "").replace(".git$".toRegex(), "").split("/").let {
+            it[0] to it[1]
+        }
+
+    private fun GiteaCommit.toCommit(vcsPath: String) =
+        Commit(sha, commit.message, commit.author.date, commit.author.name, parents.map { it.sha }, vcsPath)
+
+    private fun GiteaTag.toTag() = Tag(commit.sha, name)
+
+    private fun GiteaPullRequest.toPullRequestResponse() = PullRequestResponse(id)
+
+    companion object {
+
+        private val log = LoggerFactory.getLogger(GiteaService::class.java)
+        private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
+            try {
+                return clientFunction.invoke()
+            } catch (e: org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException) {
+                log.error("$errorMessage: ${e.message}")
+                throw NotFoundException(e.message ?: e::class.qualifiedName!!)
+            }
+        }
+    }
+}
