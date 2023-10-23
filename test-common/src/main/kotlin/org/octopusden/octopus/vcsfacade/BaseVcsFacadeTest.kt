@@ -1,5 +1,11 @@
 package org.octopusden.octopus.vcsfacade
 
+import java.io.File
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.concurrent.TimeUnit
+import java.util.stream.Stream
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -8,7 +14,6 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.junit.platform.commons.logging.LoggerFactory
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.infrastructure.common.test.dto.ChangeSet
 import org.octopusden.octopus.infrastructure.common.test.dto.NewChangeSet
@@ -19,23 +24,26 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Date
-import java.util.concurrent.TimeUnit
-import java.util.stream.Stream
 
 typealias CheckError = (Pair<Int, String>) -> Unit
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRootFormat: String) {
-
     protected abstract val exceptionsMessageInfo: Map<String, String>
     private val commitMessagesChangeSets = mutableMapOf<String, ChangeSet>()
 
     @BeforeAll
     fun beforeAllVcsFacadeTests() {
-        generateTestData()
+        val dump = File.createTempFile("BaseVcsFacadeTest_", "").apply {
+            this.outputStream().use {
+                BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
+            }
+        }
+        val vcsUrl = vcsRootFormat.format(PROJECT, REPOSITORY)
+        testClient.importRepository(vcsUrl, dump)
+        testClient.getCommits(vcsUrl).forEach {
+            commitMessagesChangeSets[it.message] = it
+        }
     }
 
     @AfterAll
@@ -262,15 +270,6 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             .let { Date(it) }
     }
 
-    private fun generateTestData() {
-        log.debug { "Generate Test Dataset" }
-        val message1Id = MESSAGE_1.commit().id
-        TAG_1.tag(message1Id)
-        FEATURE_MESSAGE_1.commit(FEATURE_BRANCH, message1Id, 3)
-        TAG_2.tag(MESSAGE_2.commit(waitBeforeSec = 3).id)
-        TAG_3.tag(MESSAGE_3.commit(waitBeforeSec = 3).id)
-    }
-
     protected fun String.commit(
         branch: String = MAIN_BRANCH,
         parent: String? = null,
@@ -296,7 +295,6 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
     //<editor-fold defaultstate="collapsed" desc="test data">
     private fun commits(): Stream<Arguments> {
         return Stream.of(
-            //<editor-fold defaultstate="collapsed" desc="test data">
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
@@ -339,13 +337,11 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 MAIN_BRANCH,
                 listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             )
-            //</editor-fold>
         )
     }
 
     private fun commitsException(): Stream<Arguments> {
         return Stream.of(
-            //<editor-fold defaultstate="collapsed" desc="test data">
             Arguments.of(
                 vcsRootFormat.format(PROJECT, "absent"),
                 null,
@@ -387,7 +383,6 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 "commitsException_2",
                 400
             )
-            //</editor-fold>
         )
     }
 
@@ -694,9 +689,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         const val TAG_2 = "commit-2-tag"
         const val TAG_3 = "commit-3-tag"
 
-        const val DEFAULT_ID = "fake-jdhfoshadf9823647928364918gfksjdf-fake"
-
-        protected val log = LoggerFactory.getLogger(this::class.java)
+        const val DEFAULT_ID = "0123456789abcde"
     }
 }
 
