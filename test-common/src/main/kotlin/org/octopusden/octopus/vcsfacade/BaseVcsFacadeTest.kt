@@ -1,10 +1,10 @@
 package org.octopusden.octopus.vcsfacade
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.io.File
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Date
-import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
@@ -16,7 +16,6 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.infrastructure.common.test.dto.ChangeSet
-import org.octopusden.octopus.infrastructure.common.test.dto.NewChangeSet
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
@@ -34,16 +33,26 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
 
     @BeforeAll
     fun beforeAllVcsFacadeTests() {
-        val dump = File.createTempFile("BaseVcsFacadeTest_", "").apply {
-            this.outputStream().use {
-                BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
-            }
-        }
         val vcsUrl = vcsRootFormat.format(PROJECT, REPOSITORY)
-        testClient.importRepository(vcsUrl, dump)
+        testClient.importRepository(
+            vcsUrl,
+            File.createTempFile("BaseVcsFacadeTest_", "").apply {
+                this.outputStream().use {
+                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
+                }
+            }
+        )
         testClient.getCommits(vcsUrl).forEach {
             commitMessagesChangeSets[it.message] = it
         }
+        testClient.importRepository(
+            vcsRootFormat.format(PROJECT, REPOSITORY_2),
+            File.createTempFile("BaseVcsFacadeTest_", "").apply {
+                this.outputStream().use {
+                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump2.zip")!!.copyTo(it)
+                }
+            }
+        )
     }
 
     @AfterAll
@@ -209,6 +218,37 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         )
     }
 
+    @Test
+    fun getCommitsTest2() {
+        /*
+        BitBucket does trim commit message, but GitLab/Gitea does not!
+        TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
+         */
+        requestCommitsInterval(
+            vcsRootFormat.format(PROJECT, REPOSITORY_2),
+            "c79babff3c1405618214eba90398c685ac4c0349",
+            null,
+            "5fb773dbe6472a87632b1c68ea771decdcd20f1e",
+            200,
+            { commits ->
+                Assertions.assertIterableEquals(
+                    commitsTest2ExpectedMessages,
+                    commits.map { TestCommit(it.id, it.message.removeSuffix("\n"), it.parents.toSet()) }.sortedBy { it.id }
+                )
+            },
+            checkError
+        )
+    }
+
+    private data class TestCommit(val id: String, val message: String, val parents: Set<String>)
+
+    private val commitsTest2ExpectedMessages : List<TestCommit> by lazy {
+        OBJECT_MAPPER.readValue(
+            BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("commitsTest2ExpectedMessages.json"),
+            object : TypeReference<List<TestCommit>>() {}
+        )
+    }
+
     private fun getExceptionMessage(name: String): String {
         return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
     }
@@ -263,32 +303,10 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         checkError: CheckError
     )
 
-    private fun String.isoToDate(): Date {
-        return OffsetDateTime.parse(this, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-            .toInstant()
-            .toEpochMilli()
-            .let { Date(it) }
-    }
-
-    protected fun String.commit(
-        branch: String = MAIN_BRANCH,
-        parent: String? = null,
-        waitBeforeSec: Long = 0
-    ): ChangeSet {
-        TimeUnit.SECONDS.sleep(waitBeforeSec)
-        val changeSet = testClient.commit(NewChangeSet(this, vcsRootFormat.format(PROJECT, REPOSITORY), branch), parent)
-        commitMessagesChangeSets[this] = changeSet
-        return changeSet
-    }
-
-    private fun String.tag(id: String) {
-        testClient.tag(vcsRootFormat.format(PROJECT, REPOSITORY), id, this)
-    }
-
-    protected fun String.changeSet(): ChangeSet =
+    private fun String.changeSet(): ChangeSet =
         commitMessagesChangeSets[this] ?: throw IllegalStateException("No ChangeSet for message: '$this'")
 
-    protected fun String.dateBeforeCommit(): Date = Date(changeSet().authorDate.time - 1000)
+    private fun String.dateBeforeCommit(): Date = Date(changeSet().authorDate.time - 1000)
 
     protected fun String.commitId(): String = changeSet().id
 
@@ -469,14 +487,16 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                                 null,
                                 null,
                                 MESSAGE_3.commitId()
-                            )),
+                            )
+                        ),
                         "TEST-2" to setOf(
                             RepositoryRange(
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 MESSAGE_3.commitId()
-                            ))
+                            )
+                        )
                     )
                 )
             ),
@@ -499,14 +519,16 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                                 null,
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
-                            )),
+                            )
+                        ),
                         "TEST-2" to setOf(
                             RepositoryRange(
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
-                            ))
+                            )
+                        )
                     )
                 )
             ),
@@ -553,7 +575,8 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                                 null,
                                 null,
                                 MESSAGE_3.commitId()
-                            )),
+                            )
+                        ),
                     )
                 )
             ),
@@ -674,6 +697,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
 
         const val PROJECT = "test-project"
         const val REPOSITORY = "test-repository"
+        const val REPOSITORY_2 = "test-repository-2"
 
         const val MAIN_BRANCH = "master"
         const val FEATURE_BRANCH = "feature/FEATURE-1"
@@ -690,6 +714,8 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         const val TAG_3 = "commit-3-tag"
 
         const val DEFAULT_ID = "0123456789abcde"
+
+        val OBJECT_MAPPER = ObjectMapper().registerKotlinModule()
     }
 }
 
