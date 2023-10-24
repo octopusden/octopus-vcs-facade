@@ -25,7 +25,7 @@ class RepositoryControllerGiteaTest :
 
             "commitsException_1" to DEFAULT_ID,
             "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
-            "commitsException_3" to "Can't find commit '${MESSAGE_3.commitId()}' in graph but it exists in the '${
+            "commitsException_3" to "Can't find commit '${MESSAGE_3.commitId(REPOSITORY)}' in graph but it exists in the '${
                 vcsRootFormat.format(
                     PROJECT,
                     REPOSITORY

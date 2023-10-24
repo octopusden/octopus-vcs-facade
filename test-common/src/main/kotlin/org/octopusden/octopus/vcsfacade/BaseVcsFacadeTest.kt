@@ -29,22 +29,20 @@ typealias CheckError = (Pair<Int, String>) -> Unit
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRootFormat: String) {
     protected abstract val exceptionsMessageInfo: Map<String, String>
-    private val commitMessagesChangeSets = mutableMapOf<String, ChangeSet>()
+    private val repositoryChangeSets: HashMap<String, Map<String, ChangeSet>> = HashMap()
 
     @BeforeAll
     fun beforeAllVcsFacadeTests() {
-        val vcsUrl = vcsRootFormat.format(PROJECT, REPOSITORY)
         testClient.importRepository(
-            vcsUrl,
+            vcsRootFormat.format(PROJECT, REPOSITORY),
             File.createTempFile("BaseVcsFacadeTest_", "").apply {
                 this.outputStream().use {
                     BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
                 }
             }
         )
-        testClient.getCommits(vcsUrl).forEach {
-            commitMessagesChangeSets[it.message] = it
-        }
+        repositoryChangeSets[REPOSITORY] =
+            testClient.getCommits(vcsRootFormat.format(PROJECT, REPOSITORY)).associateBy { it.message }
         testClient.importRepository(
             vcsRootFormat.format(PROJECT, REPOSITORY_2),
             File.createTempFile("BaseVcsFacadeTest_", "").apply {
@@ -53,6 +51,8 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 }
             }
         )
+        repositoryChangeSets[REPOSITORY_2] =
+            testClient.getCommits(vcsRootFormat.format(PROJECT, REPOSITORY_2)).associateBy { it.message }
     }
 
     @AfterAll
@@ -219,21 +219,36 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
     }
 
     @Test
-    fun getCommitsTest2() {
-        /*
-        BitBucket does trim commit message, but GitLab/Gitea does not!
-        TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
-         */
+    fun getCommitsFromIdTest() {
         requestCommitsInterval(
             vcsRootFormat.format(PROJECT, REPOSITORY_2),
-            "c79babff3c1405618214eba90398c685ac4c0349",
+            "master-25\n".commitId(REPOSITORY_2),
             null,
-            "5fb773dbe6472a87632b1c68ea771decdcd20f1e",
+            "master-36\n".commitId(REPOSITORY_2),
             200,
             { commits ->
                 Assertions.assertIterableEquals(
-                    commitsTest2ExpectedMessages,
-                    commits.map { TestCommit(it.id, it.message.removeSuffix("\n"), it.parents.toSet()) }.sortedBy { it.id }
+                    getTestCommits("commitsFromId.json"),
+                    commits.map { TestCommit(it.id, it.message.removeSuffix("\n"), it.parents.toSet()) }
+                        .sortedBy { it.id }
+                )
+            },
+            checkError
+        )
+    }
+
+    @Test
+    fun getCommitsFromDateTest() {
+        requestCommitsInterval(
+            vcsRootFormat.format(PROJECT, REPOSITORY_2),
+            null,
+            "master-25\n".dateBeforeCommit(REPOSITORY_2),
+            "master-36\n".commitId(REPOSITORY_2),
+            200,
+            { commits ->
+                Assertions.assertIterableEquals(
+                    getTestCommits("commitsFromDate.json"),
+                    commits.map { it.toTestCommit() }.sortedBy { it.id }
                 )
             },
             checkError
@@ -242,12 +257,17 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
 
     private data class TestCommit(val id: String, val message: String, val parents: Set<String>)
 
-    private val commitsTest2ExpectedMessages : List<TestCommit> by lazy {
+    /*
+    BitBucket does trim commit message, but GitLab/Gitea does not!
+    TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
+    */
+    private fun Commit.toTestCommit() = TestCommit(this.id, this.message.removeSuffix("\n"), this.parents.toSet())
+
+    private fun getTestCommits(resource: String): List<TestCommit> =
         OBJECT_MAPPER.readValue(
-            BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("commitsTest2ExpectedMessages.json"),
+            BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream(resource),
             object : TypeReference<List<TestCommit>>() {}
         )
-    }
 
     private fun getExceptionMessage(name: String): String {
         return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
@@ -303,12 +323,15 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         checkError: CheckError
     )
 
-    private fun String.changeSet(): ChangeSet =
-        commitMessagesChangeSets[this] ?: throw IllegalStateException("No ChangeSet for message: '$this'")
+    private fun String.changeSet(repository: String): ChangeSet {
+        val changeSets = repositoryChangeSets[repository] ?: throw IllegalStateException("No repository '$repository'")
+        return changeSets[this]
+            ?: throw IllegalStateException("No ChangeSet with message '$this' in repository '$repository'")
+    }
 
-    private fun String.dateBeforeCommit(): Date = Date(changeSet().authorDate.time - 1000)
+    private fun String.dateBeforeCommit(repository: String): Date = Date(changeSet(repository).authorDate.time - 1)
 
-    protected fun String.commitId(): String = changeSet().id
+    protected fun String.commitId(repository: String): String = changeSet(repository).id
 
     //<editor-fold defaultstate="collapsed" desc="test data">
     private fun commits(): Stream<Arguments> {
@@ -317,35 +340,35 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
-                MESSAGE_3.commitId(),
+                MESSAGE_3.commitId(REPOSITORY),
                 listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
-                MESSAGE_2.dateBeforeCommit(),
-                MESSAGE_3.commitId(),
+                MESSAGE_2.dateBeforeCommit(REPOSITORY),
+                MESSAGE_3.commitId(REPOSITORY),
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(),
+                MESSAGE_1.commitId(REPOSITORY),
                 null,
-                MESSAGE_3.commitId(),
+                MESSAGE_3.commitId(REPOSITORY),
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
-                MESSAGE_2.commitId(),
+                MESSAGE_2.commitId(REPOSITORY),
                 listOf(MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_3.commitId(),
+                MESSAGE_3.commitId(REPOSITORY),
                 null,
-                MESSAGE_3.commitId(),
+                MESSAGE_3.commitId(REPOSITORY),
                 emptyList<String>()
             ),
             Arguments.of(
@@ -380,13 +403,13 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 DEFAULT_ID,
                 null,
-                MESSAGE_2.commitId(),
+                MESSAGE_2.commitId(REPOSITORY),
                 "commitsException_1",
                 400
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(),
+                MESSAGE_1.commitId(REPOSITORY),
                 null,
                 DEFAULT_ID,
                 "commitsException_1",
@@ -395,9 +418,9 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
 
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(),
-                MESSAGE_2.dateBeforeCommit(),
-                MESSAGE_3.commitId(),
+                MESSAGE_1.commitId(REPOSITORY),
+                MESSAGE_2.dateBeforeCommit(REPOSITORY),
+                MESSAGE_3.commitId(REPOSITORY),
                 "commitsException_2",
                 400
             )
@@ -408,13 +431,13 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         return Stream.of(
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_3.commitId(),
-                MESSAGE_3.commitId() to MESSAGE_3
+                MESSAGE_3.commitId(REPOSITORY),
+                MESSAGE_3.commitId(REPOSITORY) to MESSAGE_3
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 FEATURE_BRANCH,
-                FEATURE_MESSAGE_1.commitId() to FEATURE_MESSAGE_1
+                FEATURE_MESSAGE_1.commitId(REPOSITORY) to FEATURE_MESSAGE_1
             )
         )
     }
@@ -423,7 +446,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         return Stream.of(
             Arguments.of(
                 vcsRootFormat.format(PROJECT, "absent"),
-                MESSAGE_3.commitId(),
+                MESSAGE_3.commitId(REPOSITORY),
                 "absent-bitbucket-repo",
                 400
             ),
@@ -441,9 +464,9 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 listOf(
-                    Tag(MESSAGE_3.commitId(), TAG_3),
-                    Tag(MESSAGE_2.commitId(), TAG_2),
-                    Tag(MESSAGE_1.commitId(), TAG_1)
+                    Tag(MESSAGE_3.commitId(REPOSITORY), TAG_3),
+                    Tag(MESSAGE_2.commitId(REPOSITORY), TAG_2),
+                    Tag(MESSAGE_1.commitId(REPOSITORY), TAG_1)
                 )
             )
         )
@@ -462,7 +485,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
     protected open fun issueCommits(): Stream<Arguments> {
         return Stream.of(
             Arguments.of("ABSENT-1", emptyList<String>()),
-            Arguments.of("TEST-1", listOf(MESSAGE_2.commitId(), MESSAGE_1.commitId()))
+            Arguments.of("TEST-1", listOf(MESSAGE_2.commitId(REPOSITORY), MESSAGE_1.commitId(REPOSITORY)))
         )
     }
 
@@ -476,7 +499,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                         vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
-                        MESSAGE_3.commitId()
+                        MESSAGE_3.commitId(REPOSITORY)
                     )
                 ),
                 SearchIssueInRangesResponse(
@@ -486,7 +509,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
-                                MESSAGE_3.commitId()
+                                MESSAGE_3.commitId(REPOSITORY)
                             )
                         ),
                         "TEST-2" to setOf(
@@ -494,7 +517,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
-                                MESSAGE_3.commitId()
+                                MESSAGE_3.commitId(REPOSITORY)
                             )
                         )
                     )
@@ -539,7 +562,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                     RepositoryRange(
                         vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
-                        MESSAGE_3.dateBeforeCommit(),
+                        MESSAGE_3.dateBeforeCommit(REPOSITORY),
                         "refs/heads/$MAIN_BRANCH"
                     )
                 ),
@@ -549,7 +572,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                             RepositoryRange(
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
-                                MESSAGE_3.dateBeforeCommit(),
+                                MESSAGE_3.dateBeforeCommit(REPOSITORY),
                                 "refs/heads/$MAIN_BRANCH"
                             )
                         )
@@ -564,7 +587,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                         vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
-                        MESSAGE_3.commitId()
+                        MESSAGE_3.commitId(REPOSITORY)
                     )
                 ),
                 SearchIssueInRangesResponse(
@@ -574,7 +597,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
-                                MESSAGE_3.commitId()
+                                MESSAGE_3.commitId(REPOSITORY)
                             )
                         ),
                     )
@@ -588,7 +611,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                         vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
-                        MESSAGE_3.commitId()
+                        MESSAGE_3.commitId(REPOSITORY)
                     )
                 ),
                 SearchIssueInRangesResponse(emptyMap())
@@ -629,9 +652,9 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 setOf(
                     RepositoryRange(
                         vcsRootFormat.format(PROJECT, REPOSITORY),
-                        MESSAGE_3.commitId(),
+                        MESSAGE_3.commitId(REPOSITORY),
                         null,
-                        MESSAGE_1.commitId()
+                        MESSAGE_1.commitId(REPOSITORY)
                     )
                 ),
                 "commitsException_3",
