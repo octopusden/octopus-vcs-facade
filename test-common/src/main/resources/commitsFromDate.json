@@ -192,13 +192,6 @@
     ]
   },
   {
-    "id": "c79babff3c1405618214eba90398c685ac4c0349",
-    "message": "master-25",
-    "parents": [
-      "d64326f97301c60eb85b9f95da6d2f563fc23bca"
-    ]
-  },
-  {
     "id": "cf1ed77a3b13dc829ea9204f132355a76d4c1741",
     "message": "Merge branch 'branch11' into branch13\n\n# Conflicts:\n#\tREADME.md",
     "parents": [

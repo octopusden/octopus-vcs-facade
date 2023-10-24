@@ -81,7 +81,7 @@ abstract class VCSClient(vcsProperties: VCSConfig.VCSProperties) {
         val filter = fromId?.let { _ ->
             { true }
         }
-            ?: fromDate?.let { fromDateValue -> { c: Commit -> c.date >= fromDateValue } }
+            ?: fromDate?.let { fromDateValue -> { c: Commit -> c.date > fromDateValue } }
             ?: { true }
 
         return visited.filter(filter)

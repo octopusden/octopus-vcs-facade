@@ -242,7 +242,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         requestCommitsInterval(
             vcsRootFormat.format(PROJECT, REPOSITORY_2),
             null,
-            "master-25\n".dateBeforeCommit(REPOSITORY_2),
+            "master-25\n".commitDate(REPOSITORY_2),
             "master-36\n".commitId(REPOSITORY_2),
             200,
             { commits ->
@@ -329,7 +329,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             ?: throw IllegalStateException("No ChangeSet with message '$this' in repository '$repository'")
     }
 
-    private fun String.dateBeforeCommit(repository: String): Date = Date(changeSet(repository).authorDate.time - 1)
+    private fun String.commitDate(repository: String): Date = changeSet(repository).authorDate
 
     protected fun String.commitId(repository: String): String = changeSet(repository).id
 
@@ -346,9 +346,9 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
-                MESSAGE_2.dateBeforeCommit(REPOSITORY),
+                MESSAGE_2.commitDate(REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY),
-                listOf(MESSAGE_3, MESSAGE_2)
+                listOf(MESSAGE_3)
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
@@ -419,7 +419,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(REPOSITORY),
-                MESSAGE_2.dateBeforeCommit(REPOSITORY),
+                MESSAGE_2.commitDate(REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY),
                 "commitsException_2",
                 400
@@ -562,7 +562,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                     RepositoryRange(
                         vcsRootFormat.format(PROJECT, REPOSITORY),
                         null,
-                        MESSAGE_3.dateBeforeCommit(REPOSITORY),
+                        MESSAGE_2.commitDate(REPOSITORY),
                         "refs/heads/$MAIN_BRANCH"
                     )
                 ),
@@ -572,7 +572,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                             RepositoryRange(
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
-                                MESSAGE_3.dateBeforeCommit(REPOSITORY),
+                                MESSAGE_2.commitDate(REPOSITORY),
                                 "refs/heads/$MAIN_BRANCH"
                             )
                         )
