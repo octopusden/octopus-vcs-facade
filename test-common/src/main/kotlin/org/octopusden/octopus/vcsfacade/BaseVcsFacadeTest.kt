@@ -82,7 +82,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
 
     @ParameterizedTest
     @MethodSource("commitsException")
-    fun getCommitExceptionTest(
+    fun getCommitsExceptionTest(
         repository: String,
         fromId: String?,
         fromDate: Date?,
@@ -229,8 +229,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             { commits ->
                 Assertions.assertIterableEquals(
                     getTestCommits("commitsFromId.json"),
-                    commits.map { TestCommit(it.id, it.message.removeSuffix("\n"), it.parents.toSet()) }
-                        .sortedBy { it.id }
+                    commits.map { it.toTestCommit() }
                 )
             },
             checkError
@@ -248,7 +247,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             { commits ->
                 Assertions.assertIterableEquals(
                     getTestCommits("commitsFromDate.json"),
-                    commits.map { it.toTestCommit() }.sortedBy { it.id }
+                    commits.map { it.toTestCommit() }
                 )
             },
             checkError
@@ -388,7 +387,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 null,
                 null,
                 DEFAULT_ID,
-                "absent-bitbucket-repo",
+                "absent-repo",
                 400
             ),
             Arguments.of(
@@ -404,7 +403,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 DEFAULT_ID,
                 null,
                 MESSAGE_2.commitId(REPOSITORY),
-                "commitsException_1",
+                "commitById",
                 400
             ),
             Arguments.of(
@@ -412,7 +411,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                 MESSAGE_1.commitId(REPOSITORY),
                 null,
                 DEFAULT_ID,
-                "commitsException_1",
+                "commitById",
                 400
             ),
 
@@ -447,7 +446,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             Arguments.of(
                 vcsRootFormat.format(PROJECT, "absent"),
                 MESSAGE_3.commitId(REPOSITORY),
-                "absent-bitbucket-repo",
+                "absent-repo",
                 400
             ),
             Arguments.of(
@@ -476,7 +475,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         return Stream.of(
             Arguments.of(
                 vcsRootFormat.format(PROJECT, "absent"),
-                "absent-bitbucket-repo",
+                "absent-repo",
                 400
             )
         )
@@ -688,7 +687,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             vcsRootFormat.format(PROJECT, "absent"),
             FEATURE_BRANCH,
             MAIN_BRANCH,
-            "absent-bitbucket-repo",
+            "absent-repo",
             400
         ),
         Arguments.of(
