@@ -12,7 +12,7 @@ interface VCSManager {
     fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit>
     fun getTagsForRepository(vcsPath: String): List<Tag>
     fun findCommits(issueKey: String): List<Commit>
-    fun findCommit(vcsPath: String, commitId: String): Commit
+    fun findCommit(vcsPath: String, commitIdOrRef: String): Commit
     fun createPullRequest(vcsPath: String, pullRequestRequest: PullRequestRequest): PullRequestResponse
     fun getIssueRanges(searchRequest: SearchIssuesInRangesRequest): Map<String, Set<RepositoryRange>>
 }
