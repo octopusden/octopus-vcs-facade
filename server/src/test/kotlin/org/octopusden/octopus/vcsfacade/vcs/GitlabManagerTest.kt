@@ -10,8 +10,8 @@ class GitlabManagerTest : Spek({
     describe("a vcs url parser") {
         it("should correctly parse") {
             assertEquals(
-                    "platform/modeler" to "modeler-gen2",
-                    "git@gitlab:platform/modeler/modeler-gen2.git".toNamespaceAndProject()
+                    "platform/module" to "module-v2",
+                    "git@gitlab:platform/module/module-v2.git".toNamespaceAndProject()
             )
             assertEquals(
                     "one/two/three" to "project",
