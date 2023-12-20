@@ -25,7 +25,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 
 @Service
-@ConditionalOnProperty(prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+    prefix = "vcs-facade.vcs.bitbucket",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true
+)
 class BitbucketService(
     bitbucketProperties: VCSConfig.BitbucketProperties,
 ) : VCSClient(bitbucketProperties) {
@@ -81,11 +86,15 @@ class BitbucketService(
     override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
         val (project, repository) = vcsPath.toProjectAndRepository()
         return execute("getCommit($vcsPath, $commitIdOrRef)") {
-            bitbucketClient.getCommit(
-                project,
-                repository,
-                getBranchLatestCommit(project, repository, commitIdOrRef) ?: commitIdOrRef
-            )
+            try {
+                bitbucketClient.getCommit(project, repository, commitIdOrRef)
+            } catch (e: IllegalArgumentException) {
+                getBranchLatestCommit(project, repository, commitIdOrRef)?.let { commitId ->
+                    bitbucketClient.getCommit(project, repository, commitId)
+                } ?: throw org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException(
+                    "Ref '$commitIdOrRef' does not exist in repository '$repository'"
+                )
+            }
         }.toCommit(vcsPath)
     }
 
