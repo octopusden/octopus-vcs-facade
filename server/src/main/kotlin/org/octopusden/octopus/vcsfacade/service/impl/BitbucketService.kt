@@ -89,6 +89,7 @@ class BitbucketService(
             try {
                 bitbucketClient.getCommit(project, repository, commitIdOrRef)
             } catch (e: IllegalArgumentException) {
+                log.info("Treat `$commitIdOrRef` as a ref. ${e.message}")
                 getBranchLatestCommit(project, repository, commitIdOrRef)?.let { commitId ->
                     bitbucketClient.getCommit(project, repository, commitId)
                 } ?: throw org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException(
