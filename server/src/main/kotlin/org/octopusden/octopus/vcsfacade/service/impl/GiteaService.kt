@@ -42,7 +42,7 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
         }
     })
 
-    override val vcsPathRegex = "ssh://git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
+    override val vcsPathRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
 
     private fun String.toOrganizationAndRepository() =
         vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1() to it.component2() }

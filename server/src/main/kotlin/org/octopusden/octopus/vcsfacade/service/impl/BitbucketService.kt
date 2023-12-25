@@ -49,7 +49,7 @@ class BitbucketService(
         }
     })
 
-    override val vcsPathRegex = "ssh://git@$host/([^/]+)/([^/]+).git".toRegex()
+    override val vcsPathRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
 
     private fun String.toProjectAndRepository() =
         vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1() to it.component2() }

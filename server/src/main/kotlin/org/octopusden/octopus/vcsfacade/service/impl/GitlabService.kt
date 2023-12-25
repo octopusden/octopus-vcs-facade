@@ -43,10 +43,10 @@ class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gi
     private var tokenObtained: Instant = Instant.MIN
     private var token: String = ""
 
-    override val vcsPathRegex = "ssh://git@$host:(([^/]+/)+)([^/]+).git".toRegex()
+    override val vcsPathRegex = "(?:ssh://)?git@$host:((?:[^/]+/)+)([^/]+).git".toRegex()
 
     private fun String.toNamespaceAndProject() =
-        vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1().trimEnd('/') to it.component3() }
+        vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1().trimEnd('/') to it.component2() }
 
     override fun getCommits(vcsPath: String, toId: String, fromId: String): Collection<Commit> {
         val project = getProject(vcsPath)
