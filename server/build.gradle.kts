@@ -167,8 +167,6 @@ dependencies {
         exclude(group = "org.slf4j")
     }
 
-    testImplementation("org.jetbrains.spek:spek-api:1.1.5")
-    testRuntimeOnly("org.jetbrains.spek:spek-junit-platform-engine:1.1.5")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.7")
     implementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

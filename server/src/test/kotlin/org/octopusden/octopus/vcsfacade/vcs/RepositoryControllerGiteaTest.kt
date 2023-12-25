@@ -9,7 +9,7 @@ private const val vcsHost = "localhost:3000"
 class RepositoryControllerGiteaTest :
     BaseRepositoryControllerTest(
         GiteaTestClient("http://$vcsHost", GITEA_USER, GITEA_PASSWORD),
-        "git@$vcsHost:%s/%s.git"
+        "ssh://git@$vcsHost:%s/%s.git"
     ) {
 
     //ToDo find implementation

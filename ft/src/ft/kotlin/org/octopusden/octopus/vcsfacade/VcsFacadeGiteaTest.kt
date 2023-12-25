@@ -7,7 +7,7 @@ import java.util.stream.Stream
 class VcsFacadeGiteaTest :
     BaseVcsFacadeFuncTest(
         GiteaTestClient("http://localhost:3000", GITEA_USER, GITEA_PASSWORD),
-        "git@gitea:3000:%s/%s.git"
+        "ssh://git@gitea:3000:%s/%s.git"
     ) {
 
     //ToDo find implementation

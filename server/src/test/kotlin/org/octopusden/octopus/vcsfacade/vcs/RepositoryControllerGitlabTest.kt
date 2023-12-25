@@ -9,7 +9,7 @@ private const val vcsHost = "localhost:8990"
 class RepositoryControllerGitlabTest :
     BaseRepositoryControllerTest(
         GitlabTestClient("http://$vcsHost", GITLAB_USER, GITLAB_PASSWORD),
-        "git@$vcsHost:%s/%s.git"
+        "ssh://git@$vcsHost:%s/%s.git"
     ) {
 
     //ToDo find implementation

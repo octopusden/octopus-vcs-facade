@@ -27,7 +27,6 @@ import org.springframework.stereotype.Service
 @Service
 @ConditionalOnProperty(prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true)
 class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(giteaProperties) {
-
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = giteaProperties.host
 
@@ -43,7 +42,10 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
         }
     })
 
-    override val repoPrefix: String = "git@"
+    override val vcsPathRegex = "ssh://git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
+
+    private fun String.toOrganizationAndRepository() =
+        vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1() to it.component2() }
 
     override fun getCommits(vcsPath: String, toId: String, fromId: String): Collection<Commit> {
         val (organization, repository) = vcsPath.toOrganizationAndRepository()
@@ -90,10 +92,6 @@ class GiteaService(giteaProperties: VCSConfig.GiteaProperties) : VCSClient(gitea
             ).toPullRequestResponse()
         }
     }
-
-    private fun String.toOrganizationAndRepository() =
-        replace("$repoPrefix${getHost()}[^:]*:".toRegex(), "").replace(".git$".toRegex(), "").split("/")
-            .let { it[0] to it[1] }
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)

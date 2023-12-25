@@ -34,9 +34,6 @@ import org.springframework.stereotype.Service
 class BitbucketService(
     bitbucketProperties: VCSConfig.BitbucketProperties,
 ) : VCSClient(bitbucketProperties) {
-
-    override val repoPrefix: String = "ssh://git@"
-
     private val bitbucketClient: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = bitbucketProperties.host
 
@@ -51,6 +48,11 @@ class BitbucketService(
                 )
         }
     })
+
+    override val vcsPathRegex = "ssh://git@$host/([^/]+)/([^/]+).git".toRegex()
+
+    private fun String.toProjectAndRepository() =
+        vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1() to it.component2() }
 
     override fun getCommits(vcsPath: String, toId: String, fromId: String): Collection<Commit> {
         val (project, repository) = vcsPath.toProjectAndRepository()
@@ -122,11 +124,6 @@ class BitbucketService(
         return bitbucketClient.getBranches(project, repository)
             .firstOrNull { b -> b.id == fullBranchName }?.latestCommit
     }
-
-    private fun String.toProjectAndRepository() =
-        replace("$repoPrefix${getHost()}[^/]*/".toRegex(), "").replace("\\.git$".toRegex(), "").let {
-            it.substringBeforeLast('/').replace("^/".toRegex(), "") to it.substringAfterLast('/')
-        }
 
     companion object {
         private val log = LoggerFactory.getLogger(BitbucketService::class.java)

@@ -20,11 +20,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 
 @Service
-@ConditionalOnProperty(prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+    prefix = "vcs-facade.vcs.gitlab",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true
+)
 class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gitLabProperties) {
-
-    override val repoPrefix: String = "git@"
-
     private val clientFunc: () -> GitLabApi = {
         val authException by lazy {
             IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
@@ -40,6 +42,11 @@ class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gi
 
     private var tokenObtained: Instant = Instant.MIN
     private var token: String = ""
+
+    override val vcsPathRegex = "ssh://git@$host:(([^/]+/)+)([^/]+).git".toRegex()
+
+    private fun String.toNamespaceAndProject() =
+        vcsPathRegex.find(this.lowercase())!!.destructured.let { it.component1().trimEnd('/') to it.component3() }
 
     override fun getCommits(vcsPath: String, toId: String, fromId: String): Collection<Commit> {
         val project = getProject(vcsPath)
@@ -103,7 +110,7 @@ class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gi
         val sourceBranch = pullRequestRequest.sourceBranch.toShortBranchName()
         val targetBranch = pullRequestRequest.targetBranch.toShortBranchName()
         retryableExecution("Source branch 'absent' not found in '$namespace:$projectName'") {
-            client.repositoryApi.getBranch(project.id,  sourceBranch)
+            client.repositoryApi.getBranch(project.id, sourceBranch)
         }
         retryableExecution("Target branch 'absent' not found in '$namespace:$projectName'") {
             client.repositoryApi.getBranch(project.id, targetBranch)
@@ -251,9 +258,3 @@ class GitlabService(gitLabProperties: VCSConfig.GitLabProperties) : VCSClient(gi
         }
     }
 }
-
-fun String.toNamespaceAndProject() = split(":").last().replace("\\.git$".toRegex(), "").let {
-    it.substringBeforeLast('/').replace("^/".toRegex(), "") to it.substringAfterLast('/')
-}
-
-

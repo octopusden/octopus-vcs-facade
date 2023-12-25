@@ -4,35 +4,33 @@ eureka:
 
 vcs-facade:
   vcs:
-    gitlab:
-      host: http://localhost:8990
-      token:
-      username: root
-      password: VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0=
-      health-check:
-        repo: git@localhost:1080/gitlab:test-data/vcs-facade-healthcheck.git
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-
     bitbucket:
-      host: http://localhost:7990
+      host: http://localhost:7990/
       token:
       username: admin
       password: admin
       health-check:
-        repo: ssh://git@localhost:1080/bitbucket/releng/vcs-facade-healthcheck.git
+        repo: ssh://git@localhost:7990/test-data/vcs-facade-healthcheck.git
         rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
         lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
         expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-
     gitea:
-      host: http://localhost:3000
+      host: http://localhost:3000/
       token:
       username: test-admin
       password: test-admin
       health-check:
-        repo: git@localhost:1080/gitlab:test-data/vcs-facade-healthcheck.git
+        repo: ssh://git@localhost:3000:test-data/vcs-facade-healthcheck.git
+        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+    gitlab:
+      host: http://localhost:8990/
+      token:
+      username: root
+      password: VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0=
+      health-check:
+        repo: ssh://git@localhost:8990:test-data/vcs-facade-healthcheck.git
         rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
         lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
         expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5

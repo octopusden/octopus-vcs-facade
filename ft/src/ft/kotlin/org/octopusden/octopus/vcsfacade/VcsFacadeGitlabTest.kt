@@ -6,7 +6,7 @@ import java.util.stream.Stream
 
 class VcsFacadeGitlabTest : BaseVcsFacadeFuncTest(
     GitlabTestClient("http://localhost:8990", GITLAB_USER, GITLAB_PASSWORD),
-    "git@gitlab:8990:%s/%s.git"
+    "ssh://git@gitlab:8990:%s/%s.git"
 ) {
 
     //ToDo find implementation
