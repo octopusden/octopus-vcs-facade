@@ -4,14 +4,12 @@ import org.junit.jupiter.params.provider.Arguments
 import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
 import java.util.stream.Stream
 
-private const val vcsHost = "localhost:3000"
+private const val VCS_HOST = "localhost:3000"
 
-class RepositoryControllerGiteaTest :
-    BaseRepositoryControllerTest(
-        GiteaTestClient("http://$vcsHost", GITEA_USER, GITEA_PASSWORD),
-        "git@$vcsHost:%s/%s.git"
-    ) {
-
+class RepositoryControllerGiteaTest : BaseRepositoryControllerTest(
+    GiteaTestClient("http://$VCS_HOST", GITEA_USER, GITEA_PASSWORD),
+    "ssh://git@$VCS_HOST:%s/%s.git"
+) {
     //ToDo find implementation
     override fun issueCommits(): Stream<Arguments> = Stream.of(
         Arguments.of("ABSENT-1", emptyList<String>()),
@@ -23,7 +21,11 @@ class RepositoryControllerGiteaTest :
             "commitById" to DEFAULT_ID,
             "commitsException_1" to "object does not exist [id: $DEFAULT_ID, rel_path: ]",
             "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
-            "commitsException_3" to "Cannot find commit '${MESSAGE_3.commitId(REPOSITORY)}' in commit graph for commit '${MESSAGE_1.commitId(REPOSITORY)}' in '$PROJECT:$REPOSITORY'",
+            "commitsException_3" to "Cannot find commit '${MESSAGE_3.commitId(REPOSITORY)}' in commit graph for commit '${
+                MESSAGE_1.commitId(
+                    REPOSITORY
+                )
+            }' in '$PROJECT:$REPOSITORY'",
             "pr_1" to "GetUserByName",
             "pr_2" to "Source branch 'absent' not found in '$PROJECT:$REPOSITORY'",
             "pr_3" to "Target branch 'absent' not found in '$PROJECT:$REPOSITORY'"

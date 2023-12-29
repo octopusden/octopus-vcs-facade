@@ -45,16 +45,6 @@ services:
       POSTGRES_PASSWORD: bitbucket
       POSTGRES_DB: bitbucket
 
-  gitlab:
-    container_name: vcs-facade-ft-gitlab
-    image: ${DOCKER_REGISTRY}/gitlab/gitlab-ce:16.2.4-ce.0
-    depends_on:
-      - gitlab-db
-    ports:
-      - "8990:8990"
-    volumes:
-      - ./gitlab/gitlab.rb:/etc/gitlab/gitlab.rb
-
   gitea:
     image: ${DOCKER_REGISTRY}/gitea/gitea:1.20.4
     container_name: vcs-facade-ft-gitea
@@ -68,6 +58,16 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
+
+  gitlab:
+    container_name: vcs-facade-ft-gitlab
+    image: ${DOCKER_REGISTRY}/gitlab/gitlab-ce:16.2.4-ce.0
+    depends_on:
+      - gitlab-db
+    ports:
+      - "8990:8990"
+    volumes:
+      - ./gitlab/gitlab.rb:/etc/gitlab/gitlab.rb
 
   gitlab-db:
     container_name: vcs-facade-ft-gitlab-db
