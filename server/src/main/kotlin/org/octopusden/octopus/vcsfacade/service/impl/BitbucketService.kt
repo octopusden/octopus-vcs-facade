@@ -10,6 +10,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentia
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketLinkName
+import org.octopusden.octopus.infrastructure.bitbucket.client.exception.InvalidCommitIdException
 import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTags
@@ -23,6 +24,7 @@ import org.octopusden.octopus.vcsfacade.service.VCSClient
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
+import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException as BitBucketNotFoundException
 
 @Service
 @ConditionalOnProperty(
@@ -90,13 +92,11 @@ class BitbucketService(
         return execute("getCommit($vcsPath, $commitIdOrRef)") {
             try {
                 bitbucketClient.getCommit(project, repository, commitIdOrRef)
-            } catch (e: IllegalArgumentException) {
+            } catch (e: InvalidCommitIdException) {
                 log.info("Treat `$commitIdOrRef` as a ref. ${e.message}")
                 getBranchLatestCommit(project, repository, commitIdOrRef)?.let { commitId ->
                     bitbucketClient.getCommit(project, repository, commitId)
-                } ?: throw org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException(
-                    "Ref '$commitIdOrRef' does not exist in repository '$repository'"
-                )
+                } ?: throw BitBucketNotFoundException("Ref '$commitIdOrRef' does not exist in repository '$repository'")
             }
         }.toCommit(vcsPath)
     }
@@ -131,7 +131,7 @@ class BitbucketService(
         private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
             try {
                 return clientFunction.invoke()
-            } catch (e: org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException) {
+            } catch (e: BitBucketNotFoundException) {
                 log.error("$errorMessage: ${e.message}")
                 throw NotFoundException(e.message ?: e::class.qualifiedName!!)
             }

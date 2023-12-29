@@ -2,11 +2,11 @@ package org.octopusden.octopus.vcsfacade.vcs
 
 import org.octopusden.octopus.infastructure.bitbucket.test.BitbucketTestClient
 
-private const val vcsHost = "localhost:7990"
+private const val VCS_HOST = "localhost:7990"
 
 class RepositoryControllerBitbucketTest : BaseRepositoryControllerTest(
-    BitbucketTestClient(vcsHost, BITBUCKET_USER, BITBUCKET_PASSWORD),
-    "ssh://git@$vcsHost/%s/%s.git"
+    BitbucketTestClient("http://$VCS_HOST", BITBUCKET_USER, BITBUCKET_PASSWORD),
+    "ssh://git@$VCS_HOST/%s/%s.git"
 ) {
     override val exceptionsMessageInfo: Map<String, String> by lazy {
         mapOf(
