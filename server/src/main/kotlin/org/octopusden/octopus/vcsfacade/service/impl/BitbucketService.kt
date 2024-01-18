@@ -1,6 +1,5 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
-import java.util.Date
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBasicCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBearerTokenCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicClient
@@ -10,8 +9,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentia
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketLinkName
-import org.octopusden.octopus.infrastructure.bitbucket.client.exception.InvalidCommitIdException
-import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
+import org.octopusden.octopus.infrastructure.bitbucket.client.getCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
@@ -24,6 +22,7 @@ import org.octopusden.octopus.vcsfacade.service.VCSClient
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
+import java.util.Date
 import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException as BitBucketNotFoundException
 
 @Service
@@ -90,14 +89,7 @@ class BitbucketService(
     override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
         val (project, repository) = vcsPath.toProjectAndRepository()
         return execute("getCommit($vcsPath, $commitIdOrRef)") {
-            try {
-                bitbucketClient.getCommit(project, repository, commitIdOrRef)
-            } catch (e: InvalidCommitIdException) {
-                log.info("Treat `$commitIdOrRef` as a ref. ${e.message}")
-                getBranchLatestCommit(project, repository, commitIdOrRef)?.let { commitId ->
-                    bitbucketClient.getCommit(project, repository, commitId)
-                } ?: throw BitBucketNotFoundException("Ref '$commitIdOrRef' does not exist in repository '$repository'")
-            }
+            bitbucketClient.getCommit(project, repository, commitIdOrRef)
         }.toCommit(vcsPath)
     }
 
@@ -116,13 +108,6 @@ class BitbucketService(
             )
             PullRequestResponse(pullRequest.id)
         }
-    }
-
-    private fun getBranchLatestCommit(project: String, repository: String, branchName: String): String? {
-        val shortBranchName = branchName.replace("^refs/heads/".toRegex(), "")
-        val fullBranchName = "refs/heads/$shortBranchName"
-        return bitbucketClient.getBranches(project, repository)
-            .firstOrNull { b -> b.id == fullBranchName }?.latestCommit
     }
 
     companion object {

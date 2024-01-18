@@ -3,9 +3,6 @@ package org.octopusden.octopus.vcsfacade
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import java.io.File
-import java.util.Date
-import java.util.stream.Stream
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -23,6 +20,9 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
+import java.io.File
+import java.util.Date
+import java.util.stream.Stream
 
 typealias CheckError = (Pair<Int, String>) -> Unit
 
@@ -358,6 +358,20 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             ),
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
+                MESSAGE_1.commitId(REPOSITORY),
+                null,
+                MAIN_BRANCH,
+                listOf(MESSAGE_3, MESSAGE_2)
+            ),
+            Arguments.of(
+                vcsRootFormat.format(PROJECT, REPOSITORY),
+                MESSAGE_1.commitId(REPOSITORY),
+                null,
+                "refs/heads/master",
+                listOf(MESSAGE_3, MESSAGE_2)
+            ),
+            Arguments.of(
+                vcsRootFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MESSAGE_2.commitId(REPOSITORY),
@@ -547,6 +561,38 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
                             RepositoryRange(
                                 vcsRootFormat.format(PROJECT, REPOSITORY),
                                 null,
+                                null,
+                                "refs/heads/$MAIN_BRANCH"
+                            )
+                        )
+                    )
+                )
+            ),
+            Arguments.of(
+                vcsRootFormat.format(PROJECT, REPOSITORY),
+                setOf("TEST-1", "TEST-2"),
+                setOf(
+                    RepositoryRange(
+                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        MESSAGE_INIT.commitId(REPOSITORY),
+                        null,
+                        "refs/heads/$MAIN_BRANCH"
+                    )
+                ),
+                SearchIssueInRangesResponse(
+                    mapOf(
+                        "TEST-1" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                MESSAGE_INIT.commitId(REPOSITORY),
+                                null,
+                                "refs/heads/$MAIN_BRANCH"
+                            )
+                        ),
+                        "TEST-2" to setOf(
+                            RepositoryRange(
+                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                MESSAGE_INIT.commitId(REPOSITORY),
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
                             )
