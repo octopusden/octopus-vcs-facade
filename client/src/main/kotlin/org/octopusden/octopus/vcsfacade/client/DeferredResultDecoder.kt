@@ -26,7 +26,7 @@ class DeferredResultDecoder(private val objectMapper: ObjectMapper) : JacksonDec
                 HttpStatus.SC_ACCEPTED,
                 "Waiting response generation",
                 response.request().httpMethod(),
-                retryResponse.retryAfter,
+                retryResponse.retryAfter.time,
                 response.request()
             )
         }

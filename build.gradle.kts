@@ -1,61 +1,92 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    java
-    idea
-    id("org.jetbrains.kotlin.jvm") apply (false)
-    id("io.github.gradle-nexus.publish-plugin")
-    signing
+	java
+	idea
+	id("io.spring.dependency-management")
+	id("org.jetbrains.kotlin.jvm")
+	id("io.github.gradle-nexus.publish-plugin")
+	signing
 }
 
 allprojects {
-    group = "org.octopusden.octopus.vcsfacade"
+	group = "org.octopusden.octopus.vcsfacade"
 }
 
 nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-            username.set(System.getenv("MAVEN_USERNAME"))
-            password.set(System.getenv("MAVEN_PASSWORD"))
-        }
-    }
+	repositories {
+		sonatype {
+			nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+			snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+			username.set(System.getenv("MAVEN_USERNAME"))
+			password.set(System.getenv("MAVEN_PASSWORD"))
+		}
+	}
 }
 
 subprojects {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "idea")
-    apply(plugin = "java")
-    apply(plugin = "signing")
+	apply(plugin = "java")
+	apply(plugin = "idea")
+	apply(plugin = "io.spring.dependency-management")
+	apply(plugin = "org.jetbrains.kotlin.jvm")
+	apply(plugin = "signing")
 
-    java {
-        withJavadocJar()
-        withSourcesJar()
-    }
+	repositories {
+		mavenCentral()
+	}
 
-    repositories {
-        mavenCentral()
-    }
+	idea.module {
+		isDownloadJavadoc = true
+		isDownloadSources = true
+	}
 
-    idea.module {
-        isDownloadJavadoc = true
-        isDownloadSources = true
-    }
+	java {
+		withJavadocJar()
+		withSourcesJar()
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
+	}
 
-    tasks.withType<Test> {
-        useJUnitPlatform()
-    }
+	tasks.withType<KotlinCompile>().configureEach {
+		kotlinOptions {
+			freeCompilerArgs += "-Xjsr305=strict"
+			suppressWarnings = true
+			jvmTarget = "21"
+		}
+	}
 
-    dependencies {
-        implementation(platform("com.fasterxml.jackson:jackson-bom:2.11.3"))
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    }
+	tasks.withType<Test> {
+		useJUnitPlatform()
+	}
 
-    tasks.withType<KotlinCompile>().configureEach {
-        kotlinOptions {
-            suppressWarnings = true
-            jvmTarget = "1.8"
-        }
-    }
+	dependencyManagement {
+		imports {
+			mavenBom("org.springframework.boot:spring-boot-dependencies:${project.properties["spring-boot.version"]}")
+			mavenBom("org.springframework.cloud:spring-cloud-dependencies:${project.properties["spring-cloud.version"]}")
+		}
+	}
+
+	ext {
+		System.getenv().let {
+			set("signingRequired", it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword"))
+			set("dockerRegistry", System.getenv().getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]))
+			set("octopusGithubDockerRegistry", System.getenv().getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
+			set("bitbucketLicense", System.getenv().getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]))
+		}
+		set("validateFun", { properties: List<String> ->
+			val emptyProperties = properties.filter { (project.ext[it] as? String).isNullOrBlank() }
+			if (emptyProperties.isNotEmpty()) {
+				throw IllegalArgumentException(
+					"Start gradle build with" +
+							(if (emptyProperties.contains("dockerRegistry")) " -Pdocker.registry=..." else "") +
+							(if (emptyProperties.contains("octopusGithubDockerRegistry")) " -Poctopus.github.docker.registry=..." else "") +
+							(if (emptyProperties.contains("bitbucketLicense")) " -Pbitbucket.license=..." else "") +
+							" or set env variable(s):" +
+							(if (emptyProperties.contains("dockerRegistry")) " DOCKER_REGISTRY" else "") +
+							(if (emptyProperties.contains("octopusGithubDockerRegistry")) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else "") +
+							(if (emptyProperties.contains("bitbucketLicense")) " BITBUCKET_LICENSE" else "")
+				)
+			}
+		})
+	}
 }

@@ -2,14 +2,12 @@ package org.octopusden.octopus.vcsfacade.config
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.ConstructorBinding
 import org.springframework.context.annotation.Configuration
 
 @Configuration
 class VCSConfig {
 
     @ConfigurationProperties("vcs-facade.vcs.gitlab")
-    @ConstructorBinding
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.gitlab",
         name = ["enabled"],
@@ -34,7 +32,6 @@ class VCSConfig {
         )
 
     @ConfigurationProperties("vcs-facade.vcs.bitbucket")
-    @ConstructorBinding
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.bitbucket",
         name = ["enabled"],
@@ -59,7 +56,6 @@ class VCSConfig {
         )
 
     @ConfigurationProperties("vcs-facade.vcs.gitea")
-    @ConstructorBinding
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.gitea",
         name = ["enabled"],
@@ -91,8 +87,6 @@ class VCSConfig {
         val healthCheck: HealthCheck,
         val enabled: Boolean
     ) {
-
-        @ConstructorBinding
         class HealthCheck(
             val repo: String,
             val rootCommit: String,
