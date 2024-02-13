@@ -69,9 +69,9 @@ subprojects {
     ext {
         System.getenv().let {
             set("signingRequired", it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword"))
-            set("dockerRegistry", System.getenv().getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]))
-            set("octopusGithubDockerRegistry", System.getenv().getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
-            set("bitbucketLicense", System.getenv().getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]))
+            set("dockerRegistry", it.getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]))
+            set("octopusGithubDockerRegistry", it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
+            set("bitbucketLicense", it.getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]))
         }
         set("validateFun", { properties: List<String> ->
             val emptyProperties = properties.filter { (project.ext[it] as? String).isNullOrBlank() }
