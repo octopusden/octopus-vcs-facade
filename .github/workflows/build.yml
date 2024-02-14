@@ -7,5 +7,5 @@ jobs:
     uses: octopusden/octopus-base/.github/workflows/common-java-gradle-build.yml@v2.1.7
     with:
       flow-type: hybrid
-      java-version: '21'
+      java-version: '17'
       docker-image: vcs-facade

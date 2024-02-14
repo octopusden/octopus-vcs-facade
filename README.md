@@ -2,7 +2,7 @@
 
 ## JDK version
 
-21
+17
 
 ## Project properties
 
