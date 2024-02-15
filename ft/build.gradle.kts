@@ -1,39 +1,28 @@
 plugins {
-    id("com.avast.gradle.docker-compose") version "0.16.9"
+    id("com.avast.gradle.docker-compose")
 }
 
-val dockerRegistry = System.getenv().getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]) as? String
-val octopusGithubDockerRegistry = System.getenv().getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]) as? String
-val bitbucketLicense = System.getenv().getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]) as? String
+@Suppress("UNCHECKED_CAST")
+val extValidateFun = project.ext["validateFun"] as ((List<String>) -> Unit)
+fun String.getExt() = project.ext[this] as? String
 
 
 configure<com.avast.gradle.dockercompose.ComposeExtension> {
     useComposeFiles.add("${projectDir}/docker/docker-compose.yml")
     waitForTcpPorts.set(true)
-    captureContainersOutputToFiles.set(buildDir.resolve("docker_logs"))
+    captureContainersOutputToFiles.set(layout.buildDirectory.file("docker_logs").get().asFile)
     environment.putAll(
         mapOf(
             "APP_VERSION" to project.version,
-            "DOCKER_REGISTRY" to dockerRegistry,
-            "OCTOPUS_GITHUB_DOCKER_REGISTRY" to octopusGithubDockerRegistry,
-            "BITBUCKET_LICENSE" to bitbucketLicense
+            "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
+            "OCTOPUS_GITHUB_DOCKER_REGISTRY" to "octopusGithubDockerRegistry".getExt(),
+            "BITBUCKET_LICENSE" to "bitbucketLicense".getExt()
         )
     )
 }
 
 tasks.getByName("composeUp").doFirst {
-    if (dockerRegistry.isNullOrBlank() || octopusGithubDockerRegistry.isNullOrBlank() || bitbucketLicense.isNullOrBlank()) {
-        throw IllegalArgumentException(
-            "Start gradle build with" +
-                    (if (dockerRegistry.isNullOrBlank()) " -Pdocker.registry=..." else "") +
-                    (if (octopusGithubDockerRegistry.isNullOrBlank()) " -Poctopus.github.docker.registry=..." else "") +
-                    (if (bitbucketLicense.isNullOrBlank()) " -Pbitbucket.license=..." else "") +
-                    " or set env variable(s):" +
-                    (if (dockerRegistry.isNullOrBlank()) " DOCKER_REGISTRY" else "") +
-                    (if (octopusGithubDockerRegistry.isNullOrBlank()) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else "") +
-                    (if (bitbucketLicense.isNullOrBlank()) " BITBUCKET_LICENSE" else "")
-        )
-    }
+    extValidateFun.invoke(listOf("dockerRegistry", "octopusGithubDockerRegistry", "bitbucketLicense"))
 }
 
 sourceSets {
@@ -82,10 +71,6 @@ tasks.named("composeUp") {
     dependsOn(":vcs-facade:dockerBuildImage")
 }
 
-tasks.named("ft") {
-    dependsOn("composeUp")
-}
-
 idea.module {
     scopes["PROVIDED"]?.get("plus")?.add(configurations["ftImplementation"])
 }
@@ -94,12 +79,6 @@ dependencies {
     ftImplementation(project(":client"))
     ftImplementation(project(":common"))
     ftImplementation(project(":test-common"))
-    ftImplementation("org.junit.jupiter:junit-jupiter-engine:${project.properties["junit-jupiter.version"]}")
-    ftImplementation("org.junit.jupiter:junit-jupiter-params:${project.properties["junit-jupiter.version"]}")
-    ftImplementation("com.fasterxml.jackson.core:jackson-core")
-    ftImplementation("com.fasterxml.jackson.core:jackson-databind")
-    ftImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-
-    ftImplementation("org.slf4j:slf4j-api:1.7.30")
-    ftImplementation("org.slf4j:slf4j-simple:2.0.7")
+    ftImplementation("org.junit.jupiter:junit-jupiter-engine")
+    ftImplementation("org.junit.jupiter:junit-jupiter-params")
 }

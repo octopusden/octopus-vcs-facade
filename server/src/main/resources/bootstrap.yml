@@ -10,6 +10,3 @@ spring:
       token: ${VAULT_TOKEN}
   application:
     name: vcs-facade
-
-logging:
-  config: classpath:logback.xml

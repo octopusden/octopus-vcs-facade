@@ -63,6 +63,14 @@ class RepositoryController(
     fun getCommitById(@PathVariable("commitId") commitId: String, @RequestParam("vcsPath") vcsPath: String) =
         getCommit(vcsPath, commitId)
 
+    @Deprecated(
+        message="Deprecated endpoint. Backward compatibility with client version 2.0.17 and below",
+        replaceWith = ReplaceWith("getCommit(vcsPath, commitId)")
+    ) //NOTE: Spring boot 2 successfully maps "commit/" to "commit", but Spring boot 3 does not!
+    @GetMapping("commit/", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommitWithSlash(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
+        getCommit(vcsPath, commitIdOrRef)
+
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
         vcsManager.findCommit(vcsPath, commitIdOrRef)
@@ -152,6 +160,7 @@ class RepositoryController(
 
         log.debug("Return job result: $requestId")
         try {
+            @Suppress("UNCHECKED_CAST")
             return requestJobs.remove(requestId)!!.get() as T
         } catch (e: ExecutionException) {
             throw e.cause!!

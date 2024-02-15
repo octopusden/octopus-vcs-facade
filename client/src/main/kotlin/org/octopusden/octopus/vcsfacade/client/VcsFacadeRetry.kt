@@ -50,7 +50,7 @@ class VcsFacadeRetry(private val timeRetryInMillis: Int = 60000) : Retryer {
         private val strategies = mapOf<Int, (e: RetryableException) -> Unit>(
             HttpStatus.SC_ACCEPTED to { e ->
                 val currentDate = Date()
-                val retryAfterDate = e.retryAfter()
+                val retryAfterDate = Date(e.retryAfter())
 
                 log.debug("Deferred result retry after $retryAfterDate")
 

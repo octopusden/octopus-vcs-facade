@@ -2573,7 +2573,7 @@ postgresql['enable'] = false
 #           token: 'xyz456',
 #         },
 #       ],
-#   	},
+#       },
 #     {
 #       name: 'alternative',
 #       node: [

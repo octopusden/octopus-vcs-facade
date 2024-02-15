@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     `maven-publish`
 }
@@ -32,6 +34,7 @@ publishing {
 }
 
 signing {
+    isRequired = project.ext["signingRequired"] as Boolean
     val signingKey: String? by project
     val signingPassword: String? by project
     useInMemoryPgpKeys(signingKey, signingPassword)
@@ -39,17 +42,26 @@ signing {
 }
 
 java {
-    withJavadocJar()
-    withSourcesJar()
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("io.github.openfeign:feign-bom:${project.properties["openfeign.version"]}")
+    }
 }
 
 dependencies {
     api(project(":common"))
-    api(platform("io.github.openfeign:feign-bom:12.2"))
     api("io.github.openfeign:feign-httpclient")
     api("io.github.openfeign:feign-jackson")
     api("io.github.openfeign:feign-slf4j")
-    api("org.apache.httpcomponents:httpclient:4.5.13")
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
     api("com.fasterxml.jackson.core:jackson-databind")
 }
