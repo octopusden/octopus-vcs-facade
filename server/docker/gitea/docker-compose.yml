@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  gitea:
+    image: ${DOCKER_REGISTRY}/gitea/gitea:${GITEA_VERSION}
+    container_name: vcs-facade-ut-gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    volumes:
+      - ./app.ini:/data/gitea/conf/app.ini
+      - ./add_admin.sh:/tmp/add_admin.sh
+    ports:
+      - "3000:3000"
+      - "222:22"
+
+  opensearch:
+    container_name: vcs-facade-ut-opensearch
+    image: ${DOCKER_REGISTRY}/opensearchproject/opensearch:${OPENSEARCH_VERSION}
+    environment:
+      - "discovery.type=single-node"
+      - "plugins.security.disabled=true"
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    healthcheck:
+      test: curl -s -f opensearch:9200/_cat/health >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5

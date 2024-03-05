@@ -11,8 +11,8 @@ import org.octopusden.octopus.vcsfacade.CheckError
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -22,7 +22,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletResponse
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -37,9 +36,9 @@ private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 @ExtendWith(SpringExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootFormat: String) :
-    BaseVcsFacadeTest(testClient, vcsRootFormat) {
+abstract class BaseRepositoryControllerTest(
+    testClient: TestClient, vcsRootFormat: String, tagLinkFormat: String, commitLinkFormat: String
+) : BaseVcsFacadeTest(testClient, vcsRootFormat, tagLinkFormat, commitLinkFormat) {
 
     @Autowired
     private lateinit var mvc: MockMvc
@@ -72,7 +71,6 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<List<Commit>>() {}, checkSuccess, checkError)
     }
 
@@ -92,7 +90,6 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<Commit>() {}, checkSuccess, checkError)
     }
 
@@ -110,7 +107,6 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<List<Tag>>() {}, checkSuccess, checkError)
     }
 
@@ -121,14 +117,12 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/issues/$issueKey")
-
+            MockMvcRequestBuilders.get("/repository/find/$issueKey/commits")
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<List<Commit>>() {}, checkSuccess, checkError)
     }
 
@@ -139,7 +133,6 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
         checkError: CheckError
     ) {
         val content = mapper.writeValueAsString(searchRequest)
-
         val response = mvc.perform(
             MockMvcRequestBuilders.post("/repository/search-issues-in-ranges")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +142,6 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(
             response,
             status,
@@ -161,13 +153,12 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
 
     override fun createPullRequest(
         repository: String,
-        pullRequestRequest: PullRequestRequest,
+        createPullRequest: CreatePullRequest,
         status: Int,
-        checkSuccess: (PullRequestResponse) -> Unit,
+        checkSuccess: (PullRequest) -> Unit,
         checkError: CheckError
     ) {
-        val content = mapper.writeValueAsString(pullRequestRequest)
-
+        val content = mapper.writeValueAsString(createPullRequest)
         val response = mvc.perform(
             MockMvcRequestBuilders.post("/repository/pull-requests?vcsUrl={}", repository)
                 .param("vcsPath", repository)
@@ -178,11 +169,10 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(
             response,
             status,
-            object : TypeReference<PullRequestResponse>() {},
+            object : TypeReference<PullRequest>() {},
             checkSuccess,
             checkError
         )

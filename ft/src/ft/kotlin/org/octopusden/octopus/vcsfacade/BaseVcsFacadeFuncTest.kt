@@ -2,8 +2,8 @@ package org.octopusden.octopus.vcsfacade
 
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -13,8 +13,9 @@ import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
 import java.util.Date
 
-abstract class BaseVcsFacadeFuncTest(testClient: TestClient, vcsRootFormat: String) :
-    BaseVcsFacadeTest(testClient, vcsRootFormat) {
+abstract class BaseVcsFacadeFuncTest(
+    testClient: TestClient, vcsRootFormat: String, tagLinkFormat: String, commitLinkFormat: String
+) : BaseVcsFacadeTest(testClient, vcsRootFormat, tagLinkFormat, commitLinkFormat) {
 
     override fun requestTags(
         repository: String,
@@ -60,7 +61,7 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, vcsRootFormat: Stri
         checkError: CheckError
     ) {
         try {
-            val commits = client.getCommits(issueKey)
+            val commits = client.findCommitsByIssueKey(issueKey)
             checkSuccess(commits)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
@@ -96,13 +97,13 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, vcsRootFormat: Stri
 
     override fun createPullRequest(
         repository: String,
-        pullRequestRequest: PullRequestRequest,
+        createPullRequest: CreatePullRequest,
         status: Int,
-        checkSuccess: (PullRequestResponse) -> Unit,
+        checkSuccess: (PullRequest) -> Unit,
         checkError: CheckError
     ) {
         try {
-            val pullRequest = client.createPullRequest(repository, pullRequestRequest)
+            val pullRequest = client.createPullRequest(repository, createPullRequest)
             checkSuccess(pullRequest)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))

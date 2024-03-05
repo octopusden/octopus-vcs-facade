@@ -3,16 +3,6 @@ package org.octopusden.octopus.vcsfacade.client.impl
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.octopusden.octopus.vcsfacade.client.DeferredResultDecoder
-import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
-import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
-import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetry
-import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import feign.Feign
 import feign.Logger
 import feign.Request
@@ -21,42 +11,47 @@ import feign.jackson.JacksonEncoder
 import feign.slf4j.Slf4jLogger
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import org.octopusden.octopus.vcsfacade.client.DeferredResultDecoder
+import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
+import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
+import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetry
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 
-class ClassicVcsFacadeClient(apiParametersProvider: VcsFacadeClientParametersProvider, private val mapper: ObjectMapper) : VcsFacadeClient {
-    private var client =
-        createClient(apiParametersProvider.getApiUrl(), mapper, apiParametersProvider.getTimeRetryInMillis())
-
-    constructor(apiParametersProvider: VcsFacadeClientParametersProvider) : this(
-        apiParametersProvider,
-        getMapper()
+class ClassicVcsFacadeClient(
+    apiParametersProvider: VcsFacadeClientParametersProvider, private val mapper: ObjectMapper
+) : VcsFacadeClient {
+    private var client = createClient(
+        apiParametersProvider.getApiUrl(), mapper, apiParametersProvider.getTimeRetryInMillis()
     )
 
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<Commit> {
-        return client.getCommits(vcsPath, fromId, fromDate, toId)
-    }
+    constructor(apiParametersProvider: VcsFacadeClientParametersProvider) : this(
+        apiParametersProvider, getMapper()
+    )
 
-    override fun getCommits(issueKey: String): List<Commit> {
-        return client.getCommits(issueKey)
-    }
+    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String) =
+        client.getCommits(vcsPath, fromId, fromDate, toId)
 
-    override fun getCommit(vcsPath: String, cid: String): Commit {
-        return client.getCommit(vcsPath, cid)
-    }
+    override fun getCommit(vcsPath: String, commitIdOrRef: String) = client.getCommit(vcsPath, commitIdOrRef)
 
-    override fun getTags(vcsUrl: String): List<Tag> {
-        return client.getTags(vcsUrl)
-    }
+    override fun getIssuesFromCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String) =
+        client.getIssuesFromCommits(vcsPath, fromId, fromDate, toId)
 
-    override fun getIssuesFromCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): List<String> {
-        return client.getIssuesFromCommits(vcsPath, fromId, fromDate, toId)
-    }
+    override fun getTags(vcsUrl: String) = client.getTags(vcsUrl)
 
-    override fun analyzeRepositoryGraph(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
-        return client.analyzeRepositoryGraph(searchRequest)
-    }
+    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
+        client.searchIssuesInRanges(searchRequest)
 
-    override fun createPullRequest(vcsPath: String, pullRequestRequest: PullRequestRequest): PullRequestResponse
-        = client.createPullRequest(vcsPath, pullRequestRequest)
+    override fun createPullRequest(vcsPath: String, createPullRequest: CreatePullRequest) =
+        client.createPullRequest(vcsPath, createPullRequest)
+
+    override fun findByIssueKey(issueKey: String) = client.findByIssueKey(issueKey)
+
+    override fun findBranchesByIssueKey(issueKey: String) = client.findBranchesByIssueKey(issueKey)
+
+    override fun findCommitsByIssueKey(issueKey: String) = client.findCommitsByIssueKey(issueKey)
+
+    override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
 
     fun setUrl(apiUrl: String, timeRetryInMillis: Int) {
         client = createClient(apiUrl, mapper, timeRetryInMillis)
@@ -70,15 +65,11 @@ class ClassicVcsFacadeClient(apiParametersProvider: VcsFacadeClientParametersPro
         }
 
         private fun createClient(apiUrl: String, objectMapper: ObjectMapper, timeRetryInMillis: Int): VcsFacadeClient {
-            return Feign.builder()
-                .client(ApacheHttpClient())
+            return Feign.builder().client(ApacheHttpClient())
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
-                .encoder(JacksonEncoder(objectMapper))
-                .decoder(DeferredResultDecoder(objectMapper))
-                .errorDecoder(VcsFacadeErrorDecoder(objectMapper))
-                .retryer(VcsFacadeRetry(timeRetryInMillis))
-                .logger(Slf4jLogger(VcsFacadeClient::class.java))
-                .logLevel(Logger.Level.FULL)
+                .encoder(JacksonEncoder(objectMapper)).decoder(DeferredResultDecoder(objectMapper))
+                .errorDecoder(VcsFacadeErrorDecoder(objectMapper)).retryer(VcsFacadeRetry(timeRetryInMillis))
+                .logger(Slf4jLogger(VcsFacadeClient::class.java)).logLevel(Logger.Level.FULL)
                 .target(VcsFacadeClient::class.java, apiUrl)
         }
     }

@@ -44,40 +44,39 @@ signing {
     sign(publishing.publications["bootJar"])
 }
 
-@Suppress("UNCHECKED_CAST")
-val extValidateFun = project.ext["validateFun"] as ((List<String>) -> Unit)
 fun String.getExt() = project.ext[this] as? String
 
 configure<com.avast.gradle.dockercompose.ComposeExtension> {
-    useComposeFiles.add("${projectDir}/docker/docker-compose.yml")
+    useComposeFiles.add("${projectDir}/docker/${"testProfile".getExt()}/docker-compose.yml")
     waitForTcpPorts.set(true)
     captureContainersOutputToFiles.set(layout.buildDirectory.file("docker_logs").get().asFile)
     environment.putAll(
         mapOf(
             "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
-            "BITBUCKET_LICENSE" to "bitbucketLicense".getExt()
+            "BITBUCKET_VERSION" to project.properties["bitbucket.version"],
+            "BITBUCKET_LICENSE" to "bitbucketLicense".getExt(),
+            "GITEA_VERSION" to project.properties["gitea.version"],
+            "GITLAB_VERSION" to project.properties["gitlab.version"],
+            "OPENSEARCH_VERSION" to project.properties["opensearch.version"],
+            "POSTGRES_VERSION" to project.properties["postgres.version"]
         )
     )
 }
 
-tasks.getByName("composeUp").doFirst {
-    extValidateFun.invoke(listOf("dockerRegistry", "bitbucketLicense"))
-}
-
 tasks["composeUp"].doLast {
-    logger.info("Create test-admin in Gitea")
-    val process = ProcessBuilder(
-        "docker", "exec", "vcs-facade-ut-gitea",
-        "/tmp/add_admin.sh"
-    ).start()
-    process.waitFor(10, TimeUnit.SECONDS)
-
-    val output = process.inputStream.bufferedReader().readText()
-    logger.info(output)
-
-    val error = process.errorStream.bufferedReader().readText()
-    if (error.isNotEmpty()) {
-        throw GradleException(error)
+    if ("testProfile".getExt() == "gitea") {
+        logger.info("Create test-admin in Gitea")
+        val process = ProcessBuilder(
+            "docker", "exec", "vcs-facade-ut-gitea",
+            "/tmp/add_admin.sh"
+        ).start()
+        process.waitFor(10, TimeUnit.SECONDS)
+        val output = process.inputStream.bufferedReader().readText()
+        logger.info(output)
+        val error = process.errorStream.bufferedReader().readText()
+        if (error.isNotEmpty()) {
+            throw GradleException(error)
+        }
     }
 }
 
@@ -89,12 +88,9 @@ docker {
     }
 }
 
-tasks.getByName("dockerBuildImage").doFirst {
-    extValidateFun.invoke(listOf("dockerRegistry", "octopusGithubDockerRegistry"))
-}
-
 tasks.withType<Test> {
     dependsOn("composeUp")
+    systemProperties["test.profile"] = "testProfile".getExt()
 }
 
 dockerCompose.isRequiredBy(tasks["test"])
@@ -112,6 +108,7 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
+    implementation("org.opensearch.client:spring-data-opensearch:${project.properties["spring-data-opensearch.version"]}")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${project.properties["springdoc-openapi.version"]}")
     implementation("org.octopusden.octopus.octopus-external-systems-clients:bitbucket-client:${project.properties["external-systems-client.version"]}")
     implementation("org.octopusden.octopus.octopus-external-systems-clients:gitea-client:${project.properties["external-systems-client.version"]}")
@@ -119,8 +116,4 @@ dependencies {
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":test-common"))
-}
-
-configurations.all {
-    exclude("commons-logging", "commons-logging")
 }

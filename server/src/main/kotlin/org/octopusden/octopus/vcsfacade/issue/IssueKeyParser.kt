@@ -1,9 +1,10 @@
 package org.octopusden.octopus.vcsfacade.issue
 
 object IssueKeyParser {
-    private val maxProjectNameLength = 10
-    private val projectKeyPattern = "(?:^|[^-a-zA-Z0-9])([a-zA-Z0-9]{1,$maxProjectNameLength}-\\d+)".toRegex()
+    private val issueKeyPattern = "(?:^|[^_A-Z0-9-])([A-Z][_A-Z0-9]{1,9}-\\d+)".toRegex()
 
     fun findIssueKeys(message: String) =
-            projectKeyPattern.findAll(message).map { it.groups[1]!!.value }.toList().distinct()
+        issueKeyPattern.findAll(message).map { it.groups[1]!!.value }.toList().distinct()
+
+    fun getIssueKeyRegex(issueKey: String) = "(^|[^_A-Z0-9-])$issueKey(\\D|$)".toRegex()
 }

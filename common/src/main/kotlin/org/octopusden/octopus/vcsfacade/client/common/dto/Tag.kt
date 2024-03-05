@@ -1,6 +1,6 @@
 package org.octopusden.octopus.vcsfacade.client.common.dto
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class Tag constructor(val commitId: String, val name: String)
+class Tag(name: String, commitId: String, link: String, vcsUrl: String) :
+    Ref(RefType.TAG, name, commitId, link, vcsUrl) {
+    override fun toString() = "Tag(name=$name, commitId=$commitId, link=$link, vcsUrl=$vcsUrl)"
+}

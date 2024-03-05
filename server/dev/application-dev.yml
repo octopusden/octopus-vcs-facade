@@ -1,7 +1,3 @@
-eureka:
-  client:
-    enabled: false
-
 vcs-facade:
   vcs:
     gitlab:
@@ -38,6 +34,13 @@ vcs-facade:
       queueCapacity: 500
     fast-work-timout-secs: 0
     retry-interval-secs: 1
+
+opensearch:
+  uris: # envFile property
+  username: # envFile property
+  password: # envFile property
+  index:
+    suffix: dev
 
 logging:
   level:

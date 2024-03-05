@@ -1,0 +1,29 @@
+package org.octopusden.octopus.vcsfacade.document
+
+import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.data.annotation.Id
+import org.springframework.data.elasticsearch.annotations.Document
+import org.springframework.data.elasticsearch.annotations.Field
+import org.springframework.data.elasticsearch.annotations.FieldType
+import org.springframework.data.elasticsearch.annotations.Setting
+
+@Document(indexName = "#{ 'vcs-facade-repositories-' + @opensearchIndexSuffix }")
+@Setting(settingPath = "opensearch-index-settings.json")
+@ConditionalOnProperty(
+    prefix = "opensearch",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true
+)
+class Repository(
+    @Field(type = FieldType.Keyword)
+    val type: VcsServiceType,
+    @Field(type = FieldType.Keyword)
+    val group: String,
+    @Field(type = FieldType.Keyword)
+    val name: String
+) : Base() {
+    @Id
+    val id = id(type, group, name)
+}

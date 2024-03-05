@@ -1,43 +1,12 @@
 vcs-facade:
-  vcs:
-    bitbucket:
-      host: http://bitbucket:7990
-      token:
-      username: admin
-      password: admin
-      health-check:
-        repo: ssh://git@bitbucket:7990/test-data/vcs-facade-healthcheck.git
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-    gitea:
-      host: http://gitea:3000
-      token:
-      username: test-admin
-      password: test-admin
-      health-check:
-        repo: ssh://git@gitea:3000:test-data/vcs-facade-healthcheck.git
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-    gitlab:
-      host: http://gitlab:8990
-      token:
-      username: root
-      password: VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0=
-      health-check:
-        repo: ssh://git@gitlab:8990:test-data/vcs-facade-healthcheck.git
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
   job:
     executor:
-      corePoolSize: 4
-      maxPoolSize: 10
-      queueCapacity: 500
+      core-pool-size: 4
+      max-pool-size: 10
+      queue-capacity: 500
     fast-work-timout-secs: 0
     retry-interval-secs: 1
 
 logging:
   level:
-    org.octopusden.octopus.vcsfacade.controller: trace
+    org.octopusden.octopus.vcsfacade: trace

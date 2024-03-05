@@ -2,27 +2,25 @@ plugins {
     id("com.avast.gradle.docker-compose")
 }
 
-@Suppress("UNCHECKED_CAST")
-val extValidateFun = project.ext["validateFun"] as ((List<String>) -> Unit)
 fun String.getExt() = project.ext[this] as? String
 
-
 configure<com.avast.gradle.dockercompose.ComposeExtension> {
-    useComposeFiles.add("${projectDir}/docker/docker-compose.yml")
+    useComposeFiles.add("${projectDir}/docker/${"testProfile".getExt()}/docker-compose.yml")
     waitForTcpPorts.set(true)
     captureContainersOutputToFiles.set(layout.buildDirectory.file("docker_logs").get().asFile)
     environment.putAll(
         mapOf(
-            "APP_VERSION" to project.version,
             "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
             "OCTOPUS_GITHUB_DOCKER_REGISTRY" to "octopusGithubDockerRegistry".getExt(),
-            "BITBUCKET_LICENSE" to "bitbucketLicense".getExt()
+            "VCS_FACADE_VERSION" to project.version,
+            "BITBUCKET_VERSION" to project.properties["bitbucket.version"],
+            "BITBUCKET_LICENSE" to "bitbucketLicense".getExt(),
+            "GITEA_VERSION" to project.properties["gitea.version"],
+            "GITLAB_VERSION" to project.properties["gitlab.version"],
+            "OPENSEARCH_VERSION" to project.properties["opensearch.version"],
+            "POSTGRES_VERSION" to project.properties["postgres.version"]
         )
     )
-}
-
-tasks.getByName("composeUp").doFirst {
-    extValidateFun.invoke(listOf("dockerRegistry", "octopusGithubDockerRegistry", "bitbucketLicense"))
 }
 
 sourceSets {
@@ -43,27 +41,27 @@ configurations["ftRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
 val ft by tasks.creating(Test::class) {
     group = "verification"
     description = "Runs the integration tests"
-
     testClassesDirs = sourceSets["ft"].output.classesDirs
     classpath = sourceSets["ft"].runtimeClasspath
+    systemProperties["test.profile"] = "testProfile".getExt()
 }
 
 dockerCompose.isRequiredBy(ft)
 
 tasks["composeUp"].doLast {
-    logger.info("Create test-admin in Gitea")
-    val process = ProcessBuilder(
-        "docker", "exec", "vcs-facade-ft-gitea",
-        "/tmp/add_admin.sh"
-    ).start()
-    process.waitFor(10, TimeUnit.SECONDS)
-
-    val output = process.inputStream.bufferedReader().readText()
-    logger.info(output)
-
-    val error = process.errorStream.bufferedReader().readText()
-    if (error.isNotEmpty()) {
-        throw GradleException(error)
+    if ("testProfile".getExt() == "gitea") {
+        logger.info("Create test-admin in Gitea")
+        val process = ProcessBuilder(
+            "docker", "exec", "vcs-facade-ft-gitea",
+            "/tmp/add_admin.sh"
+        ).start()
+        process.waitFor(10, TimeUnit.SECONDS)
+        val output = process.inputStream.bufferedReader().readText()
+        logger.info(output)
+        val error = process.errorStream.bufferedReader().readText()
+        if (error.isNotEmpty()) {
+            throw GradleException(error)
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-package org.octopusden.octopus.vcsfacade.service.dto
+package org.octopusden.octopus.vcsfacade.dto
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 

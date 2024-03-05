@@ -6,31 +6,6 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class VCSConfig {
-
-    @ConfigurationProperties("vcs-facade.vcs.gitlab")
-    @ConditionalOnProperty(
-        prefix = "vcs-facade.vcs.gitlab",
-        name = ["enabled"],
-        havingValue = "true",
-        matchIfMissing = true
-    )
-    class GitLabProperties(
-        host: String,
-        token: String?,
-        username: String?,
-        password: String?,
-        healthCheck: HealthCheck,
-        enabled: Boolean?
-    ) :
-        VCSProperties(
-            host,
-            if (token?.isNotBlank() == true) token else null,
-            if (token?.isNotBlank() == true) null else username,
-            if (token?.isNotBlank() == true) null else password,
-            healthCheck,
-            enabled ?: true
-        )
-
     @ConfigurationProperties("vcs-facade.vcs.bitbucket")
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.bitbucket",
@@ -63,6 +38,31 @@ class VCSConfig {
         matchIfMissing = true
     )
     class GiteaProperties(
+        host: String,
+        token: String?,
+        username: String?,
+        password: String?,
+        healthCheck: HealthCheck,
+        enabled: Boolean?,
+        val webhookSecret: String?
+    ) :
+        VCSProperties(
+            host,
+            if (token?.isNotBlank() == true) token else null,
+            if (token?.isNotBlank() == true) null else username,
+            if (token?.isNotBlank() == true) null else password,
+            healthCheck,
+            enabled ?: true
+        )
+
+    @ConfigurationProperties("vcs-facade.vcs.gitlab")
+    @ConditionalOnProperty(
+        prefix = "vcs-facade.vcs.gitlab",
+        name = ["enabled"],
+        havingValue = "true",
+        matchIfMissing = true
+    )
+    class GitLabProperties(
         host: String,
         token: String?,
         username: String?,

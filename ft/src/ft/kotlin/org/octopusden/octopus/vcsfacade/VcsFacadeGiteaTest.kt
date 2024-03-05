@@ -3,14 +3,18 @@ package org.octopusden.octopus.vcsfacade
 import org.junit.jupiter.params.provider.Arguments
 import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
 import java.util.stream.Stream
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
 private const val VCS_HOST = "gitea:3000"
 
+@EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
 class VcsFacadeGiteaTest : BaseVcsFacadeFuncTest(
     GiteaTestClient("http://localhost:3000", GITEA_USER, GITEA_PASSWORD, VCS_HOST),
-    "ssh://git@$VCS_HOST/%s/%s.git"
+    "ssh://git@$VCS_HOST/%s/%s.git",
+    "http://$VCS_HOST/%s/%s/src/tag/%s",
+    "http://$VCS_HOST/%s/%s/commit/%s"
 ) {
-    //ToDo find implementation
+    //TODO: test using opensearch
     override fun issueCommits(): Stream<Arguments> = Stream.of(
         Arguments.of("ABSENT-1", emptyList<String>()),
     )

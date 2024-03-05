@@ -14,8 +14,8 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.infrastructure.common.test.dto.ChangeSet
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -27,7 +27,12 @@ import java.util.stream.Stream
 typealias CheckError = (Pair<Int, String>) -> Unit
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRootFormat: String) {
+abstract class BaseVcsFacadeTest(
+    private val testClient: TestClient,
+    private val vcsRootFormat: String,
+    private val tagLinkFormat: String,
+    private val commitLinkFormat: String
+) {
     protected abstract val exceptionsMessageInfo: Map<String, String>
     private val repositoryChangeSets: HashMap<String, Map<String, ChangeSet>> = HashMap()
 
@@ -190,10 +195,10 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
     }
 
     @Test
-    fun createPullRequestTest() {
+    fun createPullRequestTest() { //TODO: assert values
         createPullRequest(
             vcsRootFormat.format(PROJECT, REPOSITORY),
-            PullRequestRequest(FEATURE_BRANCH, MAIN_BRANCH, "Test PR title", "Test PR description"),
+            CreatePullRequest(FEATURE_BRANCH, MAIN_BRANCH, "Test PR title", "Test PR description"),
             200,
             { Assertions.assertTrue { it.id > 0 } },
             checkError
@@ -211,7 +216,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
     ) {
         createPullRequest(
             repository,
-            PullRequestRequest(sourceBranch, targetBranch, "Test PR title", "Test PR description"),
+            CreatePullRequest(sourceBranch, targetBranch, "Test PR title", "Test PR description"),
             400,
             { Assertions.fail("Response status expected:<$status> but was:<200>") },
             { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
@@ -228,7 +233,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             200,
             { commits ->
                 Assertions.assertIterableEquals(
-                    getTestCommits("commitsFromId.json"),
+                    getTestCommits("commitsFromId.json", PROJECT, REPOSITORY_2),
                     commits.map { it.toTestCommit() }
                 )
             },
@@ -246,7 +251,7 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             200,
             { commits ->
                 Assertions.assertIterableEquals(
-                    getTestCommits("commitsFromDate.json"),
+                    getTestCommits("commitsFromDate.json", PROJECT, REPOSITORY_2),
                     commits.map { it.toTestCommit() }
                 )
             },
@@ -254,19 +259,28 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
         )
     }
 
-    private data class TestCommit(val id: String, val message: String, val parents: Set<String>)
+    private data class TestCommit(
+        val id: String,
+        val message: String,
+        val parents: Set<String>,
+        var link: String? = null,
+        var vcsUrl: String? = null
+    )
 
     /*
     BitBucket does trim commit message, but GitLab/Gitea does not!
     TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
     */
-    private fun Commit.toTestCommit() = TestCommit(this.id, this.message.removeSuffix("\n"), this.parents.toSet())
+    private fun Commit.toTestCommit() = TestCommit(id, message.removeSuffix("\n"), parents.toSet(), link, vcsUrl)
 
-    private fun getTestCommits(resource: String): List<TestCommit> =
+    private fun getTestCommits(resource: String, project: String, repository: String): List<TestCommit> =
         OBJECT_MAPPER.readValue(
             BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream(resource),
             object : TypeReference<List<TestCommit>>() {}
-        )
+        ).onEach {
+            it.link = commitLinkFormat.format(project, repository, it.id)
+            it.vcsUrl = vcsRootFormat.format(project, repository)
+        }
 
     private fun getExceptionMessage(name: String): String {
         return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
@@ -316,9 +330,9 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
 
     protected abstract fun createPullRequest(
         repository: String,
-        pullRequestRequest: PullRequestRequest,
+        createPullRequest: CreatePullRequest,
         status: Int,
-        checkSuccess: (PullRequestResponse) -> Unit,
+        checkSuccess: (PullRequest) -> Unit,
         checkError: CheckError
     )
 
@@ -477,9 +491,24 @@ abstract class BaseVcsFacadeTest(private val testClient: TestClient, val vcsRoot
             Arguments.of(
                 vcsRootFormat.format(PROJECT, REPOSITORY),
                 listOf(
-                    Tag(MESSAGE_3.commitId(REPOSITORY), TAG_3),
-                    Tag(MESSAGE_2.commitId(REPOSITORY), TAG_2),
-                    Tag(MESSAGE_1.commitId(REPOSITORY), TAG_1)
+                    Tag(
+                        TAG_3,
+                        MESSAGE_3.commitId(REPOSITORY),
+                        tagLinkFormat.format(PROJECT, REPOSITORY, TAG_3),
+                        vcsRootFormat.format(PROJECT, REPOSITORY)
+                    ),
+                    Tag(
+                        TAG_2,
+                        MESSAGE_2.commitId(REPOSITORY),
+                        tagLinkFormat.format(PROJECT, REPOSITORY, TAG_2),
+                        vcsRootFormat.format(PROJECT, REPOSITORY)
+                    ),
+                    Tag(
+                        TAG_1,
+                        MESSAGE_1.commitId(REPOSITORY),
+                        tagLinkFormat.format(PROJECT, REPOSITORY, TAG_1),
+                        vcsRootFormat.format(PROJECT, REPOSITORY)
+                    )
                 )
             )
         )

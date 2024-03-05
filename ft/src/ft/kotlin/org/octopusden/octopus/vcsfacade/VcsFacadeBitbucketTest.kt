@@ -1,12 +1,16 @@
 package org.octopusden.octopus.vcsfacade
 
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.octopusden.octopus.infastructure.bitbucket.test.BitbucketTestClient
 
 private const val VCS_HOST = "bitbucket:7990"
 
+@EnabledIfSystemProperty(named = "test.profile", matches = "bitbucket")
 class VcsFacadeBitbucketTest : BaseVcsFacadeFuncTest(
     BitbucketTestClient("http://localhost:7990", BITBUCKET_USER, BITBUCKET_PASSWORD, VCS_HOST),
-    "ssh://git@$VCS_HOST/%s/%s.git"
+    "ssh://git@$VCS_HOST/%s/%s.git",
+    "http://$VCS_HOST/projects/%s/repos/%s/browse?at=%s",
+    "http://$VCS_HOST/projects/%s/repos/%s/commits/%s"
 ) {
     override val exceptionsMessageInfo: Map<String, String> by lazy {
         mapOf(

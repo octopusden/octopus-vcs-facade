@@ -5,7 +5,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.RetryResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeErrorCode
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
-import org.octopusden.octopus.vcsfacade.client.common.exception.VcsFacadeException
+import org.octopusden.octopus.vcsfacade.exception.IndexerDisabledException
+import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -23,19 +24,35 @@ class ExceptionInfoHandler {
     @ResponseStatus(HttpStatus.ACCEPTED)
     @ResponseBody
     fun handleJobProcessing(exception: JobProcessingException): RetryResponse {
-        log.debug("Job is processing, request: ${exception.requestId}")
+        log.debug("Job is processing, request: {}", exception.requestId)
         return RetryResponse(exception.retryAfter, exception.requestId)
     }
 
     @ExceptionHandler(NotFoundException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
-    fun handleNotFound(exception: VcsFacadeException) = getErrorResponse(exception)
+    fun handleNotFound(exception: NotFoundException) = getErrorResponse(exception)
 
     @ExceptionHandler(ArgumentsNotCompatibleException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
-    fun handleArgumentsNotCompatible(exception: VcsFacadeException): ErrorResponse {
+    fun handleArgumentsNotCompatible(exception: ArgumentsNotCompatibleException): ErrorResponse {
+        log.error(exception.message)
+        return getErrorResponse(exception)
+    }
+
+    @ExceptionHandler(InvalidSignatureException::class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ResponseBody
+    fun handleInvalidSignature(exception: InvalidSignatureException): ErrorResponse {
+        log.error(exception.message)
+        return getErrorResponse(exception)
+    }
+
+    @ExceptionHandler(IndexerDisabledException::class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    @ResponseBody
+    fun handleIndexationDisabled(exception: IndexerDisabledException): ErrorResponse {
         log.error(exception.message)
         return getErrorResponse(exception)
     }
