@@ -9,12 +9,13 @@ import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
-import org.octopusden.octopus.vcsfacade.exception.IndexerDisabledException
+import org.octopusden.octopus.vcsfacade.dto.GiteaRepository
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
-import org.octopusden.octopus.vcsfacade.service.OpenSearchService
+import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 )
 class GiteaIndexerController(
     giteaProperties: VCSConfig.GiteaProperties,
-    private val openSearchService: OpenSearchService?,
+    private val giteaIndexerService: GiteaIndexerService,
     private val objectMapper: ObjectMapper
 ) {
     private val mac = giteaProperties.webhookSecret?.let {
@@ -39,7 +40,7 @@ class GiteaIndexerController(
     }
         get() = field?.clone() as Mac?
 
-    @PostMapping
+    @PostMapping("webhook")
     fun processWebhookEvent(
         @RequestHeader("x-gitea-event-type") eventType: String,
         @RequestHeader("x-gitea-event") event: String,
@@ -63,18 +64,21 @@ class GiteaIndexerController(
                 }
             }
         } ?: log.debug("Signature validation is disabled (webhook secret is not configured)")
-        openSearchService?.let {
-            if (eventType == "create" && event == "create") {
-                it.registerGiteaCreateRefEvent(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java))
-            } else if (eventType == "delete" && event == "delete") {
-                it.registerGiteaDeleteRefEvent(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java))
-            } else if (eventType == "push" && event == "push") {
-                it.registerGiteaPushEvent(objectMapper.readValue(payload, GiteaPushEvent::class.java))
-            } else if (eventType == "pull_request" && event == "pull_request") {
-                it.registerGiteaPullRequestEvent(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java))
-            }
-        } ?: IndexerDisabledException("VCS indexation is disabled (opensearch integration is not configured)")
+        if (eventType == "create" && event == "create") {
+            giteaIndexerService.registerGiteaCreateRefEvent(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java))
+        } else if (eventType == "delete" && event == "delete") {
+            giteaIndexerService.registerGiteaDeleteRefEvent(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java))
+        } else if (eventType == "push" && event == "push") {
+            giteaIndexerService.registerGiteaPushEvent(objectMapper.readValue(payload, GiteaPushEvent::class.java))
+        } else if (eventType == "pull_request" && event == "pull_request") {
+            giteaIndexerService.registerGiteaPullRequestEvent(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java))
+        }
     }
+
+    @PostMapping("scan")
+    fun scanRepository(
+        @RequestBody repository: GiteaRepository //TODO: ScanRequest DTO with `repository: GiteaRepository` field?
+    ) = giteaIndexerService.runRepositoryScan(repository)
 
     companion object {
         private const val MAC_ALGORITHM = "HmacSHA256"

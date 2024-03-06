@@ -13,7 +13,7 @@ class JobExecutorConfig(private val jobProperties: JobProperties) {
         val executor = ThreadPoolTaskExecutor()
         executor.corePoolSize = jobExecutorProperties.corePoolSize
         executor.maxPoolSize = jobExecutorProperties.maxPoolSize
-        executor.setQueueCapacity(jobExecutorProperties.queueCapacity)
+        executor.queueCapacity = jobExecutorProperties.queueCapacity
         return executor
     }
 }

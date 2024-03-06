@@ -5,18 +5,21 @@ import org.octopusden.octopus.vcsfacade.document.Commit
 import org.octopusden.octopus.vcsfacade.document.PullRequest
 import org.octopusden.octopus.vcsfacade.document.Ref
 import org.octopusden.octopus.vcsfacade.document.Repository
-import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 
-interface OpenSearchService { //TODO: split to indexer and search services?
-    fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent)
-    fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent)
-    fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent)
-    fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent)
-    fun findBranches(issueKey: String): Map<Repository, List<Ref>>
-    fun findCommits(issueKey: String): Map<Repository, List<Commit>>
-    fun findPullRequests(issueKey: String): Map<Repository, List<PullRequest>>
-    fun find(issueKey: String): SearchSummary
+interface OpenSearchService {
+    fun findRepositoryById(repositoryId: String): Repository?
+    fun saveRepository(repository: Repository): Repository
+    fun findRefsByRepositoryId(repositoryId: String): List<Ref>
+    fun saveRefs(refs: List<Ref>)
+    fun deleteRefsByIds(refsIds: List<String>)
+    fun findCommitsByRepositoryId(repositoryId: String): List<Commit>
+    fun saveCommits(commits: List<Commit>)
+    fun deleteCommitsByIds(commitsIds: List<String>)
+    fun findPullRequestsByRepositoryId(repositoryId: String): List<PullRequest>
+    fun savePullRequests(pullRequests: List<PullRequest>)
+    fun deletePullRequestsByIds(pullRequestsIds: List<String>)
+    fun findBranchesByIssueKey(issueKey: String): Map<Repository, List<Ref>>
+    fun findCommitsByIssueKey(issueKey: String): Map<Repository, List<Commit>>
+    fun findPullRequestsByIssueKey(issueKey: String): Map<Repository, List<PullRequest>>
+    fun findByIssueKey(issueKey: String): SearchSummary
 }

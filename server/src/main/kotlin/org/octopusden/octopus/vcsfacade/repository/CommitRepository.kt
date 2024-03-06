@@ -12,4 +12,5 @@ import org.springframework.data.repository.CrudRepository
 )
 interface CommitRepository : CrudRepository<Commit, String> {
     fun findAllByMessageContaining(messageToken: String): List<Commit>
+    fun findAllByRepositoryId(repositoryId: String): List<Commit>
 }

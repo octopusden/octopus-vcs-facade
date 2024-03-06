@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade.document
 
+import java.util.Date
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.annotation.Id
@@ -22,7 +23,9 @@ class Repository(
     @Field(type = FieldType.Keyword)
     val group: String,
     @Field(type = FieldType.Keyword)
-    val name: String
+    val name: String,
+    @Field(type = FieldType.Date)
+    var lastScanAt: Date? = null
 ) : Base() {
     @Id
     val id = id(type, group, name)

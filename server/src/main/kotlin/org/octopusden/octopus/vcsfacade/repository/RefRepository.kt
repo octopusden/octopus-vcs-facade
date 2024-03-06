@@ -13,4 +13,5 @@ import org.springframework.data.repository.CrudRepository
 )
 interface RefRepository : CrudRepository<Ref, String> {
     fun findAllByTypeAndNameContaining(type: RefType, nameToken: String): List<Ref>
+    fun findAllByRepositoryId(repositoryId: String): List<Ref>
 }

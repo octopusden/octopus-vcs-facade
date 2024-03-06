@@ -1,7 +1,6 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import kotlin.jvm.optionals.getOrNull
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.document.Commit
@@ -9,19 +8,12 @@ import org.octopusden.octopus.vcsfacade.document.PullRequest
 import org.octopusden.octopus.vcsfacade.document.Ref
 import org.octopusden.octopus.vcsfacade.document.Repository
 import org.octopusden.octopus.vcsfacade.document.RepositoryLink
-import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaRepository
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.repository.CommitRepository
 import org.octopusden.octopus.vcsfacade.repository.PullRequestRepository
 import org.octopusden.octopus.vcsfacade.repository.RefRepository
 import org.octopusden.octopus.vcsfacade.repository.RepositoryRepository
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
-import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 
@@ -34,68 +26,62 @@ class OpenSearchServiceImpl(
     private val refRepository: RefRepository,
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
-) : OpenSearchService { //TODO: try to use DTO from Gitea client?
-    override fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent) {
-        log.debug(
-            "Register `{}` {} creation in `{}` {} repository",
-            giteaCreateRefEvent.ref,
-            giteaCreateRefEvent.refType.jsonValue,
-            giteaCreateRefEvent.repository.fullName,
-            VcsServiceType.GITEA
-        )
-        refRepository.save(giteaCreateRefEvent.toDocument())
+) : OpenSearchService {
+    override fun findRepositoryById(repositoryId: String) =
+        repositoryRepository.findById(repositoryId).getOrNull()
+
+    override fun saveRepository(repository: Repository) =
+        repositoryRepository.save(repository)
+
+    override fun findRefsByRepositoryId(repositoryId: String) =
+        refRepository.findAllByRepositoryId(repositoryId)
+
+    override fun saveRefs(refs: List<Ref>) {
+        refRepository.saveAll(refs)
     }
 
-    override fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent) {
-        log.debug(
-            "Register `{}` {} deletion in `{}` {} repository",
-            giteaDeleteRefEvent.ref,
-            giteaDeleteRefEvent.refType.jsonValue,
-            giteaDeleteRefEvent.repository.fullName,
-            VcsServiceType.GITEA
-        )
-        refRepository.deleteById(giteaDeleteRefEvent.toDocumentId())
+    override fun deleteRefsByIds(refsIds: List<String>) =
+        refRepository.deleteAllById(refsIds)
+
+    override fun findCommitsByRepositoryId(repositoryId: String) =
+        commitRepository.findAllByRepositoryId(repositoryId)
+
+    override fun saveCommits(commits: List<Commit>) {
+        commitRepository.saveAll(commits)
     }
 
-    override fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent) {
-        log.debug(
-            "Register {} commit(s) in `{}` {} repository",
-            giteaPushEvent.commits.size,
-            giteaPushEvent.repository.fullName,
-            VcsServiceType.GITEA
-        )
-        commitRepository.saveAll(giteaPushEvent.toDocuments())
+    override fun deleteCommitsByIds(commitsIds: List<String>) =
+        commitRepository.deleteAllById(commitsIds)
+
+    override fun findPullRequestsByRepositoryId(repositoryId: String) =
+        pullRequestRepository.findAllByRepositoryId(repositoryId)
+
+    override fun savePullRequests(pullRequests: List<PullRequest>) {
+        pullRequestRepository.saveAll(pullRequests)
     }
 
-    override fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent) {
-        log.debug(
-            "Register {} pull request in `{}` {} repository",
-            giteaPullRequestEvent.action,
-            giteaPullRequestEvent.repository.fullName,
-            VcsServiceType.GITEA
-        )
-        pullRequestRepository.save(giteaPullRequestEvent.toDocument())
-    }
+    override fun deletePullRequestsByIds(pullRequestsIds: List<String>) =
+        pullRequestRepository.deleteAllById(pullRequestsIds)
 
-    override fun findBranches(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
+    override fun findBranchesByIssueKey(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
         refRepository.findAllByTypeAndNameContaining(RefType.BRANCH, issueKey)
             .filter { this.containsMatchIn(it.name) }
             .groupByRepository()
     }
 
-    override fun findCommits(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
+    override fun findCommitsByIssueKey(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
         commitRepository.findAllByMessageContaining(issueKey)
             .filter { this.containsMatchIn(it.message) }
             .groupByRepository()
     }
 
-    override fun findPullRequests(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
+    override fun findPullRequestsByIssueKey(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
         pullRequestRepository.findAllByTitleContainingOrDescriptionContaining(issueKey, issueKey)
             .filter { this.containsMatchIn(it.title) || this.containsMatchIn(it.description) }
             .groupByRepository()
     }
 
-    override fun find(issueKey: String): SearchSummary {
+    override fun findByIssueKey(issueKey: String): SearchSummary {
         val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
         val branchesCommits = refRepository.findAllByTypeAndNameContaining(RefType.BRANCH, issueKey).filter {
             issueKeyRegex.containsMatchIn(it.name)
@@ -136,39 +122,5 @@ class OpenSearchServiceImpl(
         repository.isPresent
     }.mapKeys { (repository, _) ->
         repository.get()
-    }
-
-    private fun registerGiteaRepository(giteaRepository: GiteaRepository): Repository {
-        val repositoryFullNameParts = giteaRepository.fullName.split("/")
-        val repository = Repository(VcsServiceType.GITEA, repositoryFullNameParts[0], repositoryFullNameParts[1])
-        return repositoryRepository.findById(repository.id).orElseGet {
-            repositoryRepository.save(repository)
-        }
-    }
-
-    private fun GiteaCreateRefEvent.toDocument() =
-        Ref(registerGiteaRepository(repository).id, refType.refType, ref, sha)
-
-    private fun GiteaDeleteRefEvent.toDocumentId() =
-        Ref(registerGiteaRepository(repository).id, refType.refType, ref, "unknown").id
-
-    private fun GiteaPushEvent.toDocuments(): List<Commit> {
-        val repository = registerGiteaRepository(repository)
-        return commits.map { Commit(repository.id, it.id, it.message, it.timestamp) }
-    }
-
-    private fun GiteaPullRequestEvent.toDocument() = PullRequest(
-        registerGiteaRepository(repository).id,
-        pullRequest.number,
-        pullRequest.title,
-        pullRequest.body,
-        if (pullRequest.merged) PullRequestStatus.MERGED
-        else if (pullRequest.state == GiteaPullRequestEvent.GiteaPullRequestState.CLOSED) PullRequestStatus.DECLINED
-        else PullRequestStatus.OPENED,
-        pullRequest.updatedAt
-    )
-
-    companion object {
-        private val log = LoggerFactory.getLogger(OpenSearchServiceImpl::class.java)
     }
 }

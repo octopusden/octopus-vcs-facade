@@ -15,6 +15,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaUser
 import org.octopusden.octopus.infrastructure.gitea.client.getBranches
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
+import org.octopusden.octopus.infrastructure.gitea.client.getPullRequests
 import org.octopusden.octopus.infrastructure.gitea.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
@@ -82,6 +83,11 @@ class GiteaService(
             client.getCommit(group, repository, commitIdOrRef)
         }.toCommit(group, repository)
 
+    fun getPullRequests(group: String, repository: String) = //TODO: expose to VCSClient as abstract method?
+        execute("getPullRequests($group, $repository)") {
+            client.getPullRequests(group, repository)
+        }.map { it.toPullRequest(group, repository) }
+
     override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
         execute("createPullRequest($group, $repository, $createPullRequest)") {
             client.createPullRequestWithDefaultReviewers(
@@ -91,12 +97,12 @@ class GiteaService(
                 createPullRequest.targetBranch,
                 createPullRequest.title,
                 createPullRequest.description
-            ).toPullRequestResponse(group, repository)
+            ).toPullRequest(group, repository)
         }
 
     override fun getPullRequest(group: String, repository: String, index: Long) =
         execute("getPullRequest($group, $repository, $index)") {
-            client.getPullRequest(group, repository, index).toPullRequestResponse(group, repository)
+            client.getPullRequest(group, repository, index).toPullRequest(group, repository)
         }
 
     override fun findBranches(issueKey: String): List<Branch> {
@@ -137,8 +143,8 @@ class GiteaService(
 
     private fun GiteaUser.toUser() = User(username, avatarUrl)
 
-    private fun GiteaPullRequest.toPullRequestResponse(organization: String, repository: String) = PullRequest(
-        id,
+    private fun GiteaPullRequest.toPullRequest(organization: String, repository: String) = PullRequest(
+        number,
         title,
         body,
         head.label,
@@ -154,7 +160,7 @@ class GiteaService(
         },
         createdAt,
         updatedAt,
-        "$url/$organization/$repository/pulls/$id",
+        "$url/$organization/$repository/pulls/$number",
         getVcsUrl(organization, repository)
     )
 

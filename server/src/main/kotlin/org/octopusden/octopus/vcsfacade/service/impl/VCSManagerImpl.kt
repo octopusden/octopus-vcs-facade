@@ -107,7 +107,7 @@ class VCSManagerImpl(
     override fun findBranches(issueKey: String) =
         openSearchService?.let {
             log.debug("findBranches({}) using opensearch index", issueKey)
-            it.findBranches(issueKey).map { (repository, refs) ->
+            it.findBranchesByIssueKey(issueKey).map { (repository, refs) ->
                 getVcsClient(repository.type)?.let { client ->
                     val branchNames = refs.map { ref -> ref.name }.toSet()
                     client.getBranches(repository.group, repository.name).filter { branch ->
@@ -123,7 +123,7 @@ class VCSManagerImpl(
     override fun findCommits(issueKey: String) =
         openSearchService?.let {
             log.debug("findCommits({}) using opensearch index", issueKey)
-            it.findCommits(issueKey).map { (repository, commits) ->
+            it.findCommitsByIssueKey(issueKey).map { (repository, commits) ->
                 getVcsClient(repository.type)?.let { client ->
                     commits.mapNotNull { commit ->
                         try {
@@ -142,7 +142,7 @@ class VCSManagerImpl(
     override fun findPullRequests(issueKey: String) =
         openSearchService?.let {
             log.debug("findPullRequests({}) using opensearch index", issueKey)
-            it.findPullRequests(issueKey).map { (repository, pullRequests) ->
+            it.findPullRequestsByIssueKey(issueKey).map { (repository, pullRequests) ->
                 getVcsClient(repository.type)?.let { client ->
                     pullRequests.mapNotNull { pullRequest ->
                         try {
@@ -161,7 +161,7 @@ class VCSManagerImpl(
     override fun find(issueKey: String) =
         openSearchService?.let {
             log.debug("find({}) using opensearch index", issueKey)
-            it.find(issueKey) //IMPORTANT: no "double check in VCS" for the sake of the performance
+            it.findByIssueKey(issueKey) //IMPORTANT: no "double check in VCS" for the sake of the performance
         } ?: run {
             log.debug("find({}) using native implementation", issueKey)
             val branchesCommits = vcsClients.flatMap {

@@ -12,4 +12,5 @@ import org.springframework.data.repository.CrudRepository
 )
 interface PullRequestRepository : CrudRepository<PullRequest, String> {
     fun findAllByTitleContainingOrDescriptionContaining(titleToken: String, descriptionToken: String): List<PullRequest>
+    fun findAllByRepositoryId(repositoryId: String): List<PullRequest>
 }
