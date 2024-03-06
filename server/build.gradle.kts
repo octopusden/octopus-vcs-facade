@@ -103,6 +103,8 @@ dependencies {
     implementation(project(":common"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springframework.retry:spring-retry")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.cloud:spring-cloud-starter")
@@ -116,4 +118,8 @@ dependencies {
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":test-common"))
+}
+
+configurations.all {
+    exclude("commons-logging", "commons-logging")
 }

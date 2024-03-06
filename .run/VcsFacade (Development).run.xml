@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="VcsFacade (Development)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <option name="ACTIVE_PROFILES" value="ut, gitea" />
+    <option name="ACTIVE_PROFILES" value="dev" />
     <additionalParameters>
       <param>
         <option name="enabled" value="true" />
         <option name="name" value="spring.config.additional-location" />
-        <option name="value" value="server/src/test/resources/" />
+        <option name="value" value="server/dev/" />
       </param>
     </additionalParameters>
     <module name="octopus-vcs-facade.vcs-facade.main" />
