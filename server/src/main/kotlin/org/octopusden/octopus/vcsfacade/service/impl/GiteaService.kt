@@ -130,18 +130,17 @@ class GiteaService(
         name, commit.sha, "$url/$organization/$repository/src/tag/$name", getVcsUrl(organization, repository)
     )
 
+    private fun GiteaUser.toUser() = User(username, avatarUrl)
+
     private fun GiteaCommit.toCommit(organization: String, repository: String) = Commit(
         sha,
         commit.message,
         created,
-        author?.username ?: commit.author.name,
+        author?.toUser() ?: User(commit.author.name),
         parents.map { it.sha },
         "$url/$organization/$repository/commit/$sha",
-        getVcsUrl(organization, repository),
-        author?.avatarUrl
+        getVcsUrl(organization, repository)
     )
-
-    private fun GiteaUser.toUser() = User(username, avatarUrl)
 
     private fun GiteaPullRequest.toPullRequest(organization: String, repository: String) = PullRequest(
         number,

@@ -154,18 +154,17 @@ class GitlabService(
         name, commit.id, "$url/$namespace/$project/-/tree/$name?ref_type=tags", getVcsUrl(namespace, project)
     )
 
+    private fun <T : AbstractUser<T>> AbstractUser<T>.toUser() = User(username, avatarUrl)
+
     private fun GitlabCommit.toCommit(namespace: String, project: String) = Commit(
         id,
         message,
         committedDate,
-        authorName,
+        author?.toUser() ?: User(authorName),
         parentIds,
         "${this@GitlabService.url}/$namespace/$project/-/commit/$id",
-        getVcsUrl(namespace, project),
-        author?.avatarUrl
+        getVcsUrl(namespace, project)
     )
-
-    private fun <T : AbstractUser<T>> AbstractUser<T>.toUser() = User(username, avatarUrl)
 
     private fun MergeRequest.toPullRequest(namespace: String, project: String) = PullRequest(
         id,

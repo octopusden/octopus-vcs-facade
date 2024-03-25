@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("indexer/gitea")
+@RequestMapping("rest/api/1/indexer/gitea")
 @ConditionalOnProperty(
     prefix = "vcs-facade.vcs.gitea",
     name = ["enabled"],

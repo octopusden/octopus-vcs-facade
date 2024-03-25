@@ -14,6 +14,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketLinkN
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequest
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
+import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketUser
 import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
@@ -139,15 +140,16 @@ class BitbucketService(
 
     private fun getAvatarUrl(username: String) = "$url/users/$username/avatar.png?s=48"
 
+    private fun BitbucketUser.toUser() = User(name, getAvatarUrl(name))
+
     private fun BitbucketCommit.toCommit(project: String, repository: String) = Commit(
         id,
         message,
         authorTimestamp,
-        author.name,
+        author.toUser(),
         parents.map { it.id },
         "$url/projects/$project/repos/$repository/commits/$id",
-        getVcsUrl(project, repository),
-        getAvatarUrl(author.name)
+        getVcsUrl(project, repository)
     )
 
     private fun BitbucketPullRequest.toPullRequest(project: String, repository: String) = PullRequest(

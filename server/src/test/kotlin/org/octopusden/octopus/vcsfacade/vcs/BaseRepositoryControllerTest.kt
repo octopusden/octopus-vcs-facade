@@ -61,7 +61,7 @@ abstract class BaseRepositoryControllerTest(
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/commits")
+            MockMvcRequestBuilders.get("/rest/api/1/repository/commits")
                 .param("vcsPath", repository)
                 .param("to", toId)
                 .param("from", fromId)
@@ -82,7 +82,7 @@ abstract class BaseRepositoryControllerTest(
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/commit")
+            MockMvcRequestBuilders.get("/rest/api/1/repository/commit")
                 .param("vcsPath", vcsPath)
                 .param("commitId", commitId)
                 .accept(MediaType.APPLICATION_JSON)
@@ -100,7 +100,7 @@ abstract class BaseRepositoryControllerTest(
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/tags")
+            MockMvcRequestBuilders.get("/rest/api/1/repository/tags")
                 .param("vcsPath", repository)
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -117,7 +117,7 @@ abstract class BaseRepositoryControllerTest(
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/find/$issueKey/commits")
+            MockMvcRequestBuilders.get("/rest/api/1/repository/find/$issueKey/commits")
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
@@ -134,7 +134,7 @@ abstract class BaseRepositoryControllerTest(
     ) {
         val content = mapper.writeValueAsString(searchRequest)
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/repository/search-issues-in-ranges")
+            MockMvcRequestBuilders.post("/rest/api/1/repository/search-issues-in-ranges")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)
                 .accept(MediaType.APPLICATION_JSON)
@@ -160,7 +160,7 @@ abstract class BaseRepositoryControllerTest(
     ) {
         val content = mapper.writeValueAsString(createPullRequest)
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/repository/pull-requests?vcsUrl={}", repository)
+            MockMvcRequestBuilders.post("/rest/api/1/repository/pull-requests?vcsUrl={}", repository)
                 .param("vcsPath", repository)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)

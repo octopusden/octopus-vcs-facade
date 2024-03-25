@@ -1,5 +1,8 @@
 package org.octopusden.octopus.vcsfacade.controller
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.util.Date
 import java.util.UUID
 import java.util.concurrent.Callable
@@ -8,9 +11,12 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
+import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobProperties
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
@@ -33,8 +39,9 @@ import org.springframework.web.bind.annotation.RestController
 
 
 @RestController
-@RequestMapping("rest/api/1/repository")
-class RepositoryController(
+@RequestMapping("repository")
+@Deprecated(message = "Deprecated controller", replaceWith = ReplaceWith("RepositoryController"))
+class RepositoryControllerOld(
     private val jobProperties: JobProperties,
     private val vcsManager: VCSManager,
     @Qualifier("jobExecutor") private val taskExecutor: AsyncTaskExecutor
@@ -42,43 +49,70 @@ class RepositoryController(
     private val requestJobs = ConcurrentHashMap<String, Future<out VcsFacadeResponse>>()
 
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommits(
+    fun getCommitsForRelease(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestParam("to") to: String,
         @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.getCommits(vcsPath, from, fromDate, to))
+        val commits = vcsManager.getCommits(vcsPath, from, fromDate, to).map { it.toOld() }
+        RepositoryResponse(commits)
     }.data
+
+    @Deprecated(
+        message = "Deprecated endpoint. Does not allow usage of a git ref containing slash as commitId",
+        replaceWith = ReplaceWith("getCommit(vcsPath, commitId)")
+    )
+    @GetMapping("commits/{commitId}", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommitById(@PathVariable("commitId") commitId: String, @RequestParam("vcsPath") vcsPath: String) =
+        getCommit(vcsPath, commitId)
+
+    @Deprecated(
+        message = "Deprecated endpoint. Backward compatibility with client version 2.0.17 and below",
+        replaceWith = ReplaceWith("getCommit(vcsPath, commitId)")
+    ) //NOTE: Spring boot 2 successfully maps "commit/" to "commit", but Spring boot 3 does not!
+    @GetMapping("commit/", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommitWithSlash(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
+        getCommit(vcsPath, commitIdOrRef)
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
-        vcsManager.getCommit(vcsPath, commitIdOrRef)
+        vcsManager.getCommit(vcsPath, commitIdOrRef).toOld()
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getIssuesFromCommits(
+    fun getCommitsForReleaseIssues(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestParam("to") to: String,
         @RequestParam(name = "from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ): Collection<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
+        val issues = vcsManager.getCommits(vcsPath, from, fromDate, to)
+            .map { it.toOld() }
+            .flatMap { IssueKeyParser.findIssueKeys(it.message) }
+            .distinct()
+        RepositoryResponse(issues)
+    }.data
+
+    @GetMapping("issues/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommitsByIssueKey(
+        @PathVariable("issueKey") issueKey: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(
-            vcsManager.getCommits(vcsPath, from, fromDate, to)
-                .flatMap { IssueKeyParser.findIssueKeys(it.message) }
-                .distinct()
-        )
+        val commits = vcsManager.findCommits(issueKey).map { it.toOld() }
+        RepositoryResponse(commits)
     }.data
 
 
     @GetMapping("tags", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getTags(
+    fun getTagsForRepository(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.getTags(vcsPath))
+        RepositoryResponse(vcsManager.getTags(vcsPath).map { it.toOld() })
     }.data
+
 
     @PostMapping(
         "search-issues-in-ranges",
@@ -88,45 +122,15 @@ class RepositoryController(
     fun searchIssuesInRanges(
         @RequestBody searchRequest: SearchIssuesInRangesRequest,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        SearchIssueInRangesResponse(vcsManager.getIssueRanges(searchRequest))
-    }
+    ): SearchIssueInRangesResponse =
+        processJob(requestId ?: UUID.randomUUID().toString()) {
+            val issueRanges = vcsManager.getIssueRanges(searchRequest)
+            SearchIssueInRangesResponse(issueRanges)
+        }
 
     @PostMapping("pull-requests")
     fun createPullRequest(@RequestParam("vcsPath") vcsPath: String, @RequestBody createPullRequest: CreatePullRequest) =
-        vcsManager.createPullRequest(vcsPath, createPullRequest)
-
-    @GetMapping("find/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun findByIssueKey(
-        @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        vcsManager.find(issueKey)
-    }
-
-    @GetMapping("find/{issueKey}/branches", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun findBranchesByIssueKey(
-        @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.findBranches(issueKey))
-    }.data
-
-    @GetMapping("find/{issueKey}/commits", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun findCommitsByIssueKey(
-        @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.findCommits(issueKey))
-    }.data
-
-    @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun findPullRequestsByIssueKey(
-        @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.findPullRequests(issueKey))
-    }.data
+        vcsManager.createPullRequest(vcsPath, createPullRequest).toOld()
 
     private fun <T : VcsFacadeResponse> processJob(requestId: String, func: () -> T): T {
         log.debug("Process request: {}", requestId)
@@ -161,6 +165,53 @@ class RepositoryController(
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(RepositoryController::class.java)
+        private val log = LoggerFactory.getLogger(RepositoryControllerOld::class.java)
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        class CommitOld @JsonCreator constructor(
+            val id: String,
+            val message: String,
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MMM d, yyyy h:mm:s a", locale = "en_GB")
+            val date: Date,
+            val author: String,
+            val parents: List<String>,
+            val vcsUrl: String,
+        ) {
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is CommitOld) return false
+                if (id != other.id) return false
+                if (message != other.message) return false
+                if (date != other.date) return false
+                if (author != other.author) return false
+                if (parents != other.parents) return false
+                if (vcsUrl != other.vcsUrl) return false
+                return true
+            }
+
+            override fun hashCode(): Int {
+                var result = id.hashCode()
+                result = 31 * result + message.hashCode()
+                result = 31 * result + date.hashCode()
+                result = 31 * result + author.hashCode()
+                result = 31 * result + parents.hashCode()
+                result = 31 * result + vcsUrl.hashCode()
+                return result
+            }
+
+            override fun toString(): String {
+                return "CommitOld(id='$id', message='$message', date=$date, author='$author', parents=$parents, vcsUrl='$vcsUrl')"
+            }
+        }
+
+        private fun Commit.toOld() = CommitOld(id, message, date, author.name, parents, vcsUrl)
+
+        data class TagOld(val commitId: String, val name: String)
+
+        private fun Tag.toOld() = TagOld(commitId, name)
+
+        data class PullRequestResponse(val id: Long)
+
+        private fun PullRequest.toOld() = PullRequestResponse(id)
     }
 }
