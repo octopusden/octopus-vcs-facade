@@ -30,8 +30,8 @@ class VCSManagerImpl(
     override fun getTags(sshUrl: String): List<Tag> {
         log.debug("getTags({})", sshUrl)
         return getVcsClient(sshUrl).run {
-            val (group, repository) = this.parse(sshUrl)
-            this.getTags(group, repository)
+            val (group, repository) = parse(sshUrl)
+            getTags(group, repository)
         }
     }
 
@@ -65,16 +65,16 @@ class VCSManagerImpl(
     override fun getCommit(sshUrl: String, id: String): Commit {
         log.debug("getCommit({}, {})", sshUrl, id)
         return getVcsClient(sshUrl).run {
-            val (group, repository) = this.parse(sshUrl)
-            this.getCommit(group, repository, id)
+            val (group, repository) = parse(sshUrl)
+            getCommit(group, repository, id)
         }
     }
 
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest {
         log.debug("createPullRequest({}, {})", sshUrl, createPullRequest)
         return getVcsClient(sshUrl).run {
-            val (group, repository) = this.parse(sshUrl)
-            this.createPullRequest(group, repository, createPullRequest)
+            val (group, repository) = parse(sshUrl)
+            createPullRequest(group, repository, createPullRequest)
         }
     }
 
@@ -174,7 +174,7 @@ class VCSManagerImpl(
                     pullRequests.size,
                     pullRequests.maxOfOrNull { it.updatedAt },
                     with(pullRequests.map { it.status }.toSet()) {
-                        if (this.size == 1) this.first() else null
+                        if (size == 1) first() else null
                     })
             )
         }

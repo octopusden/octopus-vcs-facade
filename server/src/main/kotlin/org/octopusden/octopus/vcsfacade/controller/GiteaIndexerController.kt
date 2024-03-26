@@ -35,7 +35,7 @@ class GiteaIndexerController(
 ) {
     private val mac = giteaProperties.webhookSecret?.let {
         Mac.getInstance(MAC_ALGORITHM).apply {
-            this.init(SecretKeySpec(it.toByteArray(), MAC_ALGORITHM))
+            init(SecretKeySpec(it.toByteArray(), MAC_ALGORITHM))
         }
     }
         get() = field?.clone() as Mac?

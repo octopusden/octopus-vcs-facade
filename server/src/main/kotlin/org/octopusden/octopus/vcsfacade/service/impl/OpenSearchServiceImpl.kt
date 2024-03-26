@@ -65,19 +65,19 @@ class OpenSearchServiceImpl(
 
     override fun findBranchesByIssueKey(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
         refRepository.findAllByTypeAndNameContaining(RefType.BRANCH, issueKey)
-            .filter { this.containsMatchIn(it.name) }
+            .filter { containsMatchIn(it.name) }
             .groupByRepository()
     }
 
     override fun findCommitsByIssueKey(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
         commitRepository.findAllByMessageContaining(issueKey)
-            .filter { this.containsMatchIn(it.message) }
+            .filter { containsMatchIn(it.message) }
             .groupByRepository()
     }
 
     override fun findPullRequestsByIssueKey(issueKey: String) = with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
         pullRequestRepository.findAllByTitleContainingOrDescriptionContaining(issueKey, issueKey)
-            .filter { this.containsMatchIn(it.title) || this.containsMatchIn(it.description) }
+            .filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
             .groupByRepository()
     }
 
@@ -109,12 +109,12 @@ class OpenSearchServiceImpl(
                 pullRequests.size,
                 pullRequests.maxOfOrNull { it.updatedAt },
                 with(pullRequests.map { it.status }.toSet()) {
-                    if (this.size == 1) this.first() else null
+                    if (size == 1) first() else null
                 })
         )
     }
 
-    private fun <T : RepositoryLink> List<T>.groupByRepository() = this.groupBy {
+    private fun <T : RepositoryLink> List<T>.groupByRepository() = groupBy {
         it.repositoryId
     }.mapKeys { (repositoryId, _) ->
         repositoryRepository.findById(repositoryId)

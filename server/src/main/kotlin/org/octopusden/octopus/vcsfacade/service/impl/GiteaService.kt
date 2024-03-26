@@ -158,8 +158,9 @@ class GiteaService(
         return emptyList()
     }
 
-    private fun GiteaRepository.toRepository() =
-        Repository("ssh://git@$host/$fullName.git", "$httpUrl/$fullName", avatarUrl)
+    private fun GiteaRepository.toRepository() = with(fullName.lowercase()) {
+        Repository("ssh://git@$host/$this.git", "$httpUrl/$this", avatarUrl)
+    }
 
     private fun GiteaBranch.toBranch(repository: Repository) = Branch(
         name, commit.id, "${repository.link}/src/branch/$name", repository

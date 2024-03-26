@@ -288,7 +288,7 @@ class GitlabService(
     companion object {
         private val log = LoggerFactory.getLogger(GitlabService::class.java)
 
-        private fun String.toShortBranchName() = this.replace("^refs/heads/".toRegex(), "")
+        private fun String.toShortBranchName() = replace("^refs/heads/".toRegex(), "")
 
         private fun Map<String, Commit>.findReleasedCommits(
             lastReleaseId: String, errorFunction: (commitId: String) -> Exception

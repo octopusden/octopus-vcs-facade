@@ -39,7 +39,7 @@ abstract class BaseVcsFacadeTest(
         testClient.importRepository(
             sshUrlFormat.format(PROJECT, REPOSITORY),
             File.createTempFile("BaseVcsFacadeTest_", "").apply {
-                this.outputStream().use {
+                outputStream().use {
                     BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
                 }
             }
@@ -49,7 +49,7 @@ abstract class BaseVcsFacadeTest(
         testClient.importRepository(
             sshUrlFormat.format(PROJECT, REPOSITORY_2),
             File.createTempFile("BaseVcsFacadeTest_", "").apply {
-                this.outputStream().use {
+                outputStream().use {
                     BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump2.zip")!!.copyTo(it)
                 }
             }

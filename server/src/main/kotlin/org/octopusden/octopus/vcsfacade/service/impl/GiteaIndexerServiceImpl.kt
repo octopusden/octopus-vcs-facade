@@ -93,7 +93,7 @@ class GiteaIndexerServiceImpl(
             try {//TODO: check if repository exists and remove it (if it's not)
                 val openSearchService = getOpenSearchService()
                 val repository = with(giteaRepository.toDocument()) {
-                    openSearchService.findRepositoryById(this.id) ?: openSearchService.saveRepository(this)
+                    openSearchService.findRepositoryById(id) ?: openSearchService.saveRepository(this)
                 }
                 log.debug("Scan `{}` {} repository refs", giteaRepository.fullName, VcsServiceType.GITEA)
                 val refs = giteaService.getBranches(repository.group, repository.name).map { it.toDocument(repository.id) } +
@@ -123,7 +123,7 @@ class GiteaIndexerServiceImpl(
                     .mapNotNull { if (pullRequestsIds.contains(it.id)) null else it.id })
                 openSearchService.savePullRequests(pullRequests)
                 openSearchService.saveRepository(repository.apply {
-                    this.lastScanAt = Date()
+                    lastScanAt = Date()
                 })
                 log.info("Scanning of `{}` {} repository completed successfully", giteaRepository.fullName, VcsServiceType.GITEA)
             } catch (e: Exception) {
@@ -147,7 +147,7 @@ class GiteaIndexerServiceImpl(
     }
 
     private fun GiteaRepository.toDocument(): Repository {
-        val repositoryFullNameParts = this.fullName.lowercase().split("/")
+        val repositoryFullNameParts = fullName.lowercase().split("/")
         return Repository(VcsServiceType.GITEA, repositoryFullNameParts[0], repositoryFullNameParts[1])
     }
 

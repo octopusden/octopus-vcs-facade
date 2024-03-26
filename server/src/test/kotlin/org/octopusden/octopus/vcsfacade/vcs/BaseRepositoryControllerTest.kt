@@ -193,7 +193,7 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, sshUrlFormat
     }
 
     private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T =
-        mapper.readValue(this.contentAsByteArray, typeReference)
+        mapper.readValue(contentAsByteArray, typeReference)
 
     private fun Date.toVcsFacadeFormat(): String {
         return FORMATTER.format(toInstant())
