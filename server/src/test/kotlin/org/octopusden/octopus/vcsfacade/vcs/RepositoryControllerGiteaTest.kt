@@ -12,9 +12,7 @@ private const val VCS_HOST = "localhost:3000"
 @ActiveProfiles("ut", "gitea")
 class RepositoryControllerGiteaTest : BaseRepositoryControllerTest(
     GiteaTestClient("http://$VCS_HOST", GITEA_USER, GITEA_PASSWORD),
-    "ssh://git@$VCS_HOST/%s/%s.git",
-    "http://$VCS_HOST/%s/%s/src/tag/%s",
-    "http://$VCS_HOST/%s/%s/commit/%s"
+    "ssh://git@$VCS_HOST/%s/%s.git"
 ) {
     //TODO: test using opensearch
     override fun issueCommits(): Stream<Arguments> = Stream.of(

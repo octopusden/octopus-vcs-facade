@@ -3,6 +3,9 @@ package org.octopusden.octopus.vcsfacade
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import java.io.File
+import java.util.Date
+import java.util.stream.Stream
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -20,18 +23,13 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import java.io.File
-import java.util.Date
-import java.util.stream.Stream
 
 typealias CheckError = (Pair<Int, String>) -> Unit
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseVcsFacadeTest(
     private val testClient: TestClient,
-    private val vcsRootFormat: String,
-    private val tagLinkFormat: String,
-    private val commitLinkFormat: String
+    private val sshUrlFormat: String
 ) {
     protected abstract val exceptionsMessageInfo: Map<String, String>
     private val repositoryChangeSets: HashMap<String, Map<String, ChangeSet>> = HashMap()
@@ -39,7 +37,7 @@ abstract class BaseVcsFacadeTest(
     @BeforeAll
     fun beforeAllVcsFacadeTests() {
         testClient.importRepository(
-            vcsRootFormat.format(PROJECT, REPOSITORY),
+            sshUrlFormat.format(PROJECT, REPOSITORY),
             File.createTempFile("BaseVcsFacadeTest_", "").apply {
                 this.outputStream().use {
                     BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
@@ -47,9 +45,9 @@ abstract class BaseVcsFacadeTest(
             }
         )
         repositoryChangeSets[REPOSITORY] =
-            testClient.getCommits(vcsRootFormat.format(PROJECT, REPOSITORY)).associateBy { it.message }
+            testClient.getCommits(sshUrlFormat.format(PROJECT, REPOSITORY)).associateBy { it.message }
         testClient.importRepository(
-            vcsRootFormat.format(PROJECT, REPOSITORY_2),
+            sshUrlFormat.format(PROJECT, REPOSITORY_2),
             File.createTempFile("BaseVcsFacadeTest_", "").apply {
                 this.outputStream().use {
                     BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump2.zip")!!.copyTo(it)
@@ -57,7 +55,7 @@ abstract class BaseVcsFacadeTest(
             }
         )
         repositoryChangeSets[REPOSITORY_2] =
-            testClient.getCommits(vcsRootFormat.format(PROJECT, REPOSITORY_2)).associateBy { it.message }
+            testClient.getCommits(sshUrlFormat.format(PROJECT, REPOSITORY_2)).associateBy { it.message }
     }
 
     @AfterAll
@@ -68,14 +66,14 @@ abstract class BaseVcsFacadeTest(
     @ParameterizedTest
     @MethodSource("commits")
     fun getCommitsTest(
-        repository: String,
+        sshUrl: String,
         fromId: String?,
         fromDate: Date?,
         toId: String,
         expectedMessages: Collection<String>
     ) {
         requestCommitsInterval(
-            repository,
+            sshUrl,
             fromId,
             fromDate,
             toId,
@@ -88,7 +86,7 @@ abstract class BaseVcsFacadeTest(
     @ParameterizedTest
     @MethodSource("commitsException")
     fun getCommitsExceptionTest(
-        repository: String,
+        sshUrl: String,
         fromId: String?,
         fromDate: Date?,
         toId: String,
@@ -96,7 +94,7 @@ abstract class BaseVcsFacadeTest(
         status: Int
     ) {
         requestCommitsInterval(
-            repository,
+            sshUrl,
             fromId,
             fromDate,
             toId,
@@ -107,9 +105,9 @@ abstract class BaseVcsFacadeTest(
 
     @ParameterizedTest
     @MethodSource("commitById")
-    fun getCommitByIdTest(repository: String, commitId: String, commitIdName: Pair<String, String>) {
+    fun getCommitByIdTest(sshUrl: String, commitId: String, commitIdName: Pair<String, String>) {
         requestCommitById(
-            repository,
+            sshUrl,
             commitId,
             200,
             { Assertions.assertEquals(commitIdName, it.id to it.message) },
@@ -119,9 +117,9 @@ abstract class BaseVcsFacadeTest(
 
     @MethodSource("commitByIdException")
     @ParameterizedTest
-    fun getCommitByIdExceptionTest(repository: String, commitId: String, exceptionInfo: String, status: Int) {
+    fun getCommitByIdExceptionTest(sshUrl: String, commitId: String, exceptionInfo: String, status: Int) {
         requestCommitById(
-            repository,
+            sshUrl,
             commitId,
             status,
             { Assertions.fail("Response status expected:<$status> but was:<200>") },
@@ -131,20 +129,20 @@ abstract class BaseVcsFacadeTest(
 
     @ParameterizedTest
     @MethodSource("tags")
-    fun getTags(repository: String, expectedTags: List<Tag>) {
+    fun getTags(sshUrl: String, expectedTags: List<TestTag>) {
         requestTags(
-            repository,
+            sshUrl,
             200,
-            { Assertions.assertEquals(expectedTags, it) },
+            { Assertions.assertEquals(expectedTags, it.map { tag -> tag.toTestTag() }) },
             checkError
         )
     }
 
     @ParameterizedTest
     @MethodSource("tagsException")
-    fun getTagsException(repository: String, exceptionInfo: String, status: Int) {
+    fun getTagsException(sshUrl: String, exceptionInfo: String, status: Int) {
         requestTags(
-            repository,
+            sshUrl,
             status,
             { Assertions.fail("Response status expected:<$status> but was:<200>") },
             { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
@@ -165,7 +163,6 @@ abstract class BaseVcsFacadeTest(
     @ParameterizedTest
     @MethodSource("issuesInRanges")
     fun searchIssuesInRangesTest(
-        repository: String,
         issues: Set<String>,
         ranges: Set<RepositoryRange>,
         expectedData: SearchIssueInRangesResponse
@@ -197,10 +194,10 @@ abstract class BaseVcsFacadeTest(
     @Test
     fun createPullRequestTest() { //TODO: assert values
         createPullRequest(
-            vcsRootFormat.format(PROJECT, REPOSITORY),
+            sshUrlFormat.format(PROJECT, REPOSITORY),
             CreatePullRequest(FEATURE_BRANCH, MAIN_BRANCH, "Test PR title", "Test PR description"),
             200,
-            { Assertions.assertTrue { it.id > 0 } },
+            { Assertions.assertTrue { it.index > 0 } },
             checkError
         )
     }
@@ -208,14 +205,14 @@ abstract class BaseVcsFacadeTest(
     @ParameterizedTest
     @MethodSource("pullRequestsException")
     fun createPullRequestExceptionTest(
-        repository: String,
+        sshUrl: String,
         sourceBranch: String,
         targetBranch: String,
         exceptionInfo: String,
         status: Int
     ) {
         createPullRequest(
-            repository,
+            sshUrl,
             CreatePullRequest(sourceBranch, targetBranch, "Test PR title", "Test PR description"),
             400,
             { Assertions.fail("Response status expected:<$status> but was:<200>") },
@@ -226,14 +223,14 @@ abstract class BaseVcsFacadeTest(
     @Test
     fun getCommitsFromIdTest() {
         requestCommitsInterval(
-            vcsRootFormat.format(PROJECT, REPOSITORY_2),
+            sshUrlFormat.format(PROJECT, REPOSITORY_2),
             "master-25\n".commitId(REPOSITORY_2),
             null,
             "master-36\n".commitId(REPOSITORY_2),
             200,
             { commits ->
                 Assertions.assertIterableEquals(
-                    getTestCommits("commitsFromId.json", PROJECT, REPOSITORY_2),
+                    getTestCommits("commitsFromId.json"),
                     commits.map { it.toTestCommit() }
                 )
             },
@@ -244,14 +241,14 @@ abstract class BaseVcsFacadeTest(
     @Test
     fun getCommitsFromDateTest() {
         requestCommitsInterval(
-            vcsRootFormat.format(PROJECT, REPOSITORY_2),
+            sshUrlFormat.format(PROJECT, REPOSITORY_2),
             null,
             "master-25\n".commitDate(REPOSITORY_2),
             "master-36\n".commitId(REPOSITORY_2),
             200,
             { commits ->
                 Assertions.assertIterableEquals(
-                    getTestCommits("commitsFromDate.json", PROJECT, REPOSITORY_2),
+                    getTestCommits("commitsFromDate.json"),
                     commits.map { it.toTestCommit() }
                 )
             },
@@ -259,28 +256,23 @@ abstract class BaseVcsFacadeTest(
         )
     }
 
-    private data class TestCommit(
-        val id: String,
-        val message: String,
-        val parents: Set<String>,
-        var link: String? = null,
-        var vcsUrl: String? = null
-    )
+    data class TestTag(val name: String, val commitId: String)
+
+    private fun Tag.toTestTag() = TestTag(name, commitId)
+
+    data class TestCommit(val id: String, val message: String, val parents: Set<String>)
 
     /*
     BitBucket does trim commit message, but GitLab/Gitea does not!
     TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
     */
-    private fun Commit.toTestCommit() = TestCommit(id, message.removeSuffix("\n"), parents.toSet(), link, vcsUrl)
+    private fun Commit.toTestCommit() = TestCommit(id, message.removeSuffix("\n"), parents.toSet())
 
-    private fun getTestCommits(resource: String, project: String, repository: String): List<TestCommit> =
+    private fun getTestCommits(resource: String) =
         OBJECT_MAPPER.readValue(
             BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream(resource),
             object : TypeReference<List<TestCommit>>() {}
-        ).onEach {
-            it.link = commitLinkFormat.format(project, repository, it.id)
-            it.vcsUrl = vcsRootFormat.format(project, repository)
-        }
+        )
 
     private fun getExceptionMessage(name: String): String {
         return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
@@ -290,14 +282,14 @@ abstract class BaseVcsFacadeTest(
         { Assertions.fail<String>("Response status expected:<200> but was: <${it.first}> '${it.second}'") }
 
     protected abstract fun requestTags(
-        repository: String,
+        sshUrl: String,
         status: Int,
         checkSuccess: (List<Tag>) -> Unit,
         checkError: CheckError
     )
 
     protected abstract fun requestCommitsInterval(
-        repository: String,
+        sshUrl: String,
         fromId: String?,
         fromDate: Date?,
         toId: String,
@@ -314,7 +306,7 @@ abstract class BaseVcsFacadeTest(
     )
 
     protected abstract fun requestCommitById(
-        vcsPath: String,
+        sshUrl: String,
         commitId: String,
         status: Int,
         checkSuccess: (Commit) -> Unit,
@@ -329,7 +321,7 @@ abstract class BaseVcsFacadeTest(
     )
 
     protected abstract fun createPullRequest(
-        repository: String,
+        sshUrl: String,
         createPullRequest: CreatePullRequest,
         status: Int,
         checkSuccess: (PullRequest) -> Unit,
@@ -350,56 +342,56 @@ abstract class BaseVcsFacadeTest(
     private fun commits(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MESSAGE_3.commitId(REPOSITORY),
                 listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 null,
                 MESSAGE_2.commitDate(REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY),
                 listOf(MESSAGE_3)
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(REPOSITORY),
                 null,
                 MESSAGE_3.commitId(REPOSITORY),
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(REPOSITORY),
                 null,
                 MAIN_BRANCH,
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(REPOSITORY),
                 null,
                 "refs/heads/master",
                 listOf(MESSAGE_3, MESSAGE_2)
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MESSAGE_2.commitId(REPOSITORY),
                 listOf(MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY),
                 null,
                 MESSAGE_3.commitId(REPOSITORY),
                 emptyList<String>()
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 MAIN_BRANCH,
@@ -411,7 +403,7 @@ abstract class BaseVcsFacadeTest(
     private fun commitsException(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, "absent"),
+                sshUrlFormat.format(PROJECT, "absent"),
                 null,
                 null,
                 DEFAULT_ID,
@@ -419,7 +411,7 @@ abstract class BaseVcsFacadeTest(
                 400
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 null,
                 null,
                 DEFAULT_ID,
@@ -427,7 +419,7 @@ abstract class BaseVcsFacadeTest(
                 400
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 DEFAULT_ID,
                 null,
                 MESSAGE_2.commitId(REPOSITORY),
@@ -435,7 +427,7 @@ abstract class BaseVcsFacadeTest(
                 400
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(REPOSITORY),
                 null,
                 DEFAULT_ID,
@@ -444,7 +436,7 @@ abstract class BaseVcsFacadeTest(
             ),
 
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_1.commitId(REPOSITORY),
                 MESSAGE_2.commitDate(REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY),
@@ -457,12 +449,12 @@ abstract class BaseVcsFacadeTest(
     private fun commitById(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY),
                 MESSAGE_3.commitId(REPOSITORY) to MESSAGE_3
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 FEATURE_BRANCH,
                 FEATURE_MESSAGE_1.commitId(REPOSITORY) to FEATURE_MESSAGE_1
             )
@@ -472,13 +464,13 @@ abstract class BaseVcsFacadeTest(
     private fun commitByIdException(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, "absent"),
+                sshUrlFormat.format(PROJECT, "absent"),
                 MESSAGE_3.commitId(REPOSITORY),
                 "absent-repo",
                 400
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 DEFAULT_ID,
                 "commitById",
                 400
@@ -489,25 +481,19 @@ abstract class BaseVcsFacadeTest(
     private fun tags(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
+                sshUrlFormat.format(PROJECT, REPOSITORY),
                 listOf(
-                    Tag(
+                    TestTag(
                         TAG_3,
-                        MESSAGE_3.commitId(REPOSITORY),
-                        tagLinkFormat.format(PROJECT, REPOSITORY, TAG_3),
-                        vcsRootFormat.format(PROJECT, REPOSITORY)
+                        MESSAGE_3.commitId(REPOSITORY)
                     ),
-                    Tag(
+                    TestTag(
                         TAG_2,
-                        MESSAGE_2.commitId(REPOSITORY),
-                        tagLinkFormat.format(PROJECT, REPOSITORY, TAG_2),
-                        vcsRootFormat.format(PROJECT, REPOSITORY)
+                        MESSAGE_2.commitId(REPOSITORY)
                     ),
-                    Tag(
+                    TestTag(
                         TAG_1,
-                        MESSAGE_1.commitId(REPOSITORY),
-                        tagLinkFormat.format(PROJECT, REPOSITORY, TAG_1),
-                        vcsRootFormat.format(PROJECT, REPOSITORY)
+                        MESSAGE_1.commitId(REPOSITORY)
                     )
                 )
             )
@@ -517,7 +503,7 @@ abstract class BaseVcsFacadeTest(
     private fun tagsException(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, "absent"),
+                sshUrlFormat.format(PROJECT, "absent"),
                 "absent-repo",
                 400
             )
@@ -534,11 +520,10 @@ abstract class BaseVcsFacadeTest(
     private fun issuesInRanges(): Stream<Arguments> {
         return Stream.of(
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MESSAGE_3.commitId(REPOSITORY)
@@ -548,7 +533,7 @@ abstract class BaseVcsFacadeTest(
                     mapOf(
                         "TEST-1" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 MESSAGE_3.commitId(REPOSITORY)
@@ -556,7 +541,7 @@ abstract class BaseVcsFacadeTest(
                         ),
                         "TEST-2" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 MESSAGE_3.commitId(REPOSITORY)
@@ -566,11 +551,10 @@ abstract class BaseVcsFacadeTest(
                 )
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         "refs/heads/$MAIN_BRANCH"
@@ -580,7 +564,7 @@ abstract class BaseVcsFacadeTest(
                     mapOf(
                         "TEST-1" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
@@ -588,7 +572,7 @@ abstract class BaseVcsFacadeTest(
                         ),
                         "TEST-2" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
@@ -598,11 +582,10 @@ abstract class BaseVcsFacadeTest(
                 )
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         MESSAGE_INIT.commitId(REPOSITORY),
                         null,
                         "refs/heads/$MAIN_BRANCH"
@@ -612,7 +595,7 @@ abstract class BaseVcsFacadeTest(
                     mapOf(
                         "TEST-1" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 MESSAGE_INIT.commitId(REPOSITORY),
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
@@ -620,7 +603,7 @@ abstract class BaseVcsFacadeTest(
                         ),
                         "TEST-2" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 MESSAGE_INIT.commitId(REPOSITORY),
                                 null,
                                 "refs/heads/$MAIN_BRANCH"
@@ -630,11 +613,10 @@ abstract class BaseVcsFacadeTest(
                 )
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         MESSAGE_2.commitDate(REPOSITORY),
                         "refs/heads/$MAIN_BRANCH"
@@ -644,7 +626,7 @@ abstract class BaseVcsFacadeTest(
                     mapOf(
                         "TEST-2" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 MESSAGE_2.commitDate(REPOSITORY),
                                 "refs/heads/$MAIN_BRANCH"
@@ -654,11 +636,10 @@ abstract class BaseVcsFacadeTest(
                 )
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("TEST-1"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MESSAGE_3.commitId(REPOSITORY)
@@ -668,7 +649,7 @@ abstract class BaseVcsFacadeTest(
                     mapOf(
                         "TEST-1" to setOf(
                             RepositoryRange(
-                                vcsRootFormat.format(PROJECT, REPOSITORY),
+                                sshUrlFormat.format(PROJECT, REPOSITORY),
                                 null,
                                 null,
                                 MESSAGE_3.commitId(REPOSITORY)
@@ -678,11 +659,10 @@ abstract class BaseVcsFacadeTest(
                 )
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("ABSENT-1"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MESSAGE_3.commitId(REPOSITORY)
@@ -691,11 +671,10 @@ abstract class BaseVcsFacadeTest(
                 SearchIssueInRangesResponse(emptyMap())
             ),
             Arguments.of(
-                vcsRootFormat.format(PROJECT, REPOSITORY),
                 setOf("ABSENT-1"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         MAIN_BRANCH
@@ -712,7 +691,7 @@ abstract class BaseVcsFacadeTest(
                 setOf("TEST-1"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         DEFAULT_ID
@@ -725,7 +704,7 @@ abstract class BaseVcsFacadeTest(
                 setOf("RELENG-1637", "RELENG-1609"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         MESSAGE_3.commitId(REPOSITORY),
                         null,
                         MESSAGE_1.commitId(REPOSITORY)
@@ -738,7 +717,7 @@ abstract class BaseVcsFacadeTest(
                 setOf("TEST-1", "TEST-2"),
                 setOf(
                     RepositoryRange(
-                        vcsRootFormat.format(PROJECT, REPOSITORY),
+                        sshUrlFormat.format(PROJECT, REPOSITORY),
                         null,
                         null,
                         DEFAULT_ID
@@ -752,28 +731,28 @@ abstract class BaseVcsFacadeTest(
 
     private fun pullRequestsException(): Stream<Arguments> = Stream.of(
         Arguments.of(
-            vcsRootFormat.format("absent", REPOSITORY),
+            sshUrlFormat.format("absent", REPOSITORY),
             FEATURE_BRANCH,
             MAIN_BRANCH,
             "pr_1",
             400
         ),
         Arguments.of(
-            vcsRootFormat.format(PROJECT, "absent"),
+            sshUrlFormat.format(PROJECT, "absent"),
             FEATURE_BRANCH,
             MAIN_BRANCH,
             "absent-repo",
             400
         ),
         Arguments.of(
-            vcsRootFormat.format(PROJECT, REPOSITORY),
+            sshUrlFormat.format(PROJECT, REPOSITORY),
             "absent",
             MAIN_BRANCH,
             "pr_2",
             400
         ),
         Arguments.of(
-            vcsRootFormat.format(PROJECT, REPOSITORY),
+            sshUrlFormat.format(PROJECT, REPOSITORY),
             FEATURE_BRANCH,
             "absent",
             "pr_3",

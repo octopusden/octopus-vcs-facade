@@ -36,9 +36,8 @@ private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 @ExtendWith(SpringExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-abstract class BaseRepositoryControllerTest(
-    testClient: TestClient, vcsRootFormat: String, tagLinkFormat: String, commitLinkFormat: String
-) : BaseVcsFacadeTest(testClient, vcsRootFormat, tagLinkFormat, commitLinkFormat) {
+abstract class BaseRepositoryControllerTest(testClient: TestClient, sshUrlFormat: String) :
+    BaseVcsFacadeTest(testClient, sshUrlFormat) {
 
     @Autowired
     private lateinit var mvc: MockMvc
@@ -52,7 +51,7 @@ abstract class BaseRepositoryControllerTest(
     }
 
     override fun requestCommitsInterval(
-        repository: String,
+        sshUrl: String,
         fromId: String?,
         fromDate: Date?,
         toId: String,
@@ -62,7 +61,7 @@ abstract class BaseRepositoryControllerTest(
     ) {
         val response = mvc.perform(
             MockMvcRequestBuilders.get("/rest/api/1/repository/commits")
-                .param("vcsPath", repository)
+                .param("sshUrl", sshUrl)
                 .param("to", toId)
                 .param("from", fromId)
                 .param("fromDate", fromDate?.toVcsFacadeFormat())
@@ -75,7 +74,7 @@ abstract class BaseRepositoryControllerTest(
     }
 
     override fun requestCommitById(
-        vcsPath: String,
+        sshUrl: String,
         commitId: String,
         status: Int,
         checkSuccess: (Commit) -> Unit,
@@ -83,7 +82,7 @@ abstract class BaseRepositoryControllerTest(
     ) {
         val response = mvc.perform(
             MockMvcRequestBuilders.get("/rest/api/1/repository/commit")
-                .param("vcsPath", vcsPath)
+                .param("sshUrl", sshUrl)
                 .param("commitId", commitId)
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -94,14 +93,14 @@ abstract class BaseRepositoryControllerTest(
     }
 
     override fun requestTags(
-        repository: String,
+        sshUrl: String,
         status: Int,
         checkSuccess: (List<Tag>) -> Unit,
         checkError: CheckError
     ) {
         val response = mvc.perform(
             MockMvcRequestBuilders.get("/rest/api/1/repository/tags")
-                .param("vcsPath", repository)
+                .param("sshUrl", sshUrl)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
@@ -152,7 +151,7 @@ abstract class BaseRepositoryControllerTest(
     }
 
     override fun createPullRequest(
-        repository: String,
+        sshUrl: String,
         createPullRequest: CreatePullRequest,
         status: Int,
         checkSuccess: (PullRequest) -> Unit,
@@ -160,8 +159,8 @@ abstract class BaseRepositoryControllerTest(
     ) {
         val content = mapper.writeValueAsString(createPullRequest)
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/rest/api/1/repository/pull-requests?vcsUrl={}", repository)
-                .param("vcsPath", repository)
+            MockMvcRequestBuilders.post("/rest/api/1/repository/pull-requests", sshUrl)
+                .param("sshUrl", sshUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)
                 .accept(MediaType.APPLICATION_JSON)

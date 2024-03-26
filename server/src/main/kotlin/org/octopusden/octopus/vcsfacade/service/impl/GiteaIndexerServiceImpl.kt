@@ -137,7 +137,7 @@ class GiteaIndexerServiceImpl(
     private fun RepositoryCommit.toDocument(repositoryId: String) = Commit(repositoryId, id, message, date)
 
     private fun RepositoryPullRequest.toDocument(repositoryId: String) = PullRequest(
-        repositoryId, id, title, description, status, updatedAt
+        repositoryId, index, title, description, status, updatedAt
     )
 
     private fun registerGiteaRepository(giteaRepository: GiteaRepository): Repository {

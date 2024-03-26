@@ -16,38 +16,38 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundExceptio
 
 interface VcsFacadeClient {
     @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET rest/api/1/repository/commits?vcsPath={vcsPath}&from={from}&fromDate={fromDate}&to={to}")
+    @RequestLine("GET rest/api/1/repository/commits?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")
     fun getCommits(
-        @Param("vcsPath") vcsPath: String,
+        @Param("sshUrl") sshUrl: String,
         @Param("from") fromId: String?,
         @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
         @Param("to") toId: String
     ): List<Commit>
 
     @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET rest/api/1/repository/commit?vcsPath={vcsPath}&commitId={commitIdOrRef}")
-    fun getCommit(@Param("vcsPath") vcsPath: String, @Param("commitIdOrRef") commitIdOrRef: String): Commit
+    @RequestLine("GET rest/api/1/repository/commit?sshUrl={sshUrl}&commitId={commitIdOrRef}")
+    fun getCommit(@Param("sshUrl") sshUrl: String, @Param("commitIdOrRef") commitIdOrRef: String): Commit
 
     @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET rest/api/1/repository/issues?vcsPath={vcsPath}&from={from}&fromDate={fromDate}&to={to}")
+    @RequestLine("GET rest/api/1/repository/issues?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")
     fun getIssuesFromCommits(
-        @Param("vcsPath") vcsPath: String,
+        @Param("sshUrl") sshUrl: String,
         @Param("from") fromId: String?,
         @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
         @Param("to") toId: String
     ): List<String>
 
     @Throws(IllegalStateException::class)
-    @RequestLine("GET rest/api/1/repository/tags?vcsPath={vcsPath}")
-    fun getTags(@Param("vcsPath") vcsUrl: String): List<Tag>
+    @RequestLine("GET rest/api/1/repository/tags?sshUrl={sshUrl}")
+    fun getTags(@Param("sshUrl") sshUrl: String): List<Tag>
 
     @RequestLine("POST rest/api/1/repository/search-issues-in-ranges")
     @Headers("Content-Type: application/json")
     fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
 
-    @RequestLine("POST rest/api/1/repository/pull-requests?vcsPath={vcsPath}")
+    @RequestLine("POST rest/api/1/repository/pull-requests?sshUrl={sshUrl}")
     @Headers("Content-Type: application/json")
-    fun createPullRequest(@Param("vcsPath") vcsPath: String, createPullRequest: CreatePullRequest): PullRequest
+    fun createPullRequest(@Param("sshUrl") sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
 
     @RequestLine("GET rest/api/1/repository/find/{issueKey}")
     fun findByIssueKey(@Param("issueKey") issueKey: String): SearchSummary

@@ -12,9 +12,7 @@ private const val VCS_HOST = "localhost:8990"
 @ActiveProfiles("ut", "gitlab")
 class RepositoryControllerGitlabTest : BaseRepositoryControllerTest(
     GitlabTestClient("http://$VCS_HOST", GITLAB_USER, GITLAB_PASSWORD),
-    "ssh://git@$VCS_HOST:%s/%s.git",
-    "http://$VCS_HOST/%s/%s/-/tree/%s?ref_type=tags",
-    "http://$VCS_HOST/%s/%s/-/commit/%s"
+    "ssh://git@$VCS_HOST:%s/%s.git"
 ) {
     override fun issueCommits(): Stream<Arguments> = Stream.of(
         Arguments.of("ABSENT-1", emptyList<String>()),

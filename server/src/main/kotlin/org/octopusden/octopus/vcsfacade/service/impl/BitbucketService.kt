@@ -24,6 +24,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
@@ -46,7 +47,7 @@ class BitbucketService(
     bitbucketProperties: VCSConfig.BitbucketProperties,
 ) : VCSClient(bitbucketProperties, VcsServiceType.BITBUCKET) {
     private val bitbucketClient: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
-        override fun getApiUrl(): String = url
+        override fun getApiUrl(): String = httpUrl
 
         override fun getAuth(): BitbucketCredentialProvider {
             val authException by lazy {
@@ -60,7 +61,7 @@ class BitbucketService(
         }
     })
 
-    override val vcsPathRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
+    override val sshUrlRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
 
     override fun getBranches(group: String, repository: String) =
         execute("getBranches($group, $repository)") {
@@ -82,9 +83,9 @@ class BitbucketService(
             bitbucketClient.getCommits(group, repository, toId, fromDate)
         }.map { it.toCommit(group, repository) }
 
-    override fun getCommit(group: String, repository: String, commitIdOrRef: String) =
-        execute("getCommit($group, $repository, $commitIdOrRef)") {
-            bitbucketClient.getCommit(group, repository, commitIdOrRef)
+    override fun getCommit(group: String, repository: String, id: String) =
+        execute("getCommit($group, $repository, $id)") {
+            bitbucketClient.getCommit(group, repository, id)
         }.toCommit(group, repository)
 
     override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
@@ -101,7 +102,23 @@ class BitbucketService(
 
     override fun getPullRequest(group: String, repository: String, index: Long) =
         execute("getPullRequest($group, $repository, $index)") {
-        bitbucketClient.getPullRequest(group, repository, index).toPullRequest(group, repository)
+            bitbucketClient.getPullRequest(group, repository, index).toPullRequest(group, repository)
+        }
+
+    override fun findCommits(group: String, repository: String, ids: Set<String>) = ids.mapNotNull {
+        try {
+            bitbucketClient.getCommit(group, repository, it).toCommit(group, repository)
+        } catch (e: BitBucketNotFoundException) {
+            null
+        }
+    }
+
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>) = indexes.mapNotNull {
+        try {
+            bitbucketClient.getPullRequest(group, repository, it).toPullRequest(group, repository)
+        } catch (e: BitBucketNotFoundException) {
+            null
+        }
     }
 
     override fun findBranches(issueKey: String): List<Branch> {
@@ -109,38 +126,40 @@ class BitbucketService(
         return emptyList()
     }
 
+    override fun findCommits(issueKey: String) =
+        execute("findCommits($issueKey)") {
+            bitbucketClient.getCommits(issueKey)
+        }.map { bitbucketJiraCommit ->
+            val (group, repository) = parse(bitbucketJiraCommit.repository.links.clone.find { it.name == BitbucketLinkName.SSH }!!.href)
+            bitbucketJiraCommit.toCommit.toCommit(group, repository)
+        }
+
     override fun findPullRequests(issueKey: String): List<PullRequest> {
         log.warn("There is no native implementation of findPullRequests for $vcsServiceType")
         return emptyList()
     }
 
-    override fun findCommits(issueKey: String) =
-        execute("findCommits($issueKey)") {
-            bitbucketClient.getCommits(issueKey)
-        }.map { bitbucketJiraCommit ->
-            val (group, repository) = parseRepository(bitbucketJiraCommit.repository.links.clone.find { it.name == BitbucketLinkName.SSH }!!.href)
-            bitbucketJiraCommit.toCommit.toCommit(group, repository)
-        }
-
-    private fun getVcsUrl(project: String, repository: String) = "ssh://git@$host/$project/$repository.git"
+    private fun getRepository(project: String, repository: String) = Repository(
+        "ssh://git@$host/$project/$repository.git",
+        "$httpUrl/projects/$project/repos/$repository/browse",
+        "$httpUrl/projects/$project/avatar.png?s=48"
+    )
 
     private fun BitbucketBranch.toBranch(project: String, repository: String) = Branch(
         displayId,
         latestCommit,
-        "$url/projects/$project/repos/$repository/browse?at=$displayId",
-        getVcsUrl(project, repository)
+        "$httpUrl/projects/$project/repos/$repository/browse?at=$displayId",
+        getRepository(project, repository)
     )
 
     private fun BitbucketTag.toTag(project: String, repository: String) = Tag(
         displayId,
         latestCommit,
-        "$url/projects/$project/repos/$repository/browse?at=$displayId",
-        getVcsUrl(project, repository)
+        "$httpUrl/projects/$project/repos/$repository/browse?at=$displayId",
+        getRepository(project, repository)
     )
 
-    private fun getAvatarUrl(username: String) = "$url/users/$username/avatar.png?s=48"
-
-    private fun BitbucketUser.toUser() = User(name, getAvatarUrl(name))
+    private fun BitbucketUser.toUser() = User(name, "$httpUrl/users/$name/avatar.png?s=48")
 
     private fun BitbucketCommit.toCommit(project: String, repository: String) = Commit(
         id,
@@ -148,28 +167,32 @@ class BitbucketService(
         authorTimestamp,
         author.toUser(),
         parents.map { it.id },
-        "$url/projects/$project/repos/$repository/commits/$id",
-        getVcsUrl(project, repository)
+        "$httpUrl/projects/$project/repos/$repository/commits/$id",
+        getRepository(project, repository)
     )
 
-    private fun BitbucketPullRequest.toPullRequest(project: String, repository: String) = PullRequest(
-        id,
-        title,
-        description ?: "",
-        fromRef.displayId,
-        toRef.displayId,
-        listOf(User(author.user.name, getAvatarUrl(author.user.name))),
-        reviewers.map { User(it.user.name, getAvatarUrl(it.user.name)) },
-        when(state) {
-            BitbucketPullRequestState.MERGED -> PullRequestStatus.MERGED
-            BitbucketPullRequestState.DECLINED -> PullRequestStatus.DECLINED
-            BitbucketPullRequestState.OPEN -> PullRequestStatus.OPENED
-        },
-        createdDate,
-        updatedDate,
-        "$url/projects/$project/repos/$repository/pull-requests/$id/overview",
-        getVcsUrl(project, repository)
-    )
+    private fun BitbucketPullRequest.toPullRequest(project: String, repository: String) =
+        author.user.toUser().let { author ->
+            PullRequest(
+                id,
+                title,
+                description ?: "",
+                author,
+                fromRef.displayId,
+                toRef.displayId,
+                listOf(author),
+                reviewers.map { it.user.toUser() },
+                when (state) {
+                    BitbucketPullRequestState.MERGED -> PullRequestStatus.MERGED
+                    BitbucketPullRequestState.DECLINED -> PullRequestStatus.DECLINED
+                    BitbucketPullRequestState.OPEN -> PullRequestStatus.OPENED
+                },
+                createdDate,
+                updatedDate,
+                "$httpUrl/projects/$project/repos/$repository/pull-requests/$id/overview",
+                getRepository(project, repository)
+            )
+        }
 
     companion object {
         private val log = LoggerFactory.getLogger(BitbucketService::class.java)

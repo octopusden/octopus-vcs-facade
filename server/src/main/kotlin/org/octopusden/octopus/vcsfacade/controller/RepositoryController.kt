@@ -9,7 +9,6 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobProperties
@@ -43,29 +42,29 @@ class RepositoryController(
 
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommits(
-        @RequestParam("vcsPath") vcsPath: String,
+        @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("to") to: String,
         @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.getCommits(vcsPath, from, fromDate, to))
+        RepositoryResponse(vcsManager.getCommits(sshUrl, from, fromDate, to))
     }.data
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
-        vcsManager.getCommit(vcsPath, commitIdOrRef)
+    fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String) =
+        vcsManager.getCommit(sshUrl, commitId)
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getIssuesFromCommits(
-        @RequestParam("vcsPath") vcsPath: String,
+        @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("to") to: String,
-        @RequestParam(name = "from", required = false) from: String?,
+        @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
         RepositoryResponse(
-            vcsManager.getCommits(vcsPath, from, fromDate, to)
+            vcsManager.getCommits(sshUrl, from, fromDate, to)
                 .flatMap { IssueKeyParser.findIssueKeys(it.message) }
                 .distinct()
         )
@@ -74,10 +73,10 @@ class RepositoryController(
 
     @GetMapping("tags", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getTags(
-        @RequestParam("vcsPath") vcsPath: String,
+        @RequestParam("sshUrl") sshUrl: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        RepositoryResponse(vcsManager.getTags(vcsPath))
+        RepositoryResponse(vcsManager.getTags(sshUrl))
     }.data
 
     @PostMapping(
@@ -89,12 +88,12 @@ class RepositoryController(
         @RequestBody searchRequest: SearchIssuesInRangesRequest,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        SearchIssueInRangesResponse(vcsManager.getIssueRanges(searchRequest))
+        vcsManager.searchIssuesInRanges(searchRequest)
     }
 
     @PostMapping("pull-requests")
-    fun createPullRequest(@RequestParam("vcsPath") vcsPath: String, @RequestBody createPullRequest: CreatePullRequest) =
-        vcsManager.createPullRequest(vcsPath, createPullRequest)
+    fun createPullRequest(@RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest) =
+        vcsManager.createPullRequest(sshUrl, createPullRequest)
 
     @GetMapping("find/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findByIssueKey(

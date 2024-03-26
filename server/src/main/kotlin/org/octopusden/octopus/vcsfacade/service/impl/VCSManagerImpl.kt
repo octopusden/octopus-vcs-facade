@@ -5,12 +5,11 @@ import java.util.stream.Collectors
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
-import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
@@ -28,18 +27,18 @@ class VCSManagerImpl(
     private val vcsProperties: List<VCSConfig.VCSProperties>,
     private val openSearchService: OpenSearchService?
 ) : VCSManager, HealthIndicator {
-    override fun getTags(vcsPath: String): List<Tag> {
-        log.debug("getTags({})", vcsPath)
-        return getVcsClient(vcsPath).run {
-            val (group, repository) = this.parseRepository(vcsPath)
+    override fun getTags(sshUrl: String): List<Tag> {
+        log.debug("getTags({})", sshUrl)
+        return getVcsClient(sshUrl).run {
+            val (group, repository) = this.parse(sshUrl)
             this.getTags(group, repository)
         }
     }
 
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
-        log.debug("getCommits({}, {}, {}, {})", vcsPath, fromId, fromDate, toId)
-        val client = getVcsClient(vcsPath)
-        val (group, repository) = client.parseRepository(vcsPath)
+    override fun getCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String): Collection<Commit> {
+        log.debug("getCommits({}, {}, {}, {})", sshUrl, fromId, fromDate, toId)
+        val client = getVcsClient(sshUrl)
+        val (group, repository) = client.parse(sshUrl)
         val started = System.currentTimeMillis()
         return if (fromId != null) {
             if (fromDate != null) {
@@ -63,31 +62,31 @@ class VCSManagerImpl(
         }
     }
 
-    override fun getCommit(vcsPath: String, commitIdOrRef: String): Commit {
-        log.debug("getCommit({}, {})", vcsPath, commitIdOrRef)
-        return getVcsClient(vcsPath).run {
-            val (group, repository) = this.parseRepository(vcsPath)
-            this.getCommit(group, repository, commitIdOrRef)
+    override fun getCommit(sshUrl: String, id: String): Commit {
+        log.debug("getCommit({}, {})", sshUrl, id)
+        return getVcsClient(sshUrl).run {
+            val (group, repository) = this.parse(sshUrl)
+            this.getCommit(group, repository, id)
         }
     }
 
-    override fun createPullRequest(vcsPath: String, createPullRequest: CreatePullRequest): PullRequest {
-        log.debug("createPullRequest({}, {})", vcsPath, createPullRequest)
-        return getVcsClient(vcsPath).run {
-            val (group, repository) = this.parseRepository(vcsPath)
+    override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest {
+        log.debug("createPullRequest({}, {})", sshUrl, createPullRequest)
+        return getVcsClient(sshUrl).run {
+            val (group, repository) = this.parse(sshUrl)
             this.createPullRequest(group, repository, createPullRequest)
         }
     }
 
-    override fun getIssueRanges(searchRequest: SearchIssuesInRangesRequest): Map<String, Set<RepositoryRange>> {
-        log.debug("getIssueRanges({})", searchRequest)
+    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
+        log.debug("searchIssuesInRanges({})", searchRequest)
         val messageRanges = searchRequest.ranges
             .flatMap { range ->
-                getCommits(range.vcsPath, range.fromCid, range.fromDate, range.toCid)
+                getCommits(range.sshUrl, range.fromCid, range.fromDate, range.toCid)
                     .map { commit -> commit.message to range }
             }
             .groupBy({ (message, _) -> message }, { (_, range) -> range })
-        return searchRequest.issues
+        return SearchIssueInRangesResponse(searchRequest.issues
             .map { issue ->
                 val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issue)
                 issue to messageRanges.entries
@@ -102,6 +101,7 @@ class VCSManagerImpl(
                     { a, b -> a + b }
                 ))
             .filter { (_, ranges) -> ranges.isNotEmpty() }
+        )
     }
 
     override fun findBranches(issueKey: String) =
@@ -109,10 +109,7 @@ class VCSManagerImpl(
             log.debug("findBranches({}) using opensearch index", issueKey)
             it.findBranchesByIssueKey(issueKey).map { (repository, refs) ->
                 getVcsClient(repository.type)?.let { client ->
-                    val branchNames = refs.map { ref -> ref.name }.toSet()
-                    client.getBranches(repository.group, repository.name).filter { branch ->
-                        branch.name in branchNames
-                    }
+                    client.findBranches(repository.group, repository.name, refs.map { ref -> ref.name }.toSet())
                 } ?: emptyList()
             }.flatten()
         } ?: run {
@@ -125,13 +122,7 @@ class VCSManagerImpl(
             log.debug("findCommits({}) using opensearch index", issueKey)
             it.findCommitsByIssueKey(issueKey).map { (repository, commits) ->
                 getVcsClient(repository.type)?.let { client ->
-                    commits.mapNotNull { commit ->
-                        try {
-                            client.getCommit(repository.group, repository.name, commit.hash)
-                        } catch (e: NotFoundException) {
-                            null
-                        }
-                    }
+                    client.findCommits(repository.group, repository.name, commits.map { commit -> commit.hash }.toSet())
                 } ?: emptyList()
             }.flatten()
         } ?: run {
@@ -144,13 +135,11 @@ class VCSManagerImpl(
             log.debug("findPullRequests({}) using opensearch index", issueKey)
             it.findPullRequestsByIssueKey(issueKey).map { (repository, pullRequests) ->
                 getVcsClient(repository.type)?.let { client ->
-                    pullRequests.mapNotNull { pullRequest ->
-                        try {
-                            client.getPullRequest(repository.group, repository.name, pullRequest.index)
-                        } catch (e: NotFoundException) {
-                            null
-                        }
-                    }
+                    client.findPullRequests(
+                        repository.group,
+                        repository.name,
+                        pullRequests.map { pullRequest -> pullRequest.index }.toSet()
+                    )
                 } ?: emptyList()
             }.flatten()
         } ?: run {
@@ -164,10 +153,10 @@ class VCSManagerImpl(
             it.findByIssueKey(issueKey) //IMPORTANT: no "double check in VCS" for the sake of the performance
         } ?: run {
             log.debug("find({}) using native implementation", issueKey)
-            val branchesCommits = vcsClients.flatMap {
-                it.findBranches(issueKey).map { branch ->
-                    val (group, repository) = it.parseRepository(branch.vcsUrl)
-                    it.getCommit(group, repository, branch.commitId)
+            val branchesCommits = vcsClients.flatMap { client ->
+                client.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {
+                    val (group, repository) = client.parse(it.key)
+                    client.findCommits(group, repository, it.value.map { branch -> branch.commitId }.toSet())
                 }
             }
             val commits = vcsClients.flatMap { it.findCommits(issueKey) }
@@ -225,8 +214,8 @@ class VCSManagerImpl(
             }
     }
 
-    private fun getVcsClient(vcsPath: String) = vcsClients.firstOrNull { it.isSupport(vcsPath) }
-        ?: throw IllegalStateException("There is no enabled or/and supported VCS client for vcsPath=$vcsPath")
+    private fun getVcsClient(sshUrl: String) = vcsClients.firstOrNull { it.isSupport(sshUrl) }
+        ?: throw IllegalStateException("There is no enabled or/and supported VCS client for sshUrl=$sshUrl")
 
     private fun getVcsClient(vcsServiceType: VcsServiceType) =
         vcsClients.firstOrNull { it.vcsServiceType == vcsServiceType }

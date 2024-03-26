@@ -11,6 +11,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithD
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaBranch
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequest
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaUser
 import org.octopusden.octopus.infrastructure.gitea.client.getBranches
@@ -22,6 +23,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
@@ -31,6 +33,7 @@ import org.octopusden.octopus.vcsfacade.service.VCSClient
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
+import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException as GiteaNotFoundException
 
 @Service
 @ConditionalOnProperty(
@@ -43,7 +46,7 @@ class GiteaService(
     giteaProperties: VCSConfig.GiteaProperties
 ) : VCSClient(giteaProperties, VcsServiceType.GITEA) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
-        override fun getApiUrl() = url
+        override fun getApiUrl() = httpUrl
 
         override fun getAuth(): CredentialProvider {
             val authException by lazy {
@@ -56,37 +59,50 @@ class GiteaService(
         }
     })
 
-    override val vcsPathRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
+    override val sshUrlRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
 
-    override fun getBranches(group: String, repository: String) =
+    private fun getRepository(group: String, repository: String) =
+        execute("getRepository($group, $repository)") {
+            client.getRepository(group, repository)
+        }.toRepository()
+
+    override fun getBranches(group: String, repository: String) = with(getRepository(group, repository)) {
         execute("getBranches($group, $repository)") {
             client.getBranches(group, repository)
-        }.map { it.toBranch(group, repository) }
+        }.map { it.toBranch(this) }
+    }
 
-    override fun getTags(group: String, repository: String) =
+    override fun getTags(group: String, repository: String) = with(getRepository(group, repository)) {
         execute("getTags($group, $repository)") {
             client.getTags(group, repository)
-        }.map { it.toTag(group, repository) }
+        }.map { it.toTag(this) }
+    }
 
     override fun getCommits(group: String, repository: String, toId: String, fromId: String) =
-        execute("getCommits($group, $repository, $toId, $fromId)") {
-            client.getCommits(group, repository, toId, fromId)
-        }.map { it.toCommit(group, repository) }
+        with(getRepository(group, repository)) {
+            execute("getCommits($group, $repository, $toId, $fromId)") {
+                client.getCommits(group, repository, toId, fromId)
+            }.map { it.toCommit(this) }
+        }
 
     override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?) =
-        execute("getCommits($group, $repository, $toId, $fromDate)") {
-            client.getCommits(group, repository, toId, fromDate)
-        }.map { it.toCommit(group, repository) }
+        with(getRepository(group, repository)) {
+            execute("getCommits($group, $repository, $toId, $fromDate)") {
+                client.getCommits(group, repository, toId, fromDate)
+            }.map { it.toCommit(this) }
+        }
 
-    override fun getCommit(group: String, repository: String, commitIdOrRef: String) =
-        execute("getCommit($group, $repository, $commitIdOrRef)") {
-            client.getCommit(group, repository, commitIdOrRef)
-        }.toCommit(group, repository)
+    override fun getCommit(group: String, repository: String, id: String) =
+        execute("getCommit($group, $repository, $id)") {
+            client.getCommit(group, repository, id)
+        }.toCommit(getRepository(group, repository))
 
     fun getPullRequests(group: String, repository: String) = //TODO: expose to VCSClient as abstract method?
-        execute("getPullRequests($group, $repository)") {
-            client.getPullRequests(group, repository)
-        }.map { it.toPullRequest(group, repository) }
+        with(getRepository(group, repository)) {
+            execute("getPullRequests($group, $repository)") {
+                client.getPullRequests(group, repository)
+            }.map { it.toPullRequest(this) }
+        }
 
     override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
         execute("createPullRequest($group, $repository, $createPullRequest)") {
@@ -97,12 +113,34 @@ class GiteaService(
                 createPullRequest.targetBranch,
                 createPullRequest.title,
                 createPullRequest.description
-            ).toPullRequest(group, repository)
-        }
+            )
+        }.toPullRequest(getRepository(group, repository))
 
     override fun getPullRequest(group: String, repository: String, index: Long) =
         execute("getPullRequest($group, $repository, $index)") {
-            client.getPullRequest(group, repository, index).toPullRequest(group, repository)
+            client.getPullRequest(group, repository, index)
+        }.toPullRequest(getRepository(group, repository))
+
+    override fun findCommits(group: String, repository: String, ids: Set<String>) =
+        with(getRepository(group, repository)) {
+            ids.mapNotNull {
+                try {
+                    client.getCommit(group, repository, it).toCommit(this)
+                } catch (e: GiteaNotFoundException) {
+                    null
+                }
+            }
+        }
+
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>) =
+        with(getRepository(group, repository)) {
+            indexes.mapNotNull {
+                try {
+                    client.getPullRequest(group, repository, it).toPullRequest(this)
+                } catch (e: GiteaNotFoundException) {
+                    null
+                }
+            }
         }
 
     override fun findBranches(issueKey: String): List<Branch> {
@@ -120,32 +158,34 @@ class GiteaService(
         return emptyList()
     }
 
-    private fun getVcsUrl(organization: String, repository: String) = "ssh://git@$host/$organization/$repository.git"
+    private fun GiteaRepository.toRepository() =
+        Repository("ssh://git@$host/$fullName.git", "$httpUrl/$fullName", avatarUrl)
 
-    private fun GiteaBranch.toBranch(organization: String, repository: String) = Branch(
-        name, commit.id, "$url/$organization/$repository/src/branch/$name", getVcsUrl(organization, repository)
+    private fun GiteaBranch.toBranch(repository: Repository) = Branch(
+        name, commit.id, "${repository.link}/src/branch/$name", repository
     )
 
-    private fun GiteaTag.toTag(organization: String, repository: String) = Tag(
-        name, commit.sha, "$url/$organization/$repository/src/tag/$name", getVcsUrl(organization, repository)
+    private fun GiteaTag.toTag(repository: Repository) = Tag(
+        name, commit.sha, "${repository.link}/src/tag/$name", repository
     )
 
     private fun GiteaUser.toUser() = User(username, avatarUrl)
 
-    private fun GiteaCommit.toCommit(organization: String, repository: String) = Commit(
+    private fun GiteaCommit.toCommit(repository: Repository) = Commit(
         sha,
         commit.message,
         created,
-        author?.toUser() ?: User(commit.author.name),
+        author?.toUser() ?: User(commit.author.name, ""),
         parents.map { it.sha },
-        "$url/$organization/$repository/commit/$sha",
-        getVcsUrl(organization, repository)
+        "${repository.link}/commit/$sha",
+        repository
     )
 
-    private fun GiteaPullRequest.toPullRequest(organization: String, repository: String) = PullRequest(
+    private fun GiteaPullRequest.toPullRequest(repository: Repository) = PullRequest(
         number,
         title,
         body,
+        user.toUser(),
         head.label,
         base.label,
         assignees.map { it.toUser() },
@@ -159,8 +199,8 @@ class GiteaService(
         },
         createdAt,
         updatedAt,
-        "$url/$organization/$repository/pulls/$number",
-        getVcsUrl(organization, repository)
+        "${repository.link}/pulls/$number",
+        repository
     )
 
     companion object {
@@ -169,7 +209,7 @@ class GiteaService(
         private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
             try {
                 return clientFunction.invoke()
-            } catch (e: org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException) {
+            } catch (e: GiteaNotFoundException) {
                 log.error("$errorMessage: ${e.message}")
                 throw NotFoundException(e.message ?: e::class.qualifiedName!!)
             }

@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade
 
+import java.util.Date
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
@@ -11,20 +12,18 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotComp
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
-import java.util.Date
 
-abstract class BaseVcsFacadeFuncTest(
-    testClient: TestClient, vcsRootFormat: String, tagLinkFormat: String, commitLinkFormat: String
-) : BaseVcsFacadeTest(testClient, vcsRootFormat, tagLinkFormat, commitLinkFormat) {
+abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: String) :
+    BaseVcsFacadeTest(testClient, sshUrlFormat) {
 
     override fun requestTags(
-        repository: String,
+        sshUrl: String,
         status: Int,
         checkSuccess: (List<Tag>) -> Unit,
         checkError: CheckError
     ) {
         try {
-            val tags = client.getTags(repository)
+            val tags = client.getTags(sshUrl)
             checkSuccess(tags)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
@@ -34,7 +33,7 @@ abstract class BaseVcsFacadeFuncTest(
     }
 
     override fun requestCommitsInterval(
-        repository: String,
+        sshUrl: String,
         fromId: String?,
         fromDate: Date?,
         toId: String,
@@ -43,7 +42,7 @@ abstract class BaseVcsFacadeFuncTest(
         checkError: CheckError
     ) {
         try {
-            val commits = client.getCommits(repository, fromId, fromDate, toId)
+            val commits = client.getCommits(sshUrl, fromId, fromDate, toId)
             checkSuccess(commits)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
@@ -71,14 +70,14 @@ abstract class BaseVcsFacadeFuncTest(
     }
 
     override fun requestCommitById(
-        vcsPath: String,
+        sshUrl: String,
         commitId: String,
         status: Int,
         checkSuccess: (Commit) -> Unit,
         checkError: CheckError
     ) {
         try {
-            val commit = client.getCommit(vcsPath, commitId)
+            val commit = client.getCommit(sshUrl, commitId)
             checkSuccess(commit)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
@@ -96,14 +95,14 @@ abstract class BaseVcsFacadeFuncTest(
     }
 
     override fun createPullRequest(
-        repository: String,
+        sshUrl: String,
         createPullRequest: CreatePullRequest,
         status: Int,
         checkSuccess: (PullRequest) -> Unit,
         checkError: CheckError
     ) {
         try {
-            val pullRequest = client.createPullRequest(repository, createPullRequest)
+            val pullRequest = client.createPullRequest(sshUrl, createPullRequest)
             checkSuccess(pullRequest)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))

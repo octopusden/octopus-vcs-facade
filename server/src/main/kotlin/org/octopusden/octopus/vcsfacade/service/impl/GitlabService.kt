@@ -15,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
@@ -39,7 +40,7 @@ class GitlabService(
         val authException by lazy {
             IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
         }
-        gitLabProperties.token?.let { GitLabApi(url, gitLabProperties.token) } ?: getGitlabApi(
+        gitLabProperties.token?.let { GitLabApi(httpUrl, gitLabProperties.token) } ?: getGitlabApi(
             gitLabProperties,
             authException
         ).also { api ->
@@ -52,7 +53,7 @@ class GitlabService(
     private var tokenObtained: Instant = Instant.MIN
     private var token: String = ""
 
-    override val vcsPathRegex = "(?:ssh://)?git@$host:((?:[^/]+/)+)([^/]+).git".toRegex()
+    override val sshUrlRegex = "(?:ssh://)?git@$host:((?:[^/]+/)+)([^/]+).git".toRegex()
 
     override fun getBranches(group: String, repository: String) = retryableExecution {
         client.repositoryApi.getBranches(getProject(group, repository).id).map { it.toBranch(group, repository) }
@@ -82,8 +83,8 @@ class GitlabService(
         return filterCommitGraph(group, repository, commits, null, fromDate, toIdValue)
     }
 
-    override fun getCommit(group: String, repository: String, commitIdOrRef: String) =
-        getCommitByBranchOrId(getProject(group, repository), commitIdOrRef).toCommit(group, repository)
+    override fun getCommit(group: String, repository: String, id: String) =
+        getCommitByBranchOrId(getProject(group, repository), id).toCommit(group, repository)
 
 
     override fun createPullRequest(
@@ -110,6 +111,22 @@ class GitlabService(
             getProject(group, repository).id, index
         )
     }.toPullRequest(group, repository)
+
+    override fun findCommits(group: String, repository: String, ids: Set<String>) = ids.mapNotNull {
+        try {
+            getCommit(group, repository, it)
+        } catch (e: NotFoundException) {
+            null
+        }
+    }
+
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>) = indexes.mapNotNull {
+        try {
+            getPullRequest(group, repository, it)
+        } catch (e: NotFoundException) {
+            null
+        }
+    }
 
     override fun findBranches(issueKey: String): List<Branch> {
         log.warn("There is no native implementation of findBranches for $vcsServiceType")
@@ -144,14 +161,18 @@ class GitlabService(
         }
     }
 
-    private fun getVcsUrl(namespace: String, project: String) = "ssh://git@$host:$namespace/$project.git"
+    private fun getRepository(namespace: String, project: String) = Repository(
+        "ssh://git@$host:$namespace/$project.git",
+        "$httpUrl/$namespace/$project",
+        ""
+    )
 
     private fun GitlabBranch.toBranch(namespace: String, project: String) = Branch(
-        name, commit.id, "$url/$namespace/$project/-/tree/$name?ref_type=heads", getVcsUrl(namespace, project)
+        name, commit.id, "$httpUrl/$namespace/$project/-/tree/$name?ref_type=heads", getRepository(namespace, project)
     )
 
     private fun GitlabTag.toTag(namespace: String, project: String) = Tag(
-        name, commit.id, "$url/$namespace/$project/-/tree/$name?ref_type=tags", getVcsUrl(namespace, project)
+        name, commit.id, "$httpUrl/$namespace/$project/-/tree/$name?ref_type=tags", getRepository(namespace, project)
     )
 
     private fun <T : AbstractUser<T>> AbstractUser<T>.toUser() = User(username, avatarUrl)
@@ -160,16 +181,17 @@ class GitlabService(
         id,
         message,
         committedDate,
-        author?.toUser() ?: User(authorName),
+        author?.toUser() ?: User(authorName, ""),
         parentIds,
-        "${this@GitlabService.url}/$namespace/$project/-/commit/$id",
-        getVcsUrl(namespace, project)
+        "$httpUrl/$namespace/$project/-/commit/$id",
+        getRepository(namespace, project)
     )
 
     private fun MergeRequest.toPullRequest(namespace: String, project: String) = PullRequest(
         id,
         title,
         description,
+        author.toUser(),
         sourceBranch,
         targetBranch,
         assignees.map { it.toUser() },
@@ -181,8 +203,8 @@ class GitlabService(
         },
         createdAt,
         updatedAt,
-        "$url/$namespace/$project/-/merge_requests/$id",
-        getVcsUrl(namespace, project)
+        "$httpUrl/$namespace/$project/-/merge_requests/$id",
+        getRepository(namespace, project)
     )
 
     private fun <T> retryableExecution(

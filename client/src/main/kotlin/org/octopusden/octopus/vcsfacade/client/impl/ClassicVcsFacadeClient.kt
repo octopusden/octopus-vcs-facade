@@ -29,21 +29,21 @@ class ClassicVcsFacadeClient(
         apiParametersProvider, getMapper()
     )
 
-    override fun getCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String) =
-        client.getCommits(vcsPath, fromId, fromDate, toId)
+    override fun getCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String) =
+        client.getCommits(sshUrl, fromId, fromDate, toId)
 
-    override fun getCommit(vcsPath: String, commitIdOrRef: String) = client.getCommit(vcsPath, commitIdOrRef)
+    override fun getCommit(sshUrl: String, commitIdOrRef: String) = client.getCommit(sshUrl, commitIdOrRef)
 
-    override fun getIssuesFromCommits(vcsPath: String, fromId: String?, fromDate: Date?, toId: String) =
-        client.getIssuesFromCommits(vcsPath, fromId, fromDate, toId)
+    override fun getIssuesFromCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String) =
+        client.getIssuesFromCommits(sshUrl, fromId, fromDate, toId)
 
-    override fun getTags(vcsUrl: String) = client.getTags(vcsUrl)
+    override fun getTags(sshUrl: String) = client.getTags(sshUrl)
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
         client.searchIssuesInRanges(searchRequest)
 
-    override fun createPullRequest(vcsPath: String, createPullRequest: CreatePullRequest) =
-        client.createPullRequest(vcsPath, createPullRequest)
+    override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
+        client.createPullRequest(sshUrl, createPullRequest)
 
     override fun findByIssueKey(issueKey: String) = client.findByIssueKey(issueKey)
 

@@ -1,18 +1,16 @@
 package org.octopusden.octopus.vcsfacade
 
-import org.junit.jupiter.params.provider.Arguments
-import org.octopusden.octopus.infrastructure.gitlab.test.GitlabTestClient
 import java.util.stream.Stream
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
+import org.junit.jupiter.params.provider.Arguments
+import org.octopusden.octopus.infrastructure.gitlab.test.GitlabTestClient
 
 private const val VCS_HOST = "gitlab:8990"
 
 @EnabledIfSystemProperty(named = "test.profile", matches = "gitlab")
 class VcsFacadeGitlabTest : BaseVcsFacadeFuncTest(
     GitlabTestClient("http://localhost:8990", GITLAB_USER, GITLAB_PASSWORD, VCS_HOST),
-    "ssh://git@$VCS_HOST:%s/%s.git",
-    "http://$VCS_HOST/%s/%s/-/tree/%s?ref_type=tags",
-    "http://$VCS_HOST/%s/%s/-/commit/%s"
+    "ssh://git@$VCS_HOST:%s/%s.git"
 ) {
     override fun issueCommits(): Stream<Arguments> = Stream.of(
         Arguments.of("ABSENT-1", emptyList<String>()),

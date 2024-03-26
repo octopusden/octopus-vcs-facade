@@ -10,9 +10,7 @@ private const val VCS_HOST = "localhost:7990"
 @ActiveProfiles("ut", "bitbucket")
 class RepositoryControllerBitbucketTest : BaseRepositoryControllerTest(
     BitbucketTestClient("http://$VCS_HOST", BITBUCKET_USER, BITBUCKET_PASSWORD),
-    "ssh://git@$VCS_HOST/%s/%s.git",
-    "http://$VCS_HOST/projects/%s/repos/%s/browse?at=%s",
-    "http://$VCS_HOST/projects/%s/repos/%s/commits/%s"
+    "ssh://git@$VCS_HOST/%s/%s.git"
 ) {
     override val exceptionsMessageInfo: Map<String, String> by lazy {
         mapOf(

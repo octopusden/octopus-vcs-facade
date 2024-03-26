@@ -14,6 +14,7 @@ import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -120,13 +121,11 @@ class RepositoryControllerOld(
         produces = [MediaType.APPLICATION_JSON_VALUE]
     )
     fun searchIssuesInRanges(
-        @RequestBody searchRequest: SearchIssuesInRangesRequest,
+        @RequestBody searchRequest: SearchIssuesInRangesRequestOld,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): SearchIssueInRangesResponse =
-        processJob(requestId ?: UUID.randomUUID().toString()) {
-            val issueRanges = vcsManager.getIssueRanges(searchRequest)
-            SearchIssueInRangesResponse(issueRanges)
-        }
+    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+        vcsManager.searchIssuesInRanges(searchRequest.toNew()).toOld()
+    }
 
     @PostMapping("pull-requests")
     fun createPullRequest(@RequestParam("vcsPath") vcsPath: String, @RequestBody createPullRequest: CreatePullRequest) =
@@ -204,7 +203,7 @@ class RepositoryControllerOld(
             }
         }
 
-        private fun Commit.toOld() = CommitOld(id, message, date, author.name, parents, vcsUrl)
+        private fun Commit.toOld() = CommitOld(id, message, date, author.name, parents, repository.sshUrl)
 
         data class TagOld(val commitId: String, val name: String)
 
@@ -212,6 +211,23 @@ class RepositoryControllerOld(
 
         data class PullRequestResponse(val id: Long)
 
-        private fun PullRequest.toOld() = PullRequestResponse(id)
+        private fun PullRequest.toOld() = PullRequestResponse(index)
+
+        data class RepositoryRangeOld(val vcsPath: String, val fromCid: String?, val fromDate: Date?, val toCid: String)
+
+        private fun RepositoryRange.toOld() = RepositoryRangeOld(sshUrl, fromCid, fromDate, toCid)
+
+        private fun RepositoryRangeOld.toNew() = RepositoryRange(vcsPath, fromCid, fromDate, toCid)
+
+        data class SearchIssuesInRangesRequestOld(val issues: Set<String>, val ranges: Set<RepositoryRangeOld>)
+
+        private fun SearchIssuesInRangesRequestOld.toNew() =
+            SearchIssuesInRangesRequest(issues, ranges.map { range -> range.toNew() }.toSet())
+
+        data class SearchIssueInRangesResponseOld(val issueRanges: Map<String, Set<RepositoryRangeOld>>) :
+            VcsFacadeResponse
+
+        private fun SearchIssueInRangesResponse.toOld() =
+            SearchIssueInRangesResponseOld(issueRanges.mapValues { it.value.map { range -> range.toOld() }.toSet() })
     }
 }

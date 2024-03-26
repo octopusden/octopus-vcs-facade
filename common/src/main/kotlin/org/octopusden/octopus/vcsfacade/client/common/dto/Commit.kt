@@ -9,5 +9,5 @@ data class Commit(
     val author: User,
     val parents: List<String>,
     val link: String,
-    val vcsUrl: String
+    val repository: Repository
 )

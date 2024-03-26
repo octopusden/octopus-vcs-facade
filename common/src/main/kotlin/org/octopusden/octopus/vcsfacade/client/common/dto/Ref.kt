@@ -18,7 +18,7 @@ abstract class Ref(
     val name: String,
     val commitId: String,
     val link: String,
-    val vcsUrl: String
+    val repository: Repository
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -27,7 +27,7 @@ abstract class Ref(
         if (name != other.name) return false
         if (commitId != other.commitId) return false
         if (link != other.link) return false
-        if (vcsUrl != other.vcsUrl) return false
+        if (repository != other.repository) return false
         return true
     }
 
@@ -36,7 +36,7 @@ abstract class Ref(
         result = 31 * result + name.hashCode()
         result = 31 * result + commitId.hashCode()
         result = 31 * result + link.hashCode()
-        result = 31 * result + vcsUrl.hashCode()
+        result = 31 * result + repository.hashCode()
         return result
     }
 }
