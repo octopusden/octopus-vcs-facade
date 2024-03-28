@@ -18,6 +18,13 @@ vcs-facade:
         root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
         last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
         expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+      index:
+        scan:
+          cron: "-"
+          executor:
+            core-pool-size: 1
+            max-pool-size: 1
+            queue-capacity: 500
     gitlab:
       enabled: # envFile property
       host: # envFile property
@@ -36,6 +43,7 @@ vcs-facade:
     retry-interval-secs: 1
 
 opensearch:
+  enabled: # envFile property
   host: # envFile property
   ssl: # envFile property
   username: # envFile property

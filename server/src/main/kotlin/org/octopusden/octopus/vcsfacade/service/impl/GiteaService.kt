@@ -15,8 +15,11 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaUser
 import org.octopusden.octopus.infrastructure.gitea.client.getBranches
+import org.octopusden.octopus.infrastructure.gitea.client.getBranchesCommitGraph
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
+import org.octopusden.octopus.infrastructure.gitea.client.getOrganizations
 import org.octopusden.octopus.infrastructure.gitea.client.getPullRequests
+import org.octopusden.octopus.infrastructure.gitea.client.getRepositories
 import org.octopusden.octopus.infrastructure.gitea.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
@@ -61,6 +64,20 @@ class GiteaService(
 
     override val sshUrlRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
 
+    override fun getSshUrl(group: String, repository: String) = "ssh://git@$host/$group/$repository.git"
+
+    fun getRepositories() = execute("getOrganizations()") { client.getOrganizations() }.flatMap {
+        execute("getRepositories(${it.name})") { client.getRepositories(it.name) }
+    }.map { it.toRepository() }
+
+    fun isRepositoryExist(group: String, repository: String) =
+        try {
+            client.getRepository(group, repository)
+            true
+        } catch (e: GiteaNotFoundException) {
+            false
+        }
+
     private fun getRepository(group: String, repository: String) =
         execute("getRepository($group, $repository)") {
             client.getRepository(group, repository)
@@ -92,12 +109,19 @@ class GiteaService(
             }.map { it.toCommit(this) }
         }
 
+    fun getBranchesCommitGraph(group: String, repository: String) =
+        with(getRepository(group, repository)) {
+            execute("getBranchesCommitGraph($group, $repository)") {
+                client.getBranchesCommitGraph(group, repository)
+            }.map { it.toCommit(this) }
+        }
+
     override fun getCommit(group: String, repository: String, id: String) =
         execute("getCommit($group, $repository, $id)") {
             client.getCommit(group, repository, id)
         }.toCommit(getRepository(group, repository))
 
-    fun getPullRequests(group: String, repository: String) = //TODO: expose to VCSClient as abstract method?
+    fun getPullRequests(group: String, repository: String) =
         with(getRepository(group, repository)) {
             execute("getPullRequests($group, $repository)") {
                 client.getPullRequests(group, repository)
@@ -158,8 +182,13 @@ class GiteaService(
         return emptyList()
     }
 
-    private fun GiteaRepository.toRepository() = with(fullName.lowercase()) {
-        Repository("ssh://git@$host/$this.git", "$httpUrl/$this", avatarUrl)
+    private fun GiteaRepository.toRepository(): Repository {
+        val (organization, repository) = toOrganizationAndRepository()
+        return Repository(
+            getSshUrl(organization, repository),
+            "$httpUrl/$organization/$repository",
+            avatarUrl.ifBlank { null }
+        )
     }
 
     private fun GiteaBranch.toBranch(repository: Repository) = Branch(
@@ -170,13 +199,13 @@ class GiteaService(
         name, commit.sha, "${repository.link}/src/tag/$name", repository
     )
 
-    private fun GiteaUser.toUser() = User(username, avatarUrl)
+    private fun GiteaUser.toUser() = User(username, avatarUrl.ifBlank { null })
 
     private fun GiteaCommit.toCommit(repository: Repository) = Commit(
         sha,
         commit.message,
         created,
-        author?.toUser() ?: User(commit.author.name, ""),
+        author?.toUser() ?: User(commit.author.name),
         parents.map { it.sha },
         "${repository.link}/commit/$sha",
         repository
@@ -191,13 +220,7 @@ class GiteaService(
         base.label,
         assignees.map { it.toUser() },
         requestedReviewers.map { it.toUser() },
-        if (merged) {
-            PullRequestStatus.MERGED
-        } else if (state == GiteaPullRequest.GiteaPullRequestState.CLOSED) {
-            PullRequestStatus.DECLINED
-        } else {
-            PullRequestStatus.OPENED
-        },
+        getPullRequestStatus(),
         createdAt,
         updatedAt,
         "${repository.link}/pulls/$number",
@@ -206,6 +229,19 @@ class GiteaService(
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)
+
+        fun GiteaRepository.toOrganizationAndRepository(): Pair<String, String> {
+            val repositoryFullNameParts = fullName.lowercase().split("/")
+            return repositoryFullNameParts[0] to repositoryFullNameParts[1]
+        }
+
+        fun GiteaPullRequest.getPullRequestStatus() = if (merged) {
+            PullRequestStatus.MERGED
+        } else if (state == GiteaPullRequest.GiteaPullRequestState.CLOSED) {
+            PullRequestStatus.DECLINED
+        } else {
+            PullRequestStatus.OPENED
+        }
 
         private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
             try {

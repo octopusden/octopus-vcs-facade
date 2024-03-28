@@ -25,8 +25,8 @@ interface VcsFacadeClient {
     ): List<Commit>
 
     @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET rest/api/1/repository/commit?sshUrl={sshUrl}&commitId={commitIdOrRef}")
-    fun getCommit(@Param("sshUrl") sshUrl: String, @Param("commitIdOrRef") commitIdOrRef: String): Commit
+    @RequestLine("GET rest/api/1/repository/commit?sshUrl={sshUrl}&commitId={commitId}")
+    fun getCommit(@Param("sshUrl") sshUrl: String, @Param("commitId") commitId: String): Commit
 
     @Throws(NotFoundException::class, IllegalStateException::class)
     @RequestLine("GET rest/api/1/repository/issues?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")

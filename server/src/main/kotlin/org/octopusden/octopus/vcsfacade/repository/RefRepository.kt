@@ -12,6 +12,7 @@ import org.springframework.data.repository.CrudRepository
     matchIfMissing = true
 )
 interface RefRepository : CrudRepository<Ref, String> {
-    fun findAllByTypeAndNameContaining(type: RefType, nameToken: String): List<Ref>
-    fun findAllByRepositoryId(repositoryId: String): List<Ref>
+    fun findByTypeAndNameContaining(type: RefType, nameToken: String): List<Ref>
+    fun findByRepositoryId(repositoryId: String): List<Ref>
+    fun deleteByRepositoryId(repositoryId: String)
 }

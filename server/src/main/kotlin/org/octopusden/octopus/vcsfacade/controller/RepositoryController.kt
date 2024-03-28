@@ -11,7 +11,7 @@ import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
-import org.octopusden.octopus.vcsfacade.config.JobProperties
+import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
@@ -34,9 +34,9 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("rest/api/1/repository")
 class RepositoryController(
-    private val jobProperties: JobProperties,
+    private val jobProperties: JobConfig.JobProperties,
     private val vcsManager: VCSManager,
-    @Qualifier("jobExecutor") private val taskExecutor: AsyncTaskExecutor
+    @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
 ) {
     private val requestJobs = ConcurrentHashMap<String, Future<out VcsFacadeResponse>>()
 
@@ -131,7 +131,7 @@ class RepositoryController(
         log.debug("Process request: {}", requestId)
         val future = requestJobs.computeIfAbsent(requestId) { processingRequest ->
             log.debug("Add job request: {}", processingRequest)
-            val submittedFuture = taskExecutor.submit(Callable {
+            val submittedFuture = jobExecutor.submit(Callable {
                 log.debug("Start job request: {}", processingRequest)
                 val result = func.invoke()
                 log.trace("Finish job request: {}", processingRequest)

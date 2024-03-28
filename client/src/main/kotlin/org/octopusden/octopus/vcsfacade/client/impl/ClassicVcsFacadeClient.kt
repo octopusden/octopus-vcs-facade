@@ -32,7 +32,7 @@ class ClassicVcsFacadeClient(
     override fun getCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String) =
         client.getCommits(sshUrl, fromId, fromDate, toId)
 
-    override fun getCommit(sshUrl: String, commitIdOrRef: String) = client.getCommit(sshUrl, commitIdOrRef)
+    override fun getCommit(sshUrl: String, commitId: String) = client.getCommit(sshUrl, commitId)
 
     override fun getIssuesFromCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String) =
         client.getIssuesFromCommits(sshUrl, fromId, fromDate, toId)

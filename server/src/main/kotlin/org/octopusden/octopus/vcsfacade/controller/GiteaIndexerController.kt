@@ -9,15 +9,15 @@ import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaRepository
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -33,7 +33,7 @@ class GiteaIndexerController(
     private val giteaIndexerService: GiteaIndexerService,
     private val objectMapper: ObjectMapper
 ) {
-    private val mac = giteaProperties.webhookSecret?.let {
+    private val mac = giteaProperties.index?.webhookSecret?.let {
         Mac.getInstance(MAC_ALGORITHM).apply {
             init(SecretKeySpec(it.toByteArray(), MAC_ALGORITHM))
         }
@@ -77,8 +77,11 @@ class GiteaIndexerController(
 
     @PostMapping("scan")
     fun scanRepository(
-        @RequestBody repository: GiteaRepository //TODO: ScanRequest DTO with `repository: GiteaRepository` field?
-    ) = giteaIndexerService.runRepositoryScan(repository)
+        @RequestParam("sshUrl") sshUrl: String
+    ) = giteaIndexerService.submitRepositoryScan(sshUrl)
+
+    @GetMapping("report")
+    fun getIndexReport() = giteaIndexerService.getIndexReport()
 
     companion object {
         private const val MAC_ALGORITHM = "HmacSHA256"

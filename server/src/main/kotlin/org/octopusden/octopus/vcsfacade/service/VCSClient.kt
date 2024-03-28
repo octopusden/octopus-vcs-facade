@@ -18,6 +18,7 @@ abstract class VCSClient(vcsProperties: VCSConfig.VCSProperties, val vcsServiceT
     fun parse(sshUrl: String) =
         sshUrlRegex.find(sshUrl.lowercase())!!.destructured.let { it.component1().trimEnd('/') to it.component2() }
 
+    abstract fun getSshUrl(group: String, repository: String): String
     abstract fun getBranches(group: String, repository: String): List<Branch>
     abstract fun getTags(group: String, repository: String): List<Tag>
     abstract fun getCommits(group: String, repository: String, toId: String, fromId: String): Collection<Commit>
