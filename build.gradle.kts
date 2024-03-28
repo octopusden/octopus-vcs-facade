@@ -62,7 +62,7 @@ subprojects {
             info.events = setOf(TestLogEvent.FAILED, TestLogEvent.PASSED, TestLogEvent.SKIPPED)
         }
         if ((project.properties["gitlab.skip"] as String).toBoolean()) {
-            exclude("*Gitlab*")
+            exclude("**/*Gitlab*")
         }
     }
 
