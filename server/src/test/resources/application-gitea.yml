@@ -13,6 +13,12 @@ vcs-facade:
         expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
       index:
         webhook-secret: bc719543-7f13-410a-964d-fb747c11f666
+        scan:
+          cron: "-"
+          executor:
+            core-pool-size: 1
+            max-pool-size: 1
+            queue-capacity: 500
     gitlab:
       enabled: false
 

@@ -14,6 +14,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -109,7 +110,7 @@ class GitlabService(
     }
 
     override fun getPullRequest(group: String, repository: String, index: Long) = retryableExecution {
-        client.mergeRequestApi.getMergeRequest(
+        client.mergeRequestApi.getMergeRequestApprovals(
             getProject(group, repository).id, index
         )
     }.toPullRequest(group, repository)
@@ -195,7 +196,9 @@ class GitlabService(
         sourceBranch,
         targetBranch,
         assignees.map { it.toUser() },
-        reviewers.map { it.toUser() },
+        reviewers.map { reviewer ->
+            PullRequestReviewer(reviewer.toUser(), this.approvedBy.find { it.id == reviewer.id } != null)
+        },
         when (state) {
             "merged" -> PullRequestStatus.MERGED
             "closed" -> PullRequestStatus.DECLINED

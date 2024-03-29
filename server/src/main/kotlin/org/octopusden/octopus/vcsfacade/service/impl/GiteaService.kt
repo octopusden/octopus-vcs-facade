@@ -11,6 +11,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithD
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaBranch
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequest
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequestReview
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaUser
@@ -18,6 +19,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.getBranches
 import org.octopusden.octopus.infrastructure.gitea.client.getBranchesCommitGraph
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
 import org.octopusden.octopus.infrastructure.gitea.client.getOrganizations
+import org.octopusden.octopus.infrastructure.gitea.client.getPullRequestReviews
 import org.octopusden.octopus.infrastructure.gitea.client.getPullRequests
 import org.octopusden.octopus.infrastructure.gitea.client.getRepositories
 import org.octopusden.octopus.infrastructure.gitea.client.getTags
@@ -25,6 +27,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -125,7 +128,14 @@ class GiteaService(
         with(getRepository(group, repository)) {
             execute("getPullRequests($group, $repository)") {
                 client.getPullRequests(group, repository)
-            }.map { it.toPullRequest(this) }
+            }.map {
+                it.toPullRequest(
+                    this,
+                    execute("getPullRequestReviews($group, $repository, ${it.number})") {
+                        client.getPullRequestReviews(group, repository, it.number)
+                    }
+                )
+            }
         }
 
     override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
@@ -138,12 +148,26 @@ class GiteaService(
                 createPullRequest.title,
                 createPullRequest.description
             )
-        }.toPullRequest(getRepository(group, repository))
+        }.let {
+            it.toPullRequest(
+                getRepository(group, repository),
+                execute("getPullRequestReviews($group, $repository, ${it.number})") {
+                    client.getPullRequestReviews(group, repository, it.number)
+                }
+            )
+        }
 
     override fun getPullRequest(group: String, repository: String, index: Long) =
         execute("getPullRequest($group, $repository, $index)") {
             client.getPullRequest(group, repository, index)
-        }.toPullRequest(getRepository(group, repository))
+        }.let {
+            it.toPullRequest(
+                getRepository(group, repository),
+                execute("getPullRequestReviews($group, $repository, ${it.number})") {
+                    client.getPullRequestReviews(group, repository, it.number)
+                }
+            )
+        }
 
     override fun findCommits(group: String, repository: String, ids: Set<String>) =
         with(getRepository(group, repository)) {
@@ -160,7 +184,8 @@ class GiteaService(
         with(getRepository(group, repository)) {
             indexes.mapNotNull {
                 try {
-                    client.getPullRequest(group, repository, it).toPullRequest(this)
+                    client.getPullRequest(group, repository, it)
+                        .toPullRequest(this, client.getPullRequestReviews(group, repository, it))
                 } catch (e: GiteaNotFoundException) {
                     null
                 }
@@ -211,21 +236,29 @@ class GiteaService(
         repository
     )
 
-    private fun GiteaPullRequest.toPullRequest(repository: Repository) = PullRequest(
-        number,
-        title,
-        body,
-        user.toUser(),
-        head.label,
-        base.label,
-        assignees.map { it.toUser() },
-        requestedReviewers.map { it.toUser() },
-        getPullRequestStatus(),
-        createdAt,
-        updatedAt,
-        "${repository.link}/pulls/$number",
-        repository
-    )
+    private fun GiteaPullRequest.toPullRequest(
+        repository: Repository,
+        giteaPullRequestReviews: List<GiteaPullRequestReview>
+    ): PullRequest {
+        val approvedGiteaUserIds = giteaPullRequestReviews.filter {
+            it.state == GiteaPullRequestReview.GiteaPullRequestReviewState.APPROVED && !it.dismissed
+        }.map { it.user.id }.toSet()
+        return PullRequest(
+            number,
+            title,
+            body,
+            user.toUser(),
+            head.label,
+            base.label,
+            assignees.map { it.toUser() },
+            requestedReviewers.map { PullRequestReviewer(it.toUser(), approvedGiteaUserIds.contains(it.id)) },
+            getPullRequestStatus(),
+            createdAt,
+            updatedAt,
+            "${repository.link}/pulls/$number",
+            repository
+        )
+    }
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)

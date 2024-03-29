@@ -23,6 +23,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -183,7 +184,7 @@ class BitbucketService(
                 fromRef.displayId,
                 toRef.displayId,
                 listOf(author),
-                reviewers.map { it.user.toUser() },
+                reviewers.map { PullRequestReviewer(it.user.toUser(), it.approved) },
                 when (state) {
                     BitbucketPullRequestState.MERGED -> PullRequestStatus.MERGED
                     BitbucketPullRequestState.DECLINED -> PullRequestStatus.DECLINED

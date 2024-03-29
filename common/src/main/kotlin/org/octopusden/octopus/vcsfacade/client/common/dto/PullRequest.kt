@@ -10,7 +10,7 @@ data class PullRequest(
     val source: String,
     val target: String,
     val assignees: List<User>,
-    val reviewers: List<User>,
+    val reviewers: List<PullRequestReviewer>,
     val status: PullRequestStatus,
     val createdAt: Date,
     val updatedAt: Date,
