@@ -53,7 +53,7 @@ opensearch:
 
 logging:
   level:
-    org.octopusden.octopus.vcsfacade: debug
+    org.octopusden.octopus.vcsfacade: trace
 
 management:
   endpoints:

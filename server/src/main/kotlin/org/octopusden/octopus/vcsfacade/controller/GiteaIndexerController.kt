@@ -5,10 +5,11 @@ import jakarta.servlet.http.HttpServletRequest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
-import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
+import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
+import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
+import org.octopusden.octopus.vcsfacade.dto.VcsServiceType.GITEA
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
 import org.slf4j.LoggerFactory
@@ -65,20 +66,47 @@ class GiteaIndexerController(
             }
         } ?: log.debug("Signature validation is disabled (webhook secret is not configured)")
         if (eventType == "create" && event == "create") {
-            giteaIndexerService.registerGiteaCreateRefEvent(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java))
+            with(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java)) {
+                log.info(
+                    "Register `{}` {} creation in `{}` {} repository",
+                    ref,
+                    refType.jsonValue,
+                    repository.fullName,
+                    GITEA
+                )
+                giteaIndexerService.registerGiteaCreateRefEvent(this)
+            }
         } else if (eventType == "delete" && event == "delete") {
-            giteaIndexerService.registerGiteaDeleteRefEvent(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java))
+            with(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java)) {
+                log.info(
+                    "Register `{}` {} deletion in `{}` {} repository",
+                    ref,
+                    refType.jsonValue,
+                    repository.fullName,
+                    GITEA
+                )
+                giteaIndexerService.registerGiteaDeleteRefEvent(this)
+            }
         } else if (eventType == "push" && event == "push") {
-            giteaIndexerService.registerGiteaPushEvent(objectMapper.readValue(payload, GiteaPushEvent::class.java))
+            with(objectMapper.readValue(payload, GiteaPushEvent::class.java)) {
+                log.info("Register {} commit(s) in `{}` {} repository", commits.size, repository.fullName, GITEA)
+                giteaIndexerService.registerGiteaPushEvent(this)
+            }
         } else if (eventType == "pull_request" && event == "pull_request") {
-            giteaIndexerService.registerGiteaPullRequestEvent(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java))
+            with(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java)) {
+                log.info("Register {} pull request in `{}` {} repository", action, repository.fullName, GITEA)
+                giteaIndexerService.registerGiteaPullRequestEvent(this)
+            }
         }
     }
 
     @PostMapping("scan")
     fun scanRepository(
         @RequestParam("sshUrl") sshUrl: String
-    ) = giteaIndexerService.submitRepositoryScan(sshUrl)
+    ) {
+        log.info("Submit scan of {}", sshUrl)
+        return giteaIndexerService.submitRepositoryScan(sshUrl)
+    }
 
     @GetMapping("report")
     fun getIndexReport() = giteaIndexerService.getIndexReport()

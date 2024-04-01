@@ -50,54 +50,41 @@ class GiteaIndexerServiceImpl(
     }
 
     override fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent) {
-        log.debug(
-            "Register `{}` {} creation in `{}` {} repository",
-            giteaCreateRefEvent.ref,
-            giteaCreateRefEvent.refType.jsonValue,
-            giteaCreateRefEvent.repository.fullName,
-            GITEA
-        )
+        log.trace("=> registerGiteaCreateRefEvent({})", giteaCreateRefEvent)
         getOpenSearchService().saveRefs(listOf(giteaCreateRefEvent.toDocument()))
+        log.trace("<= registerGiteaCreateRefEvent({})", giteaCreateRefEvent)
     }
 
     override fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent) {
-        log.debug(
-            "Register `{}` {} deletion in `{}` {} repository",
-            giteaDeleteRefEvent.ref,
-            giteaDeleteRefEvent.refType.jsonValue,
-            giteaDeleteRefEvent.repository.fullName,
-            GITEA
-        )
+        log.trace("=> registerGiteaDeleteRefEvent({})", giteaDeleteRefEvent)
         getOpenSearchService().deleteRefsByIds(listOf(giteaDeleteRefEvent.toDocumentId()))
+        log.trace("<= registerGiteaDeleteRefEvent({})", giteaDeleteRefEvent)
     }
 
     override fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent) {
-        log.debug(
-            "Register {} commit(s) in `{}` {} repository",
-            giteaPushEvent.commits.size,
-            giteaPushEvent.repository.fullName,
-            GITEA
-        )
+        log.trace("=> registerGiteaPushEvent({})", giteaPushEvent)
         getOpenSearchService().saveCommits(giteaPushEvent.toDocuments())
+        log.trace("<= registerGiteaPushEvent({})", giteaPushEvent)
     }
 
     override fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent) {
-        log.debug(
-            "Register {} pull request in `{}` {} repository",
-            giteaPullRequestEvent.action,
-            giteaPullRequestEvent.repository.fullName,
-            GITEA
-        )
+        log.trace("=> registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
         getOpenSearchService().savePullRequests(listOf(giteaPullRequestEvent.toDocument()))
+        log.trace("<= registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
     }
 
     override fun submitRepositoryScan(sshUrl: String) {
-        log.debug("Submit scan of {}", sshUrl)
+        log.trace("=> submitRepositoryScan({})", sshUrl)
         submitRepositoryScan(sshUrl.toRepository())
+        log.trace("<= submitRepositoryScan({})", sshUrl)
     }
 
-    override fun getIndexReport() =
-        IndexReport(getOpenSearchService().getRepositories(GITEA).map { it.toIndexReportRepository() })
+    override fun getIndexReport(): IndexReport {
+        log.trace("=> getIndexReport()")
+        return IndexReport(getOpenSearchService().getRepositories(GITEA).map { it.toIndexReportRepository() }).also {
+            log.trace("=> getIndexReport(): {}", it)
+        }
+    }
 
     //TODO: configurable minimum "repository rescan not allowed/required" period after previous scan?
     private fun submitRepositoryScan(repository: Repository) {

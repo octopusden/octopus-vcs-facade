@@ -25,7 +25,7 @@ class ExceptionInfoHandler {
     @ResponseStatus(HttpStatus.ACCEPTED)
     @ResponseBody
     fun handleJobProcessing(exception: JobProcessingException): RetryResponse {
-        log.debug("Job is processing, request: {}", exception.requestId)
+        log.debug("Request {} is processing", exception.requestId)
         return RetryResponse(exception.retryAfter, exception.requestId)
     }
 

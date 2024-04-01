@@ -57,6 +57,7 @@ class RepositoryControllerOld(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get commits ({},{}] in `{}` repository", (from ?: fromDate?.toString()).orEmpty(), to, vcsPath)
         val commits = vcsManager.getCommits(vcsPath, from, fromDate, to).map { it.toOld() }
         RepositoryResponse(commits)
     }.data
@@ -78,17 +79,26 @@ class RepositoryControllerOld(
         getCommit(vcsPath, commitIdOrRef)
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommit(@RequestParam("vcsPath") vcsPath: String, @RequestParam("commitId") commitIdOrRef: String) =
-        vcsManager.getCommit(vcsPath, commitIdOrRef).toOld()
+    fun getCommit(
+        @RequestParam("vcsPath") vcsPath: String,
+        @RequestParam("commitId") commitIdOrRef: String
+    ): CommitOld {
+        log.info("Get commit {} in `{}` repository", commitIdOrRef, vcsPath)
+        return vcsManager.getCommit(vcsPath, commitIdOrRef).toOld()
+    }
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommitsForReleaseIssues(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestParam("to") to: String,
-        @RequestParam(name = "from", required = false) from: String?,
+        @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ): Collection<String> = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+        log.info(
+            "Find issue keys in commits ({},{}] in `{}` repository",
+            (from ?: fromDate?.toString()).orEmpty(), to, vcsPath
+        )
         val issues = vcsManager.getCommits(vcsPath, from, fromDate, to)
             .map { it.toOld() }
             .flatMap { IssueKeyParser.findIssueKeys(it.message) }
@@ -101,6 +111,7 @@ class RepositoryControllerOld(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find commits by issue key {}", issueKey)
         val commits = vcsManager.findCommits(issueKey).map { it.toOld() }
         RepositoryResponse(commits)
     }.data
@@ -111,6 +122,7 @@ class RepositoryControllerOld(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get tags in `{}` repository", vcsPath)
         RepositoryResponse(vcsManager.getTags(vcsPath).map { it.toOld() })
     }.data
 
@@ -124,12 +136,23 @@ class RepositoryControllerOld(
         @RequestBody searchRequest: SearchIssuesInRangesRequestOld,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Search issue keys {} in specified commit ranges", searchRequest.issues)
         vcsManager.searchIssuesInRanges(searchRequest.toNew()).toOld()
     }
 
     @PostMapping("pull-requests")
-    fun createPullRequest(@RequestParam("vcsPath") vcsPath: String, @RequestBody createPullRequest: CreatePullRequest) =
-        vcsManager.createPullRequest(vcsPath, createPullRequest).toOld()
+    fun createPullRequest(
+        @RequestParam("vcsPath") vcsPath: String,
+        @RequestBody createPullRequest: CreatePullRequest
+    ): PullRequestResponse {
+        log.info(
+            "Create pull request ({} -> {}) in `{}` repository",
+            vcsPath,
+            createPullRequest.sourceBranch,
+            createPullRequest.targetBranch
+        )
+        return vcsManager.createPullRequest(vcsPath, createPullRequest).toOld()
+    }
 
     private fun <T : VcsFacadeResponse> processJob(requestId: String, func: () -> T): T {
         log.debug("Process request: {}", requestId)

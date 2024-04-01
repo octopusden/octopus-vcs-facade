@@ -29,4 +29,6 @@ class Repository(
 ) : Base() {
     @Id
     val id = id(type, group, name)
+
+    override fun toString() = "Repository(id=$id, type=$type, group=$group, name=$name, lastScanAt=$lastScanAt)"
 }

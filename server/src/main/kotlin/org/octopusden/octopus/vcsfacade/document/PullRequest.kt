@@ -32,4 +32,6 @@ class PullRequest(
 ) : RepositoryLink(repositoryId) {
     @Id
     val id = id(index)
+
+    override fun toString() = "PullRequest(id=$id, repositoryId=$repositoryId, index=$index, title=$title, description=$description, status=$status, updatedAt=$updatedAt)"
 }

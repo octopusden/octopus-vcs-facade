@@ -27,4 +27,6 @@ class Ref(
 ) : RepositoryLink(repositoryId) {
     @Id
     val id = id(type, name)
+
+    override fun toString() = "Ref(id=$id, repositoryId=$repositoryId, type=$type, name=$name, hash=$hash)"
 }

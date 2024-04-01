@@ -9,7 +9,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 
-abstract class VCSClient(vcsProperties: VCSConfig.VCSProperties, val vcsServiceType: VcsServiceType) {
+abstract class VCSService(vcsProperties: VCSConfig.VCSProperties, val vcsServiceType: VcsServiceType) {
     protected val httpUrl = vcsProperties.host.lowercase().trimEnd('/')
     protected val host = httpUrl.replace("^(https|http)://".toRegex(), "")
 
@@ -21,8 +21,8 @@ abstract class VCSClient(vcsProperties: VCSConfig.VCSProperties, val vcsServiceT
     abstract fun getSshUrl(group: String, repository: String): String
     abstract fun getBranches(group: String, repository: String): List<Branch>
     abstract fun getTags(group: String, repository: String): List<Tag>
-    abstract fun getCommits(group: String, repository: String, toId: String, fromId: String): Collection<Commit>
-    abstract fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): Collection<Commit>
+    abstract fun getCommits(group: String, repository: String, toId: String, fromId: String): List<Commit>
+    abstract fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): List<Commit>
     abstract fun getCommit(group: String, repository: String, id: String): Commit
     abstract fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest): PullRequest
     abstract fun getPullRequest(group: String, repository: String, index: Long): PullRequest

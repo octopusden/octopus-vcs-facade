@@ -70,7 +70,7 @@ abstract class BaseVcsFacadeTest(
         fromId: String?,
         fromDate: Date?,
         toId: String,
-        expectedMessages: Collection<String>
+        expectedMessages: List<String>
     ) {
         requestCommitsInterval(
             sshUrl,

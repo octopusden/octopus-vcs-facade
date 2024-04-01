@@ -27,4 +27,6 @@ class Commit(
 ) : RepositoryLink(repositoryId) {
     @Id
     val id = id(hash)
+
+    override fun toString() = "Commit(id=$id, repositoryId=$repositoryId, hash=$hash, message=$message, date=$date)"
 }

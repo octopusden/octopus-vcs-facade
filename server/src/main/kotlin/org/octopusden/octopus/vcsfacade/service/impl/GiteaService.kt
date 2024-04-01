@@ -35,27 +35,24 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
-import org.octopusden.octopus.vcsfacade.service.VCSClient
+import org.octopusden.octopus.vcsfacade.service.VCSService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 
 @Service
 @ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.gitea",
-    name = ["enabled"],
-    havingValue = "true",
-    matchIfMissing = true
+    prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class GiteaService(
     giteaProperties: VCSConfig.GiteaProperties
-) : VCSClient(giteaProperties, VcsServiceType.GITEA) {
+) : VCSService(giteaProperties, VcsServiceType.GITEA) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
 
         override fun getAuth(): CredentialProvider {
             val authException by lazy {
-                IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
+                IllegalStateException("Auth Token or username/password must be specified for Gitea access")
             }
             return giteaProperties.token?.let { StandardBearerTokenCredentialProvider(it) }
                 ?: StandardBasicCredCredentialProvider(
@@ -68,55 +65,100 @@ class GiteaService(
 
     override fun getSshUrl(group: String, repository: String) = "ssh://git@$host/$group/$repository.git"
 
-    fun getRepositories() =
-        client.getOrganizations().flatMap { client.getRepositories(it.name) }.map { it.toRepository() }
+    fun getRepositories(): List<Repository> {
+        log.trace("=> getRepositories()")
+        return client.getOrganizations().flatMap { client.getRepositories(it.name) }.map { it.toRepository() }.also {
+            log.trace("<= getRepositories(): {}", it)
+        }
+    }
 
-    fun isRepositoryExist(group: String, repository: String) =
-        try {
+    fun isRepositoryExist(group: String, repository: String): Boolean {
+        log.trace("=> isRepositoryExist({}, {})", group, repository)
+        return try {
             client.getRepository(group, repository)
             true
         } catch (e: NotFoundException) {
             false
+        }.also {
+            log.trace("<= isRepositoryExist({}, {}): {}", group, repository, it)
         }
-
-    private fun getRepository(group: String, repository: String) =
-        client.getRepository(group, repository).toRepository()
-
-    override fun getBranches(group: String, repository: String) = with(getRepository(group, repository)) {
-        client.getBranches(group, repository).map { it.toBranch(this) }
     }
 
-    override fun getTags(group: String, repository: String) = with(getRepository(group, repository)) {
-        client.getTags(group, repository).map { it.toTag(this) }
+    private fun getRepository(group: String, repository: String): Repository {
+        log.trace("=> getRepository({}, {})", group, repository)
+        return client.getRepository(group, repository).toRepository().also {
+            log.trace("<= getRepository({}, {}): {}", group, repository, it)
+        }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromId: String) =
-        with(getRepository(group, repository)) {
+    override fun getBranches(group: String, repository: String): List<Branch> {
+        log.trace("=> getBranches({}, {})", group, repository)
+        return with(getRepository(group, repository)) {
+            client.getBranches(group, repository).map { it.toBranch(this) }
+        }.also {
+            log.trace("<= getBranches({}, {}): {}", group, repository, it)
+        }
+    }
+
+    override fun getTags(group: String, repository: String): List<Tag> {
+        log.trace("=> getTags({}, {})", group, repository)
+        return with(getRepository(group, repository)) {
+            client.getTags(group, repository).map { it.toTag(this) }
+        }.also {
+            log.trace("<= getTags({}, {}): {}", group, repository, it)
+        }
+    }
+
+    override fun getCommits(group: String, repository: String, toId: String, fromId: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromId)
+        return with(getRepository(group, repository)) {
             client.getCommits(group, repository, toId, fromId).map { it.toCommit(this) }
+        }.also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromId, it)
         }
+    }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?) =
-        with(getRepository(group, repository)) {
+    override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromDate)
+        return with(getRepository(group, repository)) {
             client.getCommits(group, repository, toId, fromDate).map { it.toCommit(this) }
+        }.also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromDate, it)
         }
+    }
 
-    fun getBranchesCommitGraph(group: String, repository: String) =
-        with(getRepository(group, repository)) {
+    fun getBranchesCommitGraph(group: String, repository: String): List<Commit> {
+        log.trace("=> getBranchesCommitGraph({}, {})", group, repository)
+        return with(getRepository(group, repository)) {
             client.getBranchesCommitGraph(group, repository).map { it.toCommit(this) }
+        }.also {
+            log.trace("<= getBranchesCommitGraph({}, {}): {}", group, repository, it)
         }
+    }
 
-    override fun getCommit(group: String, repository: String, id: String) =
-        client.getCommit(group, repository, id).toCommit(getRepository(group, repository))
+    override fun getCommit(group: String, repository: String, id: String): Commit {
+        log.trace("=> getCommit({}, {}, {})", group, repository, id)
+        return client.getCommit(group, repository, id).toCommit(getRepository(group, repository)).also {
+            log.trace("<= getCommit({}, {}, {}): {}", group, repository, id, it)
+        }
+    }
 
-    fun getPullRequests(group: String, repository: String) =
-        with(getRepository(group, repository)) {
+    fun getPullRequests(group: String, repository: String): List<PullRequest> {
+        log.trace("=> getPullRequests({}, {})", group, repository)
+        return with(getRepository(group, repository)) {
             client.getPullRequests(group, repository).map {
                 it.toPullRequest(this, client.getPullRequestReviews(group, repository, it.number))
             }
+        }.also {
+            log.trace("<= getPullRequests({}, {}): {}", group, repository, it)
         }
+    }
 
-    override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
-        client.createPullRequestWithDefaultReviewers(
+    override fun createPullRequest(
+        group: String, repository: String, createPullRequest: CreatePullRequest
+    ): PullRequest {
+        log.trace("=> getPullRequests({}, {}, {})", group, repository, createPullRequest)
+        return client.createPullRequestWithDefaultReviewers(
             group,
             repository,
             createPullRequest.sourceBranch,
@@ -125,21 +167,27 @@ class GiteaService(
             createPullRequest.description
         ).let {
             it.toPullRequest(
-                getRepository(group, repository),
-                client.getPullRequestReviews(group, repository, it.number)
+                getRepository(group, repository), client.getPullRequestReviews(group, repository, it.number)
             )
+        }.also {
+            log.trace("<= getPullRequests({}, {}, {}): {}", group, repository, createPullRequest, it)
         }
+    }
 
-    override fun getPullRequest(group: String, repository: String, index: Long) =
-        client.getPullRequest(group, repository, index).let {
+    override fun getPullRequest(group: String, repository: String, index: Long): PullRequest {
+        log.trace("=> getPullRequest({}, {}, {})", group, repository, index)
+        return client.getPullRequest(group, repository, index).let {
             it.toPullRequest(
-                getRepository(group, repository),
-                client.getPullRequestReviews(group, repository, it.number)
+                getRepository(group, repository), client.getPullRequestReviews(group, repository, it.number)
             )
+        }.also {
+            log.trace("<= getPullRequest({}, {}, {}): {}", group, repository, index, it)
         }
+    }
 
-    override fun findCommits(group: String, repository: String, ids: Set<String>) =
-        with(getRepository(group, repository)) {
+    override fun findCommits(group: String, repository: String, ids: Set<String>): List<Commit> {
+        log.trace("=> findCommits({}, {}, {})", group, repository, ids)
+        return with(getRepository(group, repository)) {
             ids.mapNotNull {
                 try {
                     client.getCommit(group, repository, it).toCommit(this)
@@ -147,10 +195,14 @@ class GiteaService(
                     null
                 }
             }
+        }.also {
+            log.trace("<= findCommits({}, {}, {}): {}", group, repository, ids, it)
         }
+    }
 
-    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>) =
-        with(getRepository(group, repository)) {
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): List<PullRequest> {
+        log.trace("=> findPullRequests({}, {}, {})", group, repository, indexes)
+        return with(getRepository(group, repository)) {
             indexes.mapNotNull {
                 try {
                     client.getPullRequest(group, repository, it)
@@ -159,7 +211,10 @@ class GiteaService(
                     null
                 }
             }
+        }.also {
+            log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it)
         }
+    }
 
     override fun findBranches(issueKey: String): List<Branch> {
         log.warn("There is no native implementation of findBranches for $vcsServiceType")
@@ -178,11 +233,9 @@ class GiteaService(
 
     private fun GiteaRepository.toRepository(): Repository {
         val (organization, repository) = toOrganizationAndRepository()
-        return Repository(
-            getSshUrl(organization, repository),
+        return Repository(getSshUrl(organization, repository),
             "$httpUrl/$organization/$repository",
-            avatarUrl.ifBlank { null }
-        )
+            avatarUrl.ifBlank { null })
     }
 
     private fun GiteaBranch.toBranch(repository: Repository) = Branch(
@@ -206,8 +259,7 @@ class GiteaService(
     )
 
     private fun GiteaPullRequest.toPullRequest(
-        repository: Repository,
-        giteaPullRequestReviews: List<GiteaPullRequestReview>
+        repository: Repository, giteaPullRequestReviews: List<GiteaPullRequestReview>
     ): PullRequest {
         val approvedGiteaUserIds = giteaPullRequestReviews.filter {
             it.state == GiteaPullRequestReview.GiteaPullRequestReviewState.APPROVED && !it.dismissed

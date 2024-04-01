@@ -21,16 +21,14 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
         token: String?,
         username: String?,
         password: String?,
-        healthCheck: HealthCheck,
-        enabled: Boolean?
+        healthCheck: HealthCheck
     ) :
         VCSProperties(
             host,
             if (token?.isNotBlank() == true) token else null,
             if (token?.isNotBlank() == true) null else username,
             if (token?.isNotBlank() == true) null else password,
-            healthCheck,
-            enabled ?: true
+            healthCheck
         )
 
     @ConfigurationProperties("vcs-facade.vcs.gitea")
@@ -46,7 +44,6 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
         username: String?,
         password: String?,
         healthCheck: HealthCheck,
-        enabled: Boolean?,
         val index: GiteaIndexProperties?
     ) :
         VCSProperties(
@@ -54,8 +51,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
             if (token?.isNotBlank() == true) token else null,
             if (token?.isNotBlank() == true) null else username,
             if (token?.isNotBlank() == true) null else password,
-            healthCheck,
-            enabled ?: true
+            healthCheck
         )
 
     @ConfigurationProperties("vcs-facade.vcs.gitlab")
@@ -70,16 +66,14 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
         token: String?,
         username: String?,
         password: String?,
-        healthCheck: HealthCheck,
-        enabled: Boolean?
+        healthCheck: HealthCheck
     ) :
         VCSProperties(
             host,
             if (token?.isNotBlank() == true) token else null,
             if (token?.isNotBlank() == true) null else username,
             if (token?.isNotBlank() == true) null else password,
-            healthCheck,
-            enabled ?: true
+            healthCheck
         )
 
     data class GiteaIndexProperties(val webhookSecret: String?, val scan: GiteaIndexScanProperties?)
@@ -91,16 +85,14 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
         val token: String?,
         val username: String?,
         val password: String?,
-        val healthCheck: HealthCheck,
-        val enabled: Boolean
-    ) {
-        class HealthCheck(
-            val repo: String,
-            val rootCommit: String,
-            val lastRelease: String,
-            val expectedCommits: Set<String>
-        )
-    }
+        val healthCheck: HealthCheck
+    )
+    data class HealthCheck(
+        val repo: String,
+        val rootCommit: String,
+        val lastRelease: String,
+        val expectedCommits: Set<String>
+    )
 
     @Bean //dedicated bean to simplify SpEL expression
     fun giteaIndexScanCron() = giteaProperties?.index?.scan?.cron ?: "-"

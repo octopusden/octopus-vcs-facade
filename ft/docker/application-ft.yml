@@ -6,7 +6,3 @@ vcs-facade:
       queue-capacity: 500
     fast-work-timout-secs: 0
     retry-interval-secs: 1
-
-logging:
-  level:
-    org.octopusden.octopus.vcsfacade: trace

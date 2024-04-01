@@ -8,7 +8,9 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
+import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobConfig
@@ -47,13 +49,16 @@ class RepositoryController(
         @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get commits ({},{}] in `{}` repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
         RepositoryResponse(vcsManager.getCommits(sshUrl, from, fromDate, to))
     }.data
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String) =
-        vcsManager.getCommit(sshUrl, commitId)
+    fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String): Commit {
+        log.info("Get commit {} in `{}` repository", commitId, sshUrl)
+        return vcsManager.getCommit(sshUrl, commitId)
+    }
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getIssuesFromCommits(
@@ -62,11 +67,14 @@ class RepositoryController(
         @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info(
+            "Find issue keys in commits ({},{}] in `{}` repository",
+            (from ?: fromDate?.toString()).orEmpty(), to, sshUrl
+        )
         RepositoryResponse(
             vcsManager.getCommits(sshUrl, from, fromDate, to)
-                .flatMap { IssueKeyParser.findIssueKeys(it.message) }
-                .distinct()
+                .flatMap { IssueKeyParser.findIssueKeys(it.message) }.distinct()
         )
     }.data
 
@@ -75,7 +83,8 @@ class RepositoryController(
     fun getTags(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get tags in `{}` repository", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl))
     }.data
 
@@ -87,19 +96,30 @@ class RepositoryController(
     fun searchIssuesInRanges(
         @RequestBody searchRequest: SearchIssuesInRangesRequest,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Search issue keys {} in specified commit ranges", searchRequest.issues)
         vcsManager.searchIssuesInRanges(searchRequest)
     }
 
     @PostMapping("pull-requests")
-    fun createPullRequest(@RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest) =
-        vcsManager.createPullRequest(sshUrl, createPullRequest)
+    fun createPullRequest(
+        @RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest
+    ): PullRequest {
+        log.info(
+            "Create pull request ({} -> {}) in `{}` repository",
+            sshUrl,
+            createPullRequest.sourceBranch,
+            createPullRequest.targetBranch
+        )
+        return vcsManager.createPullRequest(sshUrl, createPullRequest)
+    }
 
     @GetMapping("find/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get search summary for issue key {}", issueKey)
         vcsManager.find(issueKey)
     }
 
@@ -107,7 +127,8 @@ class RepositoryController(
     fun findBranchesByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find branches by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findBranches(issueKey))
     }.data
 
@@ -115,7 +136,8 @@ class RepositoryController(
     fun findCommitsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find commits by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findCommits(issueKey))
     }.data
 
@@ -123,37 +145,37 @@ class RepositoryController(
     fun findPullRequestsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
-    ) = processJob(requestId ?: UUID.randomUUID().toString()) {
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find pull requests by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findPullRequests(issueKey))
     }.data
 
-    private fun <T : VcsFacadeResponse> processJob(requestId: String, func: () -> T): T {
-        log.debug("Process request: {}", requestId)
-        val future = requestJobs.computeIfAbsent(requestId) { processingRequest ->
-            log.debug("Add job request: {}", processingRequest)
-            val submittedFuture = jobExecutor.submit(Callable {
-                log.debug("Start job request: {}", processingRequest)
+    private fun <T : VcsFacadeResponse> processRequest(requestId: String, func: () -> T): T {
+        with(requestJobs.computeIfAbsent(requestId) { newRequest ->
+            log.debug("Submit request {}", newRequest)
+            val future = jobExecutor.submit(Callable {
+                log.trace("Start executing request {}", newRequest)
                 val result = func.invoke()
-                log.trace("Finish job request: {}", processingRequest)
+                log.trace("Finish executing request {}", newRequest)
                 result
             })
             val waitThreshold = Date(Date().time + (jobProperties.fastWorkTimoutSecs * 1000))
-            while (Date().before(waitThreshold) && !submittedFuture.isDone) {
+            while (Date().before(waitThreshold) && !future.isDone) {
                 TimeUnit.MILLISECONDS.sleep(200)
             }
-            submittedFuture
+            future
+        }) {
+            if (!isDone) {
+                throw JobProcessingException(
+                    "Request $requestId is still processing",
+                    requestId,
+                    Date(Date().time + (jobProperties.retryIntervalSecs * 1000))
+                )
+            }
         }
-        if (!future.isDone) {
-            throw JobProcessingException(
-                "Job is processing",
-                requestId,
-                Date(Date().time + (jobProperties.retryIntervalSecs * 1000))
-            )
-        }
-        log.debug("Return job result: {}", requestId)
+        log.debug("Collect request {} result", requestId)
         try {
-            @Suppress("UNCHECKED_CAST")
-            return requestJobs.remove(requestId)!!.get() as T
+            @Suppress("UNCHECKED_CAST") return requestJobs.remove(requestId)!!.get() as T
         } catch (e: ExecutionException) {
             throw e.cause!!
         }

@@ -22,7 +22,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
-import org.octopusden.octopus.vcsfacade.service.VCSClient
+import org.octopusden.octopus.vcsfacade.service.VCSService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -36,14 +36,13 @@ import org.gitlab4j.api.models.Tag as GitlabTag
 )
 class GitlabService(
     gitLabProperties: VCSConfig.GitLabProperties
-) : VCSClient(gitLabProperties, VcsServiceType.GITLAB) {
+) : VCSService(gitLabProperties, VcsServiceType.GITLAB) {
     private val clientFunc: () -> GitLabApi = {
         val authException by lazy {
-            IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
+            IllegalStateException("Auth Token or username/password must be specified for Gitlab access")
         }
         gitLabProperties.token?.let { GitLabApi(httpUrl, gitLabProperties.token) } ?: getGitlabApi(
-            gitLabProperties,
-            authException
+            gitLabProperties, authException
         ).also { api ->
             api.setAuthTokenSupplier { getToken(gitLabProperties, authException) }
         }
@@ -58,41 +57,62 @@ class GitlabService(
 
     override fun getSshUrl(group: String, repository: String) = "ssh://git@$host:$group/$repository.git"
 
-    override fun getBranches(group: String, repository: String) = retryableExecution {
-        client.repositoryApi.getBranches(getProject(group, repository).id).map { it.toBranch(group, repository) }
+    override fun getBranches(group: String, repository: String): List<Branch> {
+        log.trace("=> getBranches({}, {})", group, repository)
+        return retryableExecution {
+            client.repositoryApi.getBranches(getProject(group, repository).id).map { it.toBranch(group, repository) }
+        }.also {
+            log.trace("<= getBranches({}, {}): {}", group, repository, it)
+        }
     }
 
-    override fun getTags(group: String, repository: String) = retryableExecution {
-        client.tagsApi.getTags(getProject(group, repository).id).map { it.toTag(group, repository) }
+    override fun getTags(group: String, repository: String): List<Tag> {
+        log.trace("=> getTags({}, {})", group, repository)
+        return retryableExecution {
+            client.tagsApi.getTags(getProject(group, repository).id).map { it.toTag(group, repository) }
+        }.also {
+            log.trace("<= getTags({}, {}): {}", group, repository, it)
+        }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromId: String): Collection<Commit> {
+    override fun getCommits(group: String, repository: String, toId: String, fromId: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromId)
         val project = getProject(group, repository)
         val toIdValue = getCommitByBranchOrId(project, toId).id
         val commits = retryableExecution {
             client.commitsApi.getCommits(project.id, toIdValue, null, null, 100).asSequence().flatten()
                 .map { it.toCommit(group, repository) }.toList()
         }
-        return filterCommitGraph(group, repository, commits, fromId, null, toIdValue)
+        return filterCommitGraph(group, repository, commits, fromId, null, toIdValue).also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromId, it)
+        }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): Collection<Commit> {
+    override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromDate)
         val project = getProject(group, repository)
         val toIdValue = getCommitByBranchOrId(project, toId).id
         val commits = retryableExecution {
             client.commitsApi.getCommits(project.id, toIdValue, null, null, 100).asSequence().flatten()
                 .map { it.toCommit(group, repository) }.toList()
         }
-        return filterCommitGraph(group, repository, commits, null, fromDate, toIdValue)
+        return filterCommitGraph(group, repository, commits, null, fromDate, toIdValue).also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromDate, it)
+        }
     }
 
-    override fun getCommit(group: String, repository: String, id: String) =
-        getCommitByBranchOrId(getProject(group, repository), id).toCommit(group, repository)
+    override fun getCommit(group: String, repository: String, id: String): Commit {
+        log.trace("=> getCommit({}, {}, {})", group, repository, id)
+        return getCommitByBranchOrId(getProject(group, repository), id).toCommit(group, repository).also {
+            log.trace("<= getCommit({}, {}, {}): {}", group, repository, id, it)
+        }
+    }
 
 
     override fun createPullRequest(
         group: String, repository: String, createPullRequest: CreatePullRequest
     ): PullRequest {
+        log.trace("=> createPullRequest({}, {}, {})", group, repository, createPullRequest)
         val project = getProject(group, repository)
         val sourceBranch = createPullRequest.sourceBranch.toShortBranchName()
         val targetBranch = createPullRequest.targetBranch.toShortBranchName()
@@ -106,28 +126,43 @@ class GitlabService(
             client.mergeRequestApi.createMergeRequest(
                 project.id, sourceBranch, targetBranch, createPullRequest.title, createPullRequest.description, 0L
             )
-        }.toPullRequest(group, repository)
-    }
-
-    override fun getPullRequest(group: String, repository: String, index: Long) = retryableExecution {
-        client.mergeRequestApi.getMergeRequestApprovals(
-            getProject(group, repository).id, index
-        )
-    }.toPullRequest(group, repository)
-
-    override fun findCommits(group: String, repository: String, ids: Set<String>) = ids.mapNotNull {
-        try {
-            getCommit(group, repository, it)
-        } catch (e: NotFoundException) {
-            null
+        }.toPullRequest(group, repository).also {
+            log.trace("<= createPullRequest({}, {}, {}): {}", group, repository, createPullRequest, it)
         }
     }
 
-    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>) = indexes.mapNotNull {
-        try {
-            getPullRequest(group, repository, it)
-        } catch (e: NotFoundException) {
-            null
+    override fun getPullRequest(group: String, repository: String, index: Long): PullRequest {
+        log.trace("=> getPullRequest({}, {}, {})", group, repository, index)
+        return retryableExecution {
+            client.mergeRequestApi.getMergeRequestApprovals(getProject(group, repository).id, index)
+        }.toPullRequest(group, repository).also {
+            log.trace("<= getPullRequest({}, {}, {}): {}", group, repository, index, it)
+        }
+    }
+
+    override fun findCommits(group: String, repository: String, ids: Set<String>): List<Commit> {
+        log.trace("=> findCommits({}, {}, {})", group, repository, ids)
+        return ids.mapNotNull {
+            try {
+                getCommit(group, repository, it)
+            } catch (e: NotFoundException) {
+                null
+            }
+        }.also {
+            log.trace("<= findCommits({}, {}, {}): {}", group, repository, ids, it)
+        }
+    }
+
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): List<PullRequest> {
+        log.trace("=> findPullRequests({}, {}, {})", group, repository, indexes)
+        return indexes.mapNotNull {
+            try {
+                getPullRequest(group, repository, it)
+            } catch (e: NotFoundException) {
+                null
+            }
+        }.also {
+            log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it)
         }
     }
 
@@ -253,17 +288,13 @@ class GitlabService(
     private fun filterCommitGraph(
         namespace: String,
         project: String,
-        commits: Collection<Commit>,
+        commits: List<Commit>,
         fromId: String?,
         fromDate: Date?,
         toIdValue: String
     ): List<Commit> {
         val graph = commits.map { commit -> commit.id to commit }.toMap()
-        if (log.isTraceEnabled) {
-            log.trace("Graph has {} items: {}", graph.size, graph)
-        } else {
-            log.debug("Graph size={}", graph.size)
-        }
+        log.trace("Graph has {} items: {}", graph.size, graph)
         val releasedCommits = fromId?.let { fromIdValue ->
             val exceptionFunction: (commitId: String) -> NotFoundException = { commit ->
                 getCommit(namespace, project, fromIdValue)
