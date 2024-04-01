@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import java.util.Date
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
+import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.document.Commit
 import org.octopusden.octopus.vcsfacade.document.PullRequest
 import org.octopusden.octopus.vcsfacade.document.Ref
@@ -126,8 +127,11 @@ class GiteaIndexerServiceImpl(
                             })
                         openSearchService.saveCommits(commits)
                         log.debug("Update `{}` {} repository pull-requests in index", fullName, GITEA)
-                        val pullRequests = giteaService.getPullRequests(group, name)
-                            .map { it.toDocument(id) }
+                        val pullRequests = try {
+                            giteaService.getPullRequests(group, name)
+                        } catch (e: NotFoundException) {
+                            emptyList() //for some reason Gitea returns 404 in case of empty repository
+                        }.map { it.toDocument(id) }
                         val pullRequestsIds = pullRequests.map { it.id }.toSet()
                         openSearchService.deletePullRequestsByIds(
                             openSearchService.findPullRequestsByRepositoryId(id).mapNotNull {

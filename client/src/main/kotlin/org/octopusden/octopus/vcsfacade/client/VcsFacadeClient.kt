@@ -3,7 +3,7 @@ package org.octopusden.octopus.vcsfacade.client
 import feign.Headers
 import feign.Param
 import feign.RequestLine
-import java.util.*
+import java.util.Date
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
@@ -12,10 +12,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesRes
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 
 interface VcsFacadeClient {
-    @Throws(NotFoundException::class, IllegalStateException::class)
     @RequestLine("GET rest/api/1/repository/commits?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")
     fun getCommits(
         @Param("sshUrl") sshUrl: String,
@@ -24,11 +22,9 @@ interface VcsFacadeClient {
         @Param("to") toId: String
     ): List<Commit>
 
-    @Throws(NotFoundException::class, IllegalStateException::class)
     @RequestLine("GET rest/api/1/repository/commit?sshUrl={sshUrl}&commitId={commitId}")
     fun getCommit(@Param("sshUrl") sshUrl: String, @Param("commitId") commitId: String): Commit
 
-    @Throws(NotFoundException::class, IllegalStateException::class)
     @RequestLine("GET rest/api/1/repository/issues?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")
     fun getIssuesFromCommits(
         @Param("sshUrl") sshUrl: String,
@@ -37,7 +33,6 @@ interface VcsFacadeClient {
         @Param("to") toId: String
     ): List<String>
 
-    @Throws(IllegalStateException::class)
     @RequestLine("GET rest/api/1/repository/tags?sshUrl={sshUrl}")
     fun getTags(@Param("sshUrl") sshUrl: String): List<Tag>
 

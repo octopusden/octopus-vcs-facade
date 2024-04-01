@@ -27,8 +27,6 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: Strin
             checkSuccess(tags)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
-        } catch (e: IllegalStateException) {
-            checkError(Pair(500, e.message!!))
         }
     }
 
@@ -48,8 +46,6 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: Strin
             checkError(Pair(400, e.message!!))
         } catch (e: ArgumentsNotCompatibleException) {
             checkError(Pair(400, e.message!!))
-        } catch (e: IllegalStateException) {
-            checkError(Pair(500, e.message!!))
         }
     }
 
@@ -64,8 +60,6 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: Strin
             checkSuccess(commits)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
-        } catch (e: IllegalStateException) {
-            checkError(Pair(500, e.message!!))
         }
     }
 
@@ -81,8 +75,6 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: Strin
             checkSuccess(commit)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
-        } catch (e: IllegalStateException) {
-            checkError(Pair(500, e.message!!))
         }
     }
 
@@ -92,6 +84,12 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: Strin
         checkSuccess: (SearchIssueInRangesResponse) -> Unit,
         checkError: CheckError
     ) {
+        try {
+            val response = client.searchIssuesInRanges(searchRequest)
+            checkSuccess(response)
+        } catch (e: NotFoundException) {
+            checkError(Pair(400, e.message!!))
+        }
     }
 
     override fun createPullRequest(
@@ -106,8 +104,6 @@ abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: Strin
             checkSuccess(pullRequest)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))
-        } catch (e: IllegalStateException) {
-            checkError(Pair(500, e.message!!))
         }
     }
 

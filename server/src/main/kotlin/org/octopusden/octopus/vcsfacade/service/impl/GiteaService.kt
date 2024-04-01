@@ -15,6 +15,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequestRe
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaUser
+import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException
 import org.octopusden.octopus.infrastructure.gitea.client.getBranches
 import org.octopusden.octopus.infrastructure.gitea.client.getBranchesCommitGraph
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
@@ -32,14 +33,12 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.VCSClient
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
-import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException as GiteaNotFoundException
 
 @Service
 @ConditionalOnProperty(
@@ -69,103 +68,73 @@ class GiteaService(
 
     override fun getSshUrl(group: String, repository: String) = "ssh://git@$host/$group/$repository.git"
 
-    fun getRepositories() = execute("getOrganizations()") { client.getOrganizations() }.flatMap {
-        execute("getRepositories(${it.name})") { client.getRepositories(it.name) }
-    }.map { it.toRepository() }
+    fun getRepositories() =
+        client.getOrganizations().flatMap { client.getRepositories(it.name) }.map { it.toRepository() }
 
     fun isRepositoryExist(group: String, repository: String) =
         try {
             client.getRepository(group, repository)
             true
-        } catch (e: GiteaNotFoundException) {
+        } catch (e: NotFoundException) {
             false
         }
 
     private fun getRepository(group: String, repository: String) =
-        execute("getRepository($group, $repository)") {
-            client.getRepository(group, repository)
-        }.toRepository()
+        client.getRepository(group, repository).toRepository()
 
     override fun getBranches(group: String, repository: String) = with(getRepository(group, repository)) {
-        execute("getBranches($group, $repository)") {
-            client.getBranches(group, repository)
-        }.map { it.toBranch(this) }
+        client.getBranches(group, repository).map { it.toBranch(this) }
     }
 
     override fun getTags(group: String, repository: String) = with(getRepository(group, repository)) {
-        execute("getTags($group, $repository)") {
-            client.getTags(group, repository)
-        }.map { it.toTag(this) }
+        client.getTags(group, repository).map { it.toTag(this) }
     }
 
     override fun getCommits(group: String, repository: String, toId: String, fromId: String) =
         with(getRepository(group, repository)) {
-            execute("getCommits($group, $repository, $toId, $fromId)") {
-                client.getCommits(group, repository, toId, fromId)
-            }.map { it.toCommit(this) }
+            client.getCommits(group, repository, toId, fromId).map { it.toCommit(this) }
         }
 
     override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?) =
         with(getRepository(group, repository)) {
-            execute("getCommits($group, $repository, $toId, $fromDate)") {
-                client.getCommits(group, repository, toId, fromDate)
-            }.map { it.toCommit(this) }
+            client.getCommits(group, repository, toId, fromDate).map { it.toCommit(this) }
         }
 
     fun getBranchesCommitGraph(group: String, repository: String) =
         with(getRepository(group, repository)) {
-            execute("getBranchesCommitGraph($group, $repository)") {
-                client.getBranchesCommitGraph(group, repository)
-            }.map { it.toCommit(this) }
+            client.getBranchesCommitGraph(group, repository).map { it.toCommit(this) }
         }
 
     override fun getCommit(group: String, repository: String, id: String) =
-        execute("getCommit($group, $repository, $id)") {
-            client.getCommit(group, repository, id)
-        }.toCommit(getRepository(group, repository))
+        client.getCommit(group, repository, id).toCommit(getRepository(group, repository))
 
     fun getPullRequests(group: String, repository: String) =
         with(getRepository(group, repository)) {
-            execute("getPullRequests($group, $repository)") {
-                client.getPullRequests(group, repository)
-            }.map {
-                it.toPullRequest(
-                    this,
-                    execute("getPullRequestReviews($group, $repository, ${it.number})") {
-                        client.getPullRequestReviews(group, repository, it.number)
-                    }
-                )
+            client.getPullRequests(group, repository).map {
+                it.toPullRequest(this, client.getPullRequestReviews(group, repository, it.number))
             }
         }
 
     override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
-        execute("createPullRequest($group, $repository, $createPullRequest)") {
-            client.createPullRequestWithDefaultReviewers(
-                group,
-                repository,
-                createPullRequest.sourceBranch,
-                createPullRequest.targetBranch,
-                createPullRequest.title,
-                createPullRequest.description
-            )
-        }.let {
+        client.createPullRequestWithDefaultReviewers(
+            group,
+            repository,
+            createPullRequest.sourceBranch,
+            createPullRequest.targetBranch,
+            createPullRequest.title,
+            createPullRequest.description
+        ).let {
             it.toPullRequest(
                 getRepository(group, repository),
-                execute("getPullRequestReviews($group, $repository, ${it.number})") {
-                    client.getPullRequestReviews(group, repository, it.number)
-                }
+                client.getPullRequestReviews(group, repository, it.number)
             )
         }
 
     override fun getPullRequest(group: String, repository: String, index: Long) =
-        execute("getPullRequest($group, $repository, $index)") {
-            client.getPullRequest(group, repository, index)
-        }.let {
+        client.getPullRequest(group, repository, index).let {
             it.toPullRequest(
                 getRepository(group, repository),
-                execute("getPullRequestReviews($group, $repository, ${it.number})") {
-                    client.getPullRequestReviews(group, repository, it.number)
-                }
+                client.getPullRequestReviews(group, repository, it.number)
             )
         }
 
@@ -174,7 +143,7 @@ class GiteaService(
             ids.mapNotNull {
                 try {
                     client.getCommit(group, repository, it).toCommit(this)
-                } catch (e: GiteaNotFoundException) {
+                } catch (e: NotFoundException) {
                     null
                 }
             }
@@ -186,7 +155,7 @@ class GiteaService(
                 try {
                     client.getPullRequest(group, repository, it)
                         .toPullRequest(this, client.getPullRequestReviews(group, repository, it))
-                } catch (e: GiteaNotFoundException) {
+                } catch (e: NotFoundException) {
                     null
                 }
             }
@@ -274,15 +243,6 @@ class GiteaService(
             PullRequestStatus.DECLINED
         } else {
             PullRequestStatus.OPENED
-        }
-
-        private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
-            try {
-                return clientFunction.invoke()
-            } catch (e: GiteaNotFoundException) {
-                log.error("$errorMessage: ${e.message}")
-                throw NotFoundException(e.message ?: e::class.qualifiedName!!)
-            }
         }
     }
 }

@@ -15,6 +15,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullR
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketUser
+import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException
 import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
@@ -28,14 +29,12 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.VCSClient
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
-import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException as BitBucketNotFoundException
 
 @Service
 @ConditionalOnProperty(
@@ -67,51 +66,37 @@ class BitbucketService(
     override fun getSshUrl(group: String, repository: String) = "ssh://git@$host/$group/$repository.git"
 
     override fun getBranches(group: String, repository: String) =
-        execute("getBranches($group, $repository)") {
-            bitbucketClient.getBranches(group, repository)
-        }.map { it.toBranch(group, repository) }
+        bitbucketClient.getBranches(group, repository).map { it.toBranch(group, repository) }
 
     override fun getTags(group: String, repository: String) =
-        execute("getTags($group, $repository)") {
-            bitbucketClient.getTags(group, repository)
-        }.map { it.toTag(group, repository) }
+        bitbucketClient.getTags(group, repository).map { it.toTag(group, repository) }
 
     override fun getCommits(group: String, repository: String, toId: String, fromId: String) =
-        execute("getCommits($group, $repository, $toId, $fromId)") {
-            bitbucketClient.getCommits(group, repository, toId, fromId)
-        }.map { it.toCommit(group, repository) }
+        bitbucketClient.getCommits(group, repository, toId, fromId).map { it.toCommit(group, repository) }
 
     override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?) =
-        execute("getCommits($group, $repository, $toId, $fromDate)") {
-            bitbucketClient.getCommits(group, repository, toId, fromDate)
-        }.map { it.toCommit(group, repository) }
+        bitbucketClient.getCommits(group, repository, toId, fromDate).map { it.toCommit(group, repository) }
 
     override fun getCommit(group: String, repository: String, id: String) =
-        execute("getCommit($group, $repository, $id)") {
-            bitbucketClient.getCommit(group, repository, id)
-        }.toCommit(group, repository)
+        bitbucketClient.getCommit(group, repository, id).toCommit(group, repository)
 
     override fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest) =
-        execute("createPullRequest($group, $repository, $createPullRequest)") {
-            bitbucketClient.createPullRequestWithDefaultReviewers(
-                group,
-                repository,
-                createPullRequest.sourceBranch,
-                createPullRequest.targetBranch,
-                createPullRequest.title,
-                createPullRequest.description
-            ).toPullRequest(group, repository)
-        }
+        bitbucketClient.createPullRequestWithDefaultReviewers(
+            group,
+            repository,
+            createPullRequest.sourceBranch,
+            createPullRequest.targetBranch,
+            createPullRequest.title,
+            createPullRequest.description
+        ).toPullRequest(group, repository)
 
     override fun getPullRequest(group: String, repository: String, index: Long) =
-        execute("getPullRequest($group, $repository, $index)") {
-            bitbucketClient.getPullRequest(group, repository, index).toPullRequest(group, repository)
-        }
+        bitbucketClient.getPullRequest(group, repository, index).toPullRequest(group, repository)
 
     override fun findCommits(group: String, repository: String, ids: Set<String>) = ids.mapNotNull {
         try {
             bitbucketClient.getCommit(group, repository, it).toCommit(group, repository)
-        } catch (e: BitBucketNotFoundException) {
+        } catch (e: NotFoundException) {
             null
         }
     }
@@ -119,7 +104,7 @@ class BitbucketService(
     override fun findPullRequests(group: String, repository: String, indexes: Set<Long>) = indexes.mapNotNull {
         try {
             bitbucketClient.getPullRequest(group, repository, it).toPullRequest(group, repository)
-        } catch (e: BitBucketNotFoundException) {
+        } catch (e: NotFoundException) {
             null
         }
     }
@@ -130,9 +115,7 @@ class BitbucketService(
     }
 
     override fun findCommits(issueKey: String) =
-        execute("findCommits($issueKey)") {
-            bitbucketClient.getCommits(issueKey)
-        }.map { bitbucketJiraCommit ->
+        bitbucketClient.getCommits(issueKey).map { bitbucketJiraCommit ->
             val (group, repository) = parse(bitbucketJiraCommit.repository.links.clone.find { it.name == BitbucketLinkName.SSH }!!.href)
             bitbucketJiraCommit.toCommit.toCommit(group, repository)
         }
@@ -199,14 +182,5 @@ class BitbucketService(
 
     companion object {
         private val log = LoggerFactory.getLogger(BitbucketService::class.java)
-
-        private fun <T> execute(errorMessage: String, clientFunction: () -> T): T {
-            try {
-                return clientFunction.invoke()
-            } catch (e: BitBucketNotFoundException) {
-                log.error("$errorMessage: ${e.message}")
-                throw NotFoundException(e.message ?: e::class.qualifiedName!!)
-            }
-        }
     }
 }
