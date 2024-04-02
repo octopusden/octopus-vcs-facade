@@ -59,12 +59,12 @@ class GiteaIndexerController(
                     calculatedSignature.append(String.format("%02X", b))
                 }
                 if (calculatedSignature.toString().equals(signature, true)) {
-                    log.debug("Signature is valid")
+                    log.trace("Signature is valid")
                 } else {
                     throw InvalidSignatureException("Signature is invalid")
                 }
             }
-        } ?: log.debug("Signature validation is disabled (webhook secret is not configured)")
+        } ?: log.trace("Signature validation is disabled (webhook secret is not configured)")
         if (eventType == "create" && event == "create") {
             with(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java)) {
                 log.info(
