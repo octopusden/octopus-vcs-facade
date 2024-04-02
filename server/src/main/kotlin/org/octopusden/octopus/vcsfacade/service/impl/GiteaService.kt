@@ -263,7 +263,7 @@ class GiteaService(
     ): PullRequest {
         val approvedGiteaUserIds = giteaPullRequestReviews.filter {
             it.state == GiteaPullRequestReview.GiteaPullRequestReviewState.APPROVED && !it.dismissed
-        }.map { it.user.id }.toSet()
+        }.mapNotNull { it.user?.id }.toSet()
         return PullRequest(
             number,
             title,

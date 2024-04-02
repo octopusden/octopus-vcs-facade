@@ -166,7 +166,7 @@ class VCSManagerImpl(
     }
 
     override fun health(): Health {
-        log.debug("Run health check")
+        log.trace("Run health check")
         val errors = vcsProperties.mapNotNull {
             try {
                 val commits = getCommits(

@@ -109,7 +109,10 @@ class GiteaIndexerController(
     }
 
     @GetMapping("report")
-    fun getIndexReport() = giteaIndexerService.getIndexReport()
+    fun getIndexReport() {
+        log.info("Get {} repositories index report", GITEA)
+        giteaIndexerService.getIndexReport()
+    }
 
     companion object {
         private const val MAC_ALGORITHM = "HmacSHA256"

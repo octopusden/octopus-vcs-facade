@@ -17,8 +17,8 @@ vcs-facade:
           cron: "-"
           executor:
             core-pool-size: 1
-            max-pool-size: 1
-            queue-capacity: 500
+            max-pool-size: 10
+            queue-capacity: 10
     gitlab:
       enabled: false
 

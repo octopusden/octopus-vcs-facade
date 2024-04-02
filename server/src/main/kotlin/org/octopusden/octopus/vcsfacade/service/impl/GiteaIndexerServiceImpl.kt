@@ -42,11 +42,14 @@ class GiteaIndexerServiceImpl(
 
     @Scheduled(cron = "#{ @giteaIndexScanCron }")
     private fun rescan() = try {
-        log.debug("Submit {} repositories rescan", GITEA)
-        (giteaService.getRepositories().map { it.sshUrl.toRepository() } + getOpenSearchService().getRepositories())
-            .associateBy { it.id }.forEach { submitRepositoryScan(it.value) }
+        log.trace("Submitting {} repositories for rescan", GITEA)
+        val repositories = (giteaService.getRepositories().map { it.sshUrl.toRepository() } +
+                getOpenSearchService().getRepositories()).associateBy { it.id }.values
+        log.trace("Repositories collected for rescan: {}", repositories)
+        repositories.forEach { submitRepositoryScan(it) }
+        log.debug("Submitted {} {} repositories for rescan", repositories.size, GITEA)
     } catch (e: Exception) {
-        log.error("$GITEA repositories rescan ended in failure", e)
+        log.error("Unable to submit $GITEA repositories for rescan", e)
     }
 
     override fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent) {
@@ -93,23 +96,22 @@ class GiteaIndexerServiceImpl(
                 val openSearchService = getOpenSearchService()
                 if (giteaService.isRepositoryExist(repository.group, repository.name)) {
                     with(
-                        openSearchService.findRepositoryById(repository.id)
-                            ?: openSearchService.saveRepository(repository)
+                        openSearchService.findRepositoryById(repository.id) ?:
+                        openSearchService.saveRepository(repository)
                     ) {
                         log.debug("Update `{}` {} repository refs in index", fullName, GITEA)
-                        val refs = giteaService.getBranches(group, name).map { it.toDocument(id) } +
-                                giteaService.getTags(group, name).map { it.toDocument(id) }
+                        val refs = giteaService.getBranches(group, name)
+                            .map { it.toDocument(id) } + giteaService.getTags(group, name).map { it.toDocument(id) }
                         val refsIds = refs.map { it.id }.toSet()
-                        openSearchService.deleteRefsByIds(
-                            openSearchService.findRefsByRepositoryId(id).mapNotNull {
-                                if (refsIds.contains(it.id)) null else it.id
-                            })
+                        openSearchService.deleteRefsByIds(openSearchService.findRefsByRepositoryId(id).mapNotNull {
+                            if (refsIds.contains(it.id)) null else it.id
+                        })
                         openSearchService.saveRefs(refs)
                         log.debug("Update `{}` {} repository commits in index", fullName, GITEA)
                         val commits = giteaService.getBranchesCommitGraph(group, name).map { it.toDocument(id) }
                         val commitsIds = commits.map { it.id }.toSet()
-                        openSearchService.deleteCommitsByIds(
-                            openSearchService.findCommitsByRepositoryId(id).mapNotNull {
+                        openSearchService.deleteCommitsByIds(openSearchService.findCommitsByRepositoryId(id)
+                            .mapNotNull {
                                 if (commitsIds.contains(it.id)) null else it.id
                             })
                         openSearchService.saveCommits(commits)
@@ -120,8 +122,8 @@ class GiteaIndexerServiceImpl(
                             emptyList() //for some reason Gitea returns 404 in case of empty repository
                         }.map { it.toDocument(id) }
                         val pullRequestsIds = pullRequests.map { it.id }.toSet()
-                        openSearchService.deletePullRequestsByIds(
-                            openSearchService.findPullRequestsByRepositoryId(id).mapNotNull {
+                        openSearchService.deletePullRequestsByIds(openSearchService.findPullRequestsByRepositoryId(id)
+                            .mapNotNull {
                                 if (pullRequestsIds.contains(it.id)) null else it.id
                             })
                         openSearchService.savePullRequests(pullRequests)
@@ -151,6 +153,9 @@ class GiteaIndexerServiceImpl(
     }
 
     private fun String.toRepository(): Repository {
+        if (!giteaService.isSupport(this)) {
+            throw IllegalStateException("Repository `$this` is not supported")
+        }
         val (group, name) = giteaService.parse(this)
         return Repository(GITEA, group, name)
     }
