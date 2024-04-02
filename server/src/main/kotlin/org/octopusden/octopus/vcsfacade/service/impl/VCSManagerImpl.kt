@@ -190,7 +190,7 @@ class VCSManagerImpl(
         } else {
             Health.down().withDetail("errors", errors.joinToString(separator = ". ")).build()
         }
-        log.debug("Health check status is {}", health.status)
+        log.trace("Health check status is {}", health.status)
         return health
     }
 
