@@ -1,8 +1,4 @@
 vcs-facade:
   job:
-    executor:
-      core-pool-size: 4
-      max-pool-size: 10
-      queue-capacity: 500
     fast-work-timout-secs: 25
     retry-interval-secs: 1

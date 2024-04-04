@@ -15,10 +15,6 @@ vcs-facade:
         webhook-secret: bc719543-7f13-410a-964d-fb747c11f666
         scan:
           cron: "-"
-          executor:
-            core-pool-size: 1
-            max-pool-size: 10
-            queue-capacity: 10
     gitlab:
       enabled: false
 

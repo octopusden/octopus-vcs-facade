@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.task.AsyncTaskExecutor
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 
 @Configuration
 class VCSConfig(val giteaProperties: GiteaProperties?) {
@@ -78,7 +77,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     data class GiteaIndexProperties(val webhookSecret: String?, val scan: GiteaIndexScanProperties?)
 
-    data class GiteaIndexScanProperties(val cron: String, val executor: ExecutorProperties)
+    data class GiteaIndexScanProperties(val cron: String, val executor: ExecutorProperties?)
 
     abstract class VCSProperties(
         val host: String,
@@ -99,12 +98,8 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     @Bean
     fun giteaIndexScanExecutor(): AsyncTaskExecutor? {
-        return giteaProperties?.index?.scan?.executor?.let {
-            ThreadPoolTaskExecutor().apply {
-                corePoolSize = it.corePoolSize
-                maxPoolSize = it.maxPoolSize
-                queueCapacity = it.queueCapacity
-            }
+        return giteaProperties?.index?.scan?.let {
+            (it.executor ?: ExecutorProperties()).buildThreadPoolTaskExecutor()
         }
     }
 }
