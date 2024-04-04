@@ -9,6 +9,7 @@ import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
+import org.octopusden.octopus.vcsfacade.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType.GITEA
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
@@ -105,13 +106,13 @@ class GiteaIndexerController(
         @RequestParam("sshUrl") sshUrl: String
     ) {
         log.info("Submit scan of {}", sshUrl)
-        return giteaIndexerService.submitRepositoryScan(sshUrl)
+        giteaIndexerService.submitRepositoryScan(sshUrl)
     }
 
     @GetMapping("report")
-    fun getIndexReport() {
+    fun getIndexReport(): IndexReport {
         log.info("Get {} repositories index report", GITEA)
-        giteaIndexerService.getIndexReport()
+        return giteaIndexerService.getIndexReport()
     }
 
     companion object {
