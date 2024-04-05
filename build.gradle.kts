@@ -1,3 +1,4 @@
+import java.time.Duration
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -22,6 +23,10 @@ nexusPublishing {
             username.set(System.getenv("MAVEN_USERNAME"))
             password.set(System.getenv("MAVEN_PASSWORD"))
         }
+    }
+    transitionCheckOptions {
+        maxRetries.set(60)
+        delayBetween.set(Duration.ofSeconds(30))
     }
 }
 
@@ -73,7 +78,7 @@ subprojects {
     ext {
         System.getenv().let {
             set("signingRequired", it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword"))
-            set("testProfile", it.getOrDefault("TEST_PROFILE", project.properties["test.profile"]))
+            set("testProfile", it.getOrDefault("TEST_PROFILE", project.properties["test.profile"] ?: "gitea"))
             set("dockerRegistry", it.getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]))
             set("octopusGithubDockerRegistry", it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
             set("bitbucketLicense", it.getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]))
