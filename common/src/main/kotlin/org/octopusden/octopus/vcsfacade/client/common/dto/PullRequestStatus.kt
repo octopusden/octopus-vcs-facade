@@ -1,5 +1,5 @@
 package org.octopusden.octopus.vcsfacade.client.common.dto
 
 enum class PullRequestStatus {
-    OPENED, MERGED, DECLINED
+    OPEN, MERGED, DECLINED
 }

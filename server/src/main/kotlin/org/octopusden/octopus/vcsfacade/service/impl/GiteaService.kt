@@ -294,7 +294,7 @@ class GiteaService(
         } else if (state == GiteaPullRequest.GiteaPullRequestState.CLOSED) {
             PullRequestStatus.DECLINED
         } else {
-            PullRequestStatus.OPENED
+            PullRequestStatus.OPEN
         }
     }
 }

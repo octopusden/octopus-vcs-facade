@@ -237,7 +237,7 @@ class GitlabService(
         when (state) {
             "merged" -> PullRequestStatus.MERGED
             "closed" -> PullRequestStatus.DECLINED
-            else -> PullRequestStatus.OPENED
+            else -> PullRequestStatus.OPEN
         },
         createdAt,
         updatedAt,

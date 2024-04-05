@@ -211,7 +211,7 @@ class BitbucketService(
                 when (state) {
                     BitbucketPullRequestState.MERGED -> PullRequestStatus.MERGED
                     BitbucketPullRequestState.DECLINED -> PullRequestStatus.DECLINED
-                    BitbucketPullRequestState.OPEN -> PullRequestStatus.OPENED
+                    BitbucketPullRequestState.OPEN -> PullRequestStatus.OPEN
                 },
                 createdDate,
                 updatedDate,
