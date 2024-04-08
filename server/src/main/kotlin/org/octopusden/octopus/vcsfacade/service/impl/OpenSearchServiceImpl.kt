@@ -7,7 +7,6 @@ import org.octopusden.octopus.vcsfacade.document.Commit
 import org.octopusden.octopus.vcsfacade.document.PullRequest
 import org.octopusden.octopus.vcsfacade.document.Ref
 import org.octopusden.octopus.vcsfacade.document.Repository
-import org.octopusden.octopus.vcsfacade.document.RepositoryLink
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.repository.CommitRepository
@@ -29,18 +28,27 @@ class OpenSearchServiceImpl(
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
 ) : OpenSearchService {
-    override fun getRepositories(): List<Repository> {
-        log.trace("=> getRepositories()")
-        return repositoryRepository.findAll().toList().also {
-            log.trace("<= getRepositories(): {}", it)
-        }
-    }
+    /* IMPORTANT: use raw `search_after` approach because:
+     * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API)
+     * - limitation of raw `search_after` (inconsistency because of concurrent operations) is suitable, consistency is complied by vcs services
+     * - better performance of raw `search_after` comparing with `search_after` with PIT or `scroll`
+     */
 
-    override fun getRepositories(type: VcsServiceType): List<Repository> {
+    override fun getRepositories(type: VcsServiceType): Set<Repository> {
         log.trace("=> getRepositories({})", type)
-        return repositoryRepository.findByType(type).also {
-            log.trace("<= getRepositories({}): {}", type, it)
-        }
+        val repositories = mutableSetOf<Repository>()
+        var lastRepository: Repository? = null
+        do {
+            val repositoryBatch =
+                repositoryRepository.searchFirst100ByTypeAndGroupAfterAndNameAfterOrderByGroupAscNameAsc(
+                    type, lastRepository?.group ?: "", lastRepository?.name ?: ""
+                )
+            if (repositoryBatch.isEmpty()) break
+            repositories.addAll(repositoryBatch)
+            lastRepository = repositoryBatch.last()
+        } while (repositoryBatch.size == 100)
+        log.trace("<= getRepositories({}): {}", type, repositories)
+        return repositories
     }
 
     override fun findRepositoryById(repositoryId: String): Repository? {
@@ -63,11 +71,37 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRepository({})", repository)
     }
 
-    override fun findRefsByRepositoryId(repositoryId: String): List<Ref> {
+    override fun findRefsByRepositoryId(repositoryId: String): Set<Ref> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
-        return refRepository.findByRepositoryId(repositoryId).also {
-            log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it)
-        }
+        val refs = mutableSetOf<Ref>()
+        var lastBranchHash = ""
+        do {
+            val branchBatch = refRepository.searchFirst100ByRepositoryIdAndTypeAndHashAfterOrderByHashAsc(
+                repositoryId, RefType.BRANCH, lastBranchHash
+            )
+            if (branchBatch.isEmpty()) break
+            refs.addAll(branchBatch)
+            if (lastBranchHash == branchBatch.last().hash) {
+                log.error("100 or over branches detected with hash $lastBranchHash for repositoryId $repositoryId")
+                break
+            }
+            lastBranchHash = branchBatch.last().hash
+        } while (branchBatch.size == 100)
+        var lastTagHash = ""
+        do {
+            val tagBatch = refRepository.searchFirst100ByRepositoryIdAndTypeAndHashAfterOrderByHashAsc(
+                repositoryId, RefType.TAG, lastTagHash
+            )
+            if (tagBatch.isEmpty()) break
+            refs.addAll(tagBatch)
+            if (lastTagHash == tagBatch.last().hash) {
+                log.error("100 or over tags detected with hash $lastTagHash for repositoryId $repositoryId")
+                break
+            }
+            lastTagHash = tagBatch.last().hash
+        } while (tagBatch.size == 100)
+        log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, refs)
+        return refs
     }
 
     override fun saveRefs(refs: List<Ref>) {
@@ -88,11 +122,20 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRefsByRepositoryId({})", repositoryId)
     }
 
-    override fun findCommitsByRepositoryId(repositoryId: String): List<Commit> {
+    override fun findCommitsByRepositoryId(repositoryId: String): Set<Commit> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
-        return commitRepository.findByRepositoryId(repositoryId).also {
-            log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it)
-        }
+        val commits = mutableSetOf<Commit>()
+        var lastCommitHash = ""
+        do {
+            val commitBatch = commitRepository.searchFirst100ByRepositoryIdAndHashAfterOrderByHashAsc(
+                repositoryId, lastCommitHash
+            )
+            if (commitBatch.isEmpty()) break
+            commits.addAll(commitBatch)
+            lastCommitHash = commitBatch.last().hash
+        } while (commitBatch.size == 100)
+        log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, commits)
+        return commits
     }
 
     override fun saveCommits(commits: List<Commit>) {
@@ -113,11 +156,20 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteCommitsByRepositoryId({})", repositoryId)
     }
 
-    override fun findPullRequestsByRepositoryId(repositoryId: String): List<PullRequest> {
+    override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequest> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        return pullRequestRepository.findByRepositoryId(repositoryId).also {
-            log.trace("<= findPullRequestsByRepositoryId({}): {}", repositoryId, it)
-        }
+        val pullRequests = mutableSetOf<PullRequest>()
+        var lastPullRequestIndex = 0L
+        do {
+            val pullRequestBatch = pullRequestRepository.searchFirst100ByRepositoryIdAndIndexAfterOrderByIndexAsc(
+                repositoryId, lastPullRequestIndex
+            )
+            if (pullRequestBatch.isEmpty()) break
+            pullRequests.addAll(pullRequestBatch)
+            lastPullRequestIndex = pullRequestBatch.last().index
+        } while (pullRequestBatch.size == 100)
+        log.trace("<= findPullRequestsByRepositoryId({}): {}", repositoryId, pullRequests)
+        return pullRequests
     }
 
     override fun savePullRequests(pullRequests: List<PullRequest>) {
@@ -138,34 +190,29 @@ class OpenSearchServiceImpl(
         log.trace("<= deletePullRequestsByRepositoryId({})", repositoryId)
     }
 
-    override fun findBranchesByIssueKey(issueKey: String): Map<Repository, List<Ref>> {
+    override fun findBranchesByIssueKey(issueKey: String): List<Ref> {
         log.trace("=> findBranchesByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
-            refRepository.findByTypeAndNameContaining(RefType.BRANCH, issueKey)
-                .filter { containsMatchIn(it.name) }
-                .groupByRepository()
+            refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey).filter { containsMatchIn(it.name) }
         }.also {
             log.trace("<= findBranchesByIssueKey({}): {}", issueKey, it)
         }
     }
 
-    override fun findCommitsByIssueKey(issueKey: String): Map<Repository, List<Commit>> {
+    override fun findCommitsByIssueKey(issueKey: String): List<Commit> {
         log.trace("=> findCommitsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
-            commitRepository.findByMessageContaining(issueKey)
-                .filter { containsMatchIn(it.message) }
-                .groupByRepository()
+            commitRepository.searchByMessageContaining(issueKey).filter { containsMatchIn(it.message) }
         }.also {
             log.trace("<= findCommitsByIssueKey({}): {}", issueKey, it)
         }
     }
 
-    override fun findPullRequestsByIssueKey(issueKey: String): Map<Repository, List<PullRequest>> {
+    override fun findPullRequestsByIssueKey(issueKey: String): List<PullRequest> {
         log.trace("=> findPullRequestsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
-            pullRequestRepository.findByTitleContainingOrDescriptionContaining(issueKey, issueKey)
+            pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
                 .filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
-                .groupByRepository()
         }.also {
             log.trace("<= findPullRequestsByIssueKey({}): {}", issueKey, it)
         }
@@ -174,30 +221,22 @@ class OpenSearchServiceImpl(
     override fun findByIssueKey(issueKey: String): SearchSummary {
         log.trace("=> findByIssueKey({})", issueKey)
         val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
-        val branchesCommits = refRepository.findByTypeAndNameContaining(RefType.BRANCH, issueKey).filter {
+        val branchesCommits = refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey).filter {
             issueKeyRegex.containsMatchIn(it.name)
         }.map {
-            //TODO: use commitRepository.findByRepositoryIdAndHash(it.repositoryId, it.hash).firstOrNull() instead?
-            commitRepository.findById((object : RepositoryLink(it.repositoryId) {}).id(it.hash)).getOrNull()
+            commitRepository.findById(it.commitId).getOrNull()
         }
-        val commits = commitRepository.findByMessageContaining(issueKey).filter {
+        val commits = commitRepository.searchByMessageContaining(issueKey).filter {
             issueKeyRegex.containsMatchIn(it.message)
         }
         val pullRequests =
-            pullRequestRepository.findByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
+            pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
                 issueKeyRegex.containsMatchIn(it.title) || issueKeyRegex.containsMatchIn(it.description)
             }
-        return SearchSummary(
-            SearchSummary.SearchBranchesSummary(
-                branchesCommits.size,
-                branchesCommits.filterNotNull().maxOfOrNull { it.date }
-            ),
-            SearchSummary.SearchCommitsSummary(
-                commits.size,
-                commits.maxOfOrNull { it.date }
-            ),
-            SearchSummary.SearchPullRequestsSummary(
-                pullRequests.size,
+        return SearchSummary(SearchSummary.SearchBranchesSummary(branchesCommits.size,
+            branchesCommits.filterNotNull().maxOfOrNull { it.date }),
+            SearchSummary.SearchCommitsSummary(commits.size, commits.maxOfOrNull { it.date }),
+            SearchSummary.SearchPullRequestsSummary(pullRequests.size,
                 pullRequests.maxOfOrNull { it.updatedAt },
                 with(pullRequests.map { it.status }.toSet()) {
                     if (size == 1) first() else null
@@ -205,16 +244,6 @@ class OpenSearchServiceImpl(
         ).also {
             log.trace("<= findByIssueKey({}): {}", issueKey, it)
         }
-    }
-
-    private fun <T : RepositoryLink> List<T>.groupByRepository() = groupBy {
-        it.repositoryId
-    }.mapKeys { (repositoryId, _) ->
-        repositoryRepository.findById(repositoryId)
-    }.filterKeys { repository ->
-        repository.isPresent
-    }.mapKeys { (repository, _) ->
-        repository.get()
     }
 
     companion object {

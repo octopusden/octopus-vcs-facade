@@ -43,8 +43,8 @@ class GiteaIndexerServiceImpl(
     @Scheduled(cron = "#{ @giteaIndexScanCron }")
     private fun rescan() = try {
         log.trace("Submitting {} repositories for rescan", GITEA)
-        val repositories = (giteaService.getRepositories().map { it.sshUrl.toRepository() } +
-                getOpenSearchService().getRepositories()).associateBy { it.id }.values
+        val repositories = getOpenSearchService().getRepositories(GITEA) +
+                giteaService.getRepositories().map { it.sshUrl.toRepository() }
         log.trace("Repositories collected for rescan: {}", repositories)
         repositories.forEach { submitRepositoryScan(it) }
         log.debug("Submitted {} {} repositories for rescan", repositories.size, GITEA)
@@ -96,8 +96,8 @@ class GiteaIndexerServiceImpl(
                 val openSearchService = getOpenSearchService()
                 if (giteaService.isRepositoryExist(repository.group, repository.name)) {
                     with(
-                        openSearchService.findRepositoryById(repository.id) ?:
-                        openSearchService.saveRepository(repository)
+                        openSearchService.findRepositoryById(repository.id)
+                            ?: openSearchService.saveRepository(repository)
                     ) {
                         log.debug("Update `{}` {} repository refs in index", fullName, GITEA)
                         val refs = giteaService.getBranches(group, name)

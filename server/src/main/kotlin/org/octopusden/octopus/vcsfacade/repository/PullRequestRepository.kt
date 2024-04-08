@@ -5,13 +5,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.repository.CrudRepository
 
 @ConditionalOnProperty(
-    prefix = "opensearch",
-    name = ["enabled"],
-    havingValue = "true",
-    matchIfMissing = true
+    prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 interface PullRequestRepository : CrudRepository<PullRequest, String> {
-    fun findByTitleContainingOrDescriptionContaining(titleToken: String, descriptionToken: String): List<PullRequest>
-    fun findByRepositoryId(repositoryId: String): List<PullRequest>
+    fun searchByTitleContainingOrDescriptionContaining(titleToken: String, descriptionToken: String): List<PullRequest>
+    fun searchFirst100ByRepositoryIdAndIndexAfterOrderByIndexAsc(repositoryId: String, index: Long): List<PullRequest>
     fun deleteByRepositoryId(repositoryId: String)
 }

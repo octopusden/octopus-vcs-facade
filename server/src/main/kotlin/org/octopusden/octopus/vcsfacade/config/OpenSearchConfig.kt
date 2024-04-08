@@ -15,10 +15,7 @@ class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
 
     @ConfigurationProperties("opensearch")
     @ConditionalOnProperty(
-        prefix = "opensearch",
-        name = ["enabled"],
-        havingValue = "true",
-        matchIfMissing = true
+        prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
     data class OpenSearchProperties(
         val host: String,
@@ -33,10 +30,7 @@ class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
 
     @Configuration
     @ConditionalOnProperty(
-        prefix = "opensearch",
-        name = ["enabled"],
-        havingValue = "true",
-        matchIfMissing = true
+        prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
     class OpenSearchClient(
         val openSearchProperties: OpenSearchProperties
@@ -49,8 +43,7 @@ class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
             }
             return RestClients.create(
                 clientConfigurationBuilder.withBasicAuth(
-                    openSearchProperties.username,
-                    openSearchProperties.password
+                    openSearchProperties.username, openSearchProperties.password
                 ).build()
             ).rest()
         }

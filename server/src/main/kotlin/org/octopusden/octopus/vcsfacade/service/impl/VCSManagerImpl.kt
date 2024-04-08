@@ -102,9 +102,13 @@ class VCSManagerImpl(
 
     override fun findBranches(issueKey: String): List<Branch> {
         log.trace("=> findBranches({})", issueKey)
-        val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.map { (repository, refs) ->
-            getVcsService(repository.type)?.let { vcsService ->
-                vcsService.findBranches(repository.group, repository.name, refs.map { ref -> ref.name }.toSet())
+        val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.groupBy {
+            openSearchService.findRepositoryById(it.repositoryId)
+        }?.map { (repository, refs) ->
+            repository?.let {
+                getVcsService(it.type)?.let { vcsService ->
+                    vcsService.findBranches(it.group, it.name, refs.map { ref -> ref.name }.toSet())
+                }
             } ?: emptyList()
         }?.flatten() ?: vcsServices.flatMap { it.findBranches(issueKey) }
         log.trace("<= findBranches({}): {}", issueKey, branches)
@@ -113,13 +117,13 @@ class VCSManagerImpl(
 
     override fun findCommits(issueKey: String): List<Commit> {
         log.trace("=> findCommits({})", issueKey)
-        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { (repository, commits) ->
-            getVcsService(repository.type)?.let { vcsService ->
-                vcsService.findCommits(
-                    repository.group,
-                    repository.name,
-                    commits.map { commit -> commit.hash }.toSet()
-                )
+        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.groupBy {
+            openSearchService.findRepositoryById(it.repositoryId)
+        }?.map { (repository, commits) ->
+            repository?.let {
+                getVcsService(it.type)?.let { vcsService ->
+                    vcsService.findCommits(it.group, it.name, commits.map { commit -> commit.hash }.toSet())
+                }
             } ?: emptyList()
         }?.flatten() ?: vcsServices.flatMap { it.findCommits(issueKey) }
         log.trace("<= findCommits({}): {}", issueKey, commits)
@@ -128,11 +132,15 @@ class VCSManagerImpl(
 
     override fun findPullRequests(issueKey: String): List<PullRequest> {
         log.trace("=> findPullRequests({})", issueKey)
-        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.map { (repository, pullRequests) ->
-            getVcsService(repository.type)?.let { vcsService ->
-                vcsService.findPullRequests(
-                    repository.group, repository.name, pullRequests.map { pullRequest -> pullRequest.index }.toSet()
-                )
+        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.groupBy {
+            openSearchService.findRepositoryById(it.repositoryId)
+        }?.map { (repository, pullRequests) ->
+            repository?.let {
+                getVcsService(it.type)?.let { vcsService ->
+                    vcsService.findPullRequests(
+                        it.group, it.name, pullRequests.map { pullRequest -> pullRequest.index }.toSet()
+                    )
+                }
             } ?: emptyList()
         }?.flatten() ?: vcsServices.flatMap { it.findPullRequests(issueKey) }
         log.trace("<= findPullRequests({}): {}", issueKey, pullRequests)
