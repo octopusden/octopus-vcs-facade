@@ -3,6 +3,7 @@ package org.octopusden.octopus.vcsfacade.service.impl
 import kotlin.jvm.optionals.getOrNull
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
+import org.octopusden.octopus.vcsfacade.document.BaseDocument
 import org.octopusden.octopus.vcsfacade.document.Commit
 import org.octopusden.octopus.vcsfacade.document.PullRequest
 import org.octopusden.octopus.vcsfacade.document.Ref
@@ -28,27 +29,11 @@ class OpenSearchServiceImpl(
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
 ) : OpenSearchService {
-    /* IMPORTANT: use raw `search_after` approach because:
-     * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API)
-     * - limitation of raw `search_after` (inconsistency because of concurrent operations) is suitable, consistency is complied by vcs services
-     * - better performance of raw `search_after` comparing with `search_after` with PIT or `scroll`
-     */
-
     override fun getRepositories(type: VcsServiceType): Set<Repository> {
         log.trace("=> getRepositories({})", type)
-        val repositories = mutableSetOf<Repository>()
-        var lastRepository: Repository? = null
-        do {
-            val repositoryBatch =
-                repositoryRepository.searchFirst100ByTypeAndGroupAfterAndNameAfterOrderByGroupAscNameAsc(
-                    type, lastRepository?.group ?: "", lastRepository?.name ?: ""
-                )
-            if (repositoryBatch.isEmpty()) break
-            repositories.addAll(repositoryBatch)
-            lastRepository = repositoryBatch.last()
-        } while (repositoryBatch.size == 100)
-        log.trace("<= getRepositories({}): {}", type, repositories)
-        return repositories
+        return fetchAll { repositoryRepository.searchFirst1000ByTypeAndIdAfterOrderByIdAsc(type, it) }.also {
+            log.trace("<= getRepositories({}): {}", type, it)
+        }
     }
 
     override fun findRepositoryById(repositoryId: String): Repository? {
@@ -73,35 +58,11 @@ class OpenSearchServiceImpl(
 
     override fun findRefsByRepositoryId(repositoryId: String): Set<Ref> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
-        val refs = mutableSetOf<Ref>()
-        var lastBranchHash = ""
-        do {
-            val branchBatch = refRepository.searchFirst100ByRepositoryIdAndTypeAndHashAfterOrderByHashAsc(
-                repositoryId, RefType.BRANCH, lastBranchHash
-            )
-            if (branchBatch.isEmpty()) break
-            refs.addAll(branchBatch)
-            if (lastBranchHash == branchBatch.last().hash) {
-                log.error("100 or over branches detected with hash $lastBranchHash for repositoryId $repositoryId")
-                break
-            }
-            lastBranchHash = branchBatch.last().hash
-        } while (branchBatch.size == 100)
-        var lastTagHash = ""
-        do {
-            val tagBatch = refRepository.searchFirst100ByRepositoryIdAndTypeAndHashAfterOrderByHashAsc(
-                repositoryId, RefType.TAG, lastTagHash
-            )
-            if (tagBatch.isEmpty()) break
-            refs.addAll(tagBatch)
-            if (lastTagHash == tagBatch.last().hash) {
-                log.error("100 or over tags detected with hash $lastTagHash for repositoryId $repositoryId")
-                break
-            }
-            lastTagHash = tagBatch.last().hash
-        } while (tagBatch.size == 100)
-        log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, refs)
-        return refs
+        return fetchAll { id ->
+            refRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
+        }.also {
+            log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it)
+        }
     }
 
     override fun saveRefs(refs: List<Ref>) {
@@ -124,18 +85,11 @@ class OpenSearchServiceImpl(
 
     override fun findCommitsByRepositoryId(repositoryId: String): Set<Commit> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
-        val commits = mutableSetOf<Commit>()
-        var lastCommitHash = ""
-        do {
-            val commitBatch = commitRepository.searchFirst100ByRepositoryIdAndHashAfterOrderByHashAsc(
-                repositoryId, lastCommitHash
-            )
-            if (commitBatch.isEmpty()) break
-            commits.addAll(commitBatch)
-            lastCommitHash = commitBatch.last().hash
-        } while (commitBatch.size == 100)
-        log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, commits)
-        return commits
+        return fetchAll { id ->
+            commitRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
+        }.also {
+            log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it)
+        }
     }
 
     override fun saveCommits(commits: List<Commit>) {
@@ -158,18 +112,11 @@ class OpenSearchServiceImpl(
 
     override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequest> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        val pullRequests = mutableSetOf<PullRequest>()
-        var lastPullRequestIndex = 0L
-        do {
-            val pullRequestBatch = pullRequestRepository.searchFirst100ByRepositoryIdAndIndexAfterOrderByIndexAsc(
-                repositoryId, lastPullRequestIndex
-            )
-            if (pullRequestBatch.isEmpty()) break
-            pullRequests.addAll(pullRequestBatch)
-            lastPullRequestIndex = pullRequestBatch.last().index
-        } while (pullRequestBatch.size == 100)
-        log.trace("<= findPullRequestsByRepositoryId({}): {}", repositoryId, pullRequests)
-        return pullRequests
+        return fetchAll { id ->
+            pullRequestRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
+        }.also {
+            log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it)
+        }
     }
 
     override fun savePullRequests(pullRequests: List<PullRequest>) {
@@ -233,7 +180,8 @@ class OpenSearchServiceImpl(
             pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
                 issueKeyRegex.containsMatchIn(it.title) || issueKeyRegex.containsMatchIn(it.description)
             }
-        return SearchSummary(SearchSummary.SearchBranchesSummary(branchesCommits.size,
+        return SearchSummary(SearchSummary.SearchBranchesSummary(
+            branchesCommits.size,
             branchesCommits.filterNotNull().maxOfOrNull { it.date }),
             SearchSummary.SearchCommitsSummary(commits.size, commits.maxOfOrNull { it.date }),
             SearchSummary.SearchPullRequestsSummary(pullRequests.size,
@@ -248,5 +196,22 @@ class OpenSearchServiceImpl(
 
     companion object {
         private val log = LoggerFactory.getLogger(OpenSearchServiceImpl::class.java)
+
+        /* IMPORTANT: use raw `search_after` approach because:
+         * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API)
+         * - limitation of raw `search_after` (inconsistency because of concurrent operations) is suitable, consistency is complied by vcs services
+         * - better performance of raw `search_after` comparing with `search_after` with PIT or `scroll`
+         */
+        private fun <T : BaseDocument> fetchAll(fetch1000AfterId: (id: String) -> List<T>): Set<T> {
+            val documents = mutableSetOf<T>()
+            var lastId = ""
+            do {
+                val batch = fetch1000AfterId.invoke(lastId)
+                if (batch.isEmpty()) break
+                documents.addAll(batch)
+                lastId = batch.last().id
+            } while (batch.size == 1000)
+            return documents
+        }
     }
 }

@@ -18,6 +18,6 @@ class Repository(
     @Field(type = FieldType.Keyword) val group: String,
     @Field(type = FieldType.Keyword) val name: String,
     @Field(type = FieldType.Date) var lastScanAt: Date? = null
-) : Base(id(type, group, name)) {
+) : BaseDocument(id(type, group, name)) {
     override fun toString() = "Repository(id=$id, type=$type, group=$group, name=$name, lastScanAt=$lastScanAt)"
 }

@@ -10,9 +10,6 @@ import org.springframework.data.repository.CrudRepository
 )
 interface RefRepository : CrudRepository<Ref, String> {
     fun searchByTypeAndNameContaining(type: RefType, nameToken: String): List<Ref>
-    fun searchFirst100ByRepositoryIdAndTypeAndHashAfterOrderByHashAsc(
-        repositoryId: String, type: RefType, hash: String
-    ): List<Ref>
-
+    fun searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId: String, id: String): List<Ref>
     fun deleteByRepositoryId(repositoryId: String)
 }

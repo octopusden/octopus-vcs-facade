@@ -17,7 +17,7 @@ class Ref(
     @Field(type = FieldType.Keyword) val type: RefType,
     @Field(type = FieldType.Text, analyzer = "classic") val name: String,
     @Field(type = FieldType.Keyword) val hash: String
-) : RepositoryLink(id(repositoryId, type, name), repositoryId) {
+) : BaseRepositoryDocument(id(repositoryId, type, name), repositoryId) {
     val commitId = id(repositoryId, hash)
 
     override fun toString() = "Ref(id=$id, repositoryId=$repositoryId, type=$type, name=$name, hash=$hash)"

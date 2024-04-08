@@ -9,6 +9,6 @@ import org.springframework.data.repository.CrudRepository
 )
 interface CommitRepository : CrudRepository<Commit, String> {
     fun searchByMessageContaining(messageToken: String): List<Commit>
-    fun searchFirst100ByRepositoryIdAndHashAfterOrderByHashAsc(repositoryId: String, hash: String): List<Commit>
+    fun searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId: String, id: String): List<Commit>
     fun deleteByRepositoryId(repositoryId: String)
 }

@@ -17,6 +17,6 @@ class Commit(
     @Field(type = FieldType.Keyword) val hash: String,
     @Field(type = FieldType.Text, analyzer = "classic") val message: String,
     @Field(type = FieldType.Date) val date: Date
-) : RepositoryLink(id(repositoryId, hash), repositoryId) {
+) : BaseRepositoryDocument(id(repositoryId, hash), repositoryId) {
     override fun toString() = "Commit(id=$id, repositoryId=$repositoryId, hash=$hash, message=$message, date=$date)"
 }

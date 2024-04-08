@@ -20,7 +20,7 @@ class PullRequest(
     @Field(type = FieldType.Text, analyzer = "classic") val description: String,
     @Field(type = FieldType.Keyword) val status: PullRequestStatus,
     @Field(type = FieldType.Date) val updatedAt: Date
-) : RepositoryLink(id(repositoryId, index), repositoryId) {
+) : BaseRepositoryDocument(id(repositoryId, index), repositoryId) {
     override fun toString() =
         "PullRequest(id=$id, repositoryId=$repositoryId, index=$index, title=$title, description=$description, status=$status, updatedAt=$updatedAt)"
 }

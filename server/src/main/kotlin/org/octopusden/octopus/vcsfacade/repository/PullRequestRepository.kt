@@ -9,6 +9,6 @@ import org.springframework.data.repository.CrudRepository
 )
 interface PullRequestRepository : CrudRepository<PullRequest, String> {
     fun searchByTitleContainingOrDescriptionContaining(titleToken: String, descriptionToken: String): List<PullRequest>
-    fun searchFirst100ByRepositoryIdAndIndexAfterOrderByIndexAsc(repositoryId: String, index: Long): List<PullRequest>
+    fun searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId: String, id: String): List<PullRequest>
     fun deleteByRepositoryId(repositoryId: String)
 }

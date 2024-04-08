@@ -3,7 +3,7 @@ package org.octopusden.octopus.vcsfacade.document
 import org.springframework.data.elasticsearch.annotations.Field
 import org.springframework.data.elasticsearch.annotations.FieldType
 
-abstract class RepositoryLink(
+abstract class BaseRepositoryDocument(
     id: String,
     /*TODO: use nested objects instead of application-side foreign keys in case of:
     * - lack of performance
@@ -11,4 +11,4 @@ abstract class RepositoryLink(
     */
     @Field(type = FieldType.Text)
     val repositoryId: String
-) : Base(id)
+) : BaseDocument(id)
