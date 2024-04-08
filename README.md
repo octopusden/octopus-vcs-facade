@@ -6,12 +6,12 @@
 
 ## Project properties
 
-| Name                           | Description                                                        | Mandatory |
-|--------------------------------|--------------------------------------------------------------------|-----------|
-| test.profile                   | Test profile. Possible values are: `bitbucket`, `gitea`, `gitlab`. | **+**     |
-| docker.registry                | Docker registry where 3rd-party base images will be pulled from.   | **+**     |
-| octopus.github.docker.registry | Docker registry with octopus images.                               | **+**     |
-| bitbucket.license              | BitBucket DEV licence. Required if test.profile = `bitbucket`.     |           |
+| Name                           | Description                                                                  | Mandatory |
+|--------------------------------|------------------------------------------------------------------------------|-----------|
+| test.profile                   | Test profile. Possible values are: `bitbucket`, `gitea` (default), `gitlab`. |           |
+| docker.registry                | Docker registry where 3rd-party base images will be pulled from.             | **+**     |
+| octopus.github.docker.registry | Docker registry with octopus images.                                         | **+**     |
+| bitbucket.license              | BitBucket DEV licence. Required if test.profile is `bitbucket`.              |           |
 
 ## Features / limitations
 

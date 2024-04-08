@@ -78,7 +78,7 @@ subprojects {
     ext {
         System.getenv().let {
             set("signingRequired", it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword"))
-            set("testProfile", it.getOrDefault("TEST_PROFILE", project.properties["test.profile"] ?: "gitea"))
+            set("testProfile", it.getOrDefault("TEST_PROFILE", project.properties["test.profile"]))
             set("dockerRegistry", it.getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]))
             set("octopusGithubDockerRegistry", it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
             set("bitbucketLicense", it.getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]))
