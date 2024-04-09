@@ -1,6 +1,7 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import kotlin.jvm.optionals.getOrNull
+import kotlin.math.min
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.document.BaseDocument
@@ -67,13 +68,13 @@ class OpenSearchServiceImpl(
 
     override fun saveRefs(refs: List<Ref>) {
         log.trace("=> saveRef({})", refs)
-        refRepository.saveAll(refs)
+        saveAll(refs) { batch -> refRepository.saveAll(batch) }
         log.trace("<= saveRef({})", refs)
     }
 
     override fun deleteRefsByIds(refsIds: List<String>) {
         log.trace("=> deleteRefsByIds({})", refsIds)
-        refRepository.deleteAllById(refsIds)
+        deleteAll(refsIds) { batch -> refRepository.deleteAllById(batch) }
         log.trace("<= deleteRefsByIds({})", refsIds)
     }
 
@@ -94,13 +95,13 @@ class OpenSearchServiceImpl(
 
     override fun saveCommits(commits: List<Commit>) {
         log.trace("=> saveCommits({})", commits)
-        commitRepository.saveAll(commits)
+        saveAll(commits) { batch -> commitRepository.saveAll(batch) }
         log.trace("<= saveCommits({})", commits)
     }
 
     override fun deleteCommitsByIds(commitsIds: List<String>) {
         log.trace("=> deleteCommitsByIds({})", commitsIds)
-        commitRepository.deleteAllById(commitsIds)
+        deleteAll(commitsIds) { batch -> commitRepository.deleteAllById(batch) }
         log.trace("<= deleteCommitsByIds({})", commitsIds)
     }
 
@@ -121,13 +122,13 @@ class OpenSearchServiceImpl(
 
     override fun savePullRequests(pullRequests: List<PullRequest>) {
         log.trace("=> savePullRequests({})", pullRequests)
-        pullRequestRepository.saveAll(pullRequests)
+        saveAll(pullRequests) { batch -> pullRequestRepository.saveAll(batch) }
         log.trace("<= savePullRequests({})", pullRequests)
     }
 
     override fun deletePullRequestsByIds(pullRequestsIds: List<String>) {
         log.trace("=> deletePullRequestsByIds({})", pullRequestsIds)
-        pullRequestRepository.deleteAllById(pullRequestsIds)
+        deleteAll(pullRequestsIds) { batch -> pullRequestRepository.deleteAllById(batch) }
         log.trace("<= deletePullRequestsByIds({})", pullRequestsIds)
     }
 
@@ -197,21 +198,41 @@ class OpenSearchServiceImpl(
     companion object {
         private val log = LoggerFactory.getLogger(OpenSearchServiceImpl::class.java)
 
+        private const val BATCH_SIZE = 1000 //must be equal to search limit in repositories
+
         /* IMPORTANT: use raw `search_after` approach because:
          * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API)
          * - limitation of raw `search_after` (inconsistency because of concurrent operations) is suitable, consistency is complied by vcs services
          * - better performance of raw `search_after` comparing with `search_after` with PIT or `scroll`
          */
-        private fun <T : BaseDocument> fetchAll(fetch1000AfterId: (id: String) -> List<T>): Set<T> {
+        private fun <T : BaseDocument> fetchAll(fetchBatchAfterId: (id: String) -> List<T>): Set<T> {
             val documents = mutableSetOf<T>()
             var lastId = ""
             do {
-                val batch = fetch1000AfterId.invoke(lastId)
+                val batch = fetchBatchAfterId.invoke(lastId)
                 if (batch.isEmpty()) break
                 documents.addAll(batch)
                 lastId = batch.last().id
-            } while (batch.size == 1000)
+            } while (batch.size == BATCH_SIZE)
             return documents
+        }
+
+        private fun <T : BaseDocument> saveAll(documents: List<T>, saveBatch: (batch: List<T>) -> Unit) {
+            if (documents.isNotEmpty()) {
+                var page = 0
+                do {
+                    saveBatch.invoke(documents.subList(page * BATCH_SIZE, min(++page * BATCH_SIZE, documents.size)))
+                } while (page * BATCH_SIZE < documents.size)
+            }
+        }
+
+        private fun deleteAll(ids: List<String>, deleteBatch: (batch: List<String>) -> Unit) {
+            if (ids.isNotEmpty()) {
+                var page = 0
+                do {
+                    deleteBatch.invoke(ids.subList(page * BATCH_SIZE, min(++page * BATCH_SIZE, ids.size)))
+                } while (page * BATCH_SIZE < ids.size)
+            }
         }
     }
 }
