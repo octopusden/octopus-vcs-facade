@@ -4,7 +4,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.task.AsyncTaskExecutor
 
 @Configuration
 class VCSConfig(val giteaProperties: GiteaProperties?) {
@@ -57,7 +56,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     data class GiteaIndexProperties(val webhookSecret: String?, val scan: GiteaIndexScanProperties?)
 
-    data class GiteaIndexScanProperties(val cron: String, val executor: ExecutorProperties?)
+    data class GiteaIndexScanProperties(val cron: String?, val reindexCron: String?, val executor: ExecutorProperties?)
 
     abstract class VCSProperties(
         val host: String, val token: String?, val username: String?, val password: String?, val healthCheck: HealthCheck
@@ -70,10 +69,13 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
     @Bean //dedicated bean to simplify SpEL expression
     fun giteaIndexScanCron() = giteaProperties?.index?.scan?.cron ?: "-"
 
+    @Bean //dedicated bean to simplify SpEL expression
+    fun giteaIndexScanReindexCron() = giteaProperties?.index?.scan?.reindexCron ?: "-"
+
     @Bean
-    fun giteaIndexScanExecutor(): AsyncTaskExecutor? {
-        return giteaProperties?.index?.scan?.let {
-            (it.executor ?: ExecutorProperties()).buildThreadPoolTaskExecutor()
-        }
-    }
+    @ConditionalOnProperty(
+        prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    )
+    fun giteaIndexScanExecutor() =
+        (giteaProperties?.index?.scan?.executor ?: ExecutorProperties()).buildThreadPoolTaskExecutor()
 }

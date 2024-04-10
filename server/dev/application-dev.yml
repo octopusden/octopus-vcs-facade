@@ -21,6 +21,12 @@ vcs-facade:
       index:
         scan:
           cron: "-"
+          reindex-cron: "-"
+          executor:
+            core-pool-size: 1
+            max-pool-size: 1
+            queue-capacity: 10
+            pre-start-all-core-threads: true
     gitlab:
       enabled: # envFile property
       host: # envFile property
