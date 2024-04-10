@@ -16,9 +16,7 @@ abstract class BaseDocument(
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
+    override fun hashCode() = id.hashCode()
 
     companion object {
         fun id(vararg fields: Any) = fields.joinToString("-") { it.toString() }.lowercase().replace('/', '-')

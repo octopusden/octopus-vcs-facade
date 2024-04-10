@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.util.Date
+import java.util.Objects
 import java.util.UUID
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
@@ -211,15 +212,7 @@ class RepositoryControllerOld(
                 return true
             }
 
-            override fun hashCode(): Int {
-                var result = id.hashCode()
-                result = 31 * result + message.hashCode()
-                result = 31 * result + date.hashCode()
-                result = 31 * result + author.hashCode()
-                result = 31 * result + parents.hashCode()
-                result = 31 * result + vcsUrl.hashCode()
-                return result
-            }
+            override fun hashCode() = Objects.hash(id, message, date, author, parents, vcsUrl)
 
             override fun toString(): String {
                 return "CommitOld(id='$id', message='$message', date=$date, author='$author', parents=$parents, vcsUrl='$vcsUrl')"

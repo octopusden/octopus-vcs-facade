@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.client.common.dto
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import java.util.Objects
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -31,12 +32,5 @@ abstract class Ref(
         return true
     }
 
-    override fun hashCode(): Int {
-        var result = type.hashCode()
-        result = 31 * result + name.hashCode()
-        result = 31 * result + commitId.hashCode()
-        result = 31 * result + link.hashCode()
-        result = 31 * result + repository.hashCode()
-        return result
-    }
+    override fun hashCode() = Objects.hash(type, name, commitId, link, repository)
 }
