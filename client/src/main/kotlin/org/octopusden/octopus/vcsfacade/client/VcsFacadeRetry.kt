@@ -22,7 +22,9 @@ class VcsFacadeRetry(private val timeRetryInMillis: Int = 60000) : Retryer {
             if (stopTime < System.currentTimeMillis()) {
                 throw e.cause!!
             }
-            log.debug("Retry: iteration={}, attempt={}", numberIterations - iteration + 1, numberAttempts - attempt + 1)
+            if (log.isDebugEnabled) {
+                log.debug("Retry: iteration=${numberIterations - iteration + 1}, attempt=${numberAttempts - attempt + 1}")
+            }
             if (attempt-- > 0) {
                 TimeUnit.MILLISECONDS.sleep(timeDelayAttempt.toLong())
             } else if (iteration-- > 0) {
