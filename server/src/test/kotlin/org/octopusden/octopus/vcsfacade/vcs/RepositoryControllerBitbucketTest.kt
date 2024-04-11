@@ -1,13 +1,11 @@
 package org.octopusden.octopus.vcsfacade.vcs
 
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.octopusden.octopus.infastructure.bitbucket.test.BitbucketTestClient
-import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.junit.jupiter.EnabledIf
 
 private const val VCS_HOST = "localhost:7990"
 
-@EnabledIfSystemProperty(named = "test.profile", matches = "bitbucket")
-@ActiveProfiles("ut", "bitbucket")
+@EnabledIf("#{environment.getActiveProfiles().$[#this == 'bitbucket'] == 'bitbucket'}", loadContext = true)
 class RepositoryControllerBitbucketTest : BaseRepositoryControllerTest(
     BitbucketTestClient("http://$VCS_HOST", BITBUCKET_USER, BITBUCKET_PASSWORD),
     "ssh://git@$VCS_HOST/%s/%s.git"

@@ -1,15 +1,13 @@
 package org.octopusden.octopus.vcsfacade.vcs
 
+import java.util.stream.Stream
 import org.junit.jupiter.params.provider.Arguments
 import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
-import java.util.stream.Stream
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty
-import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.junit.jupiter.EnabledIf
 
 private const val VCS_HOST = "localhost:3000"
 
-@EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
-@ActiveProfiles("ut", "gitea")
+@EnabledIf("#{environment.getActiveProfiles().$[#this == 'gitea'] == 'gitea'}", loadContext = true)
 class RepositoryControllerGiteaTest : BaseRepositoryControllerTest(
     GiteaTestClient("http://$VCS_HOST", GITEA_USER, GITEA_PASSWORD),
     "ssh://git@$VCS_HOST/%s/%s.git"

@@ -1,15 +1,13 @@
 package org.octopusden.octopus.vcsfacade.vcs
 
+import java.util.stream.Stream
 import org.junit.jupiter.params.provider.Arguments
 import org.octopusden.octopus.infrastructure.gitlab.test.GitlabTestClient
-import java.util.stream.Stream
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty
-import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.junit.jupiter.EnabledIf
 
 private const val VCS_HOST = "localhost:8990"
 
-@EnabledIfSystemProperty(named = "test.profile", matches = "gitlab")
-@ActiveProfiles("ut", "gitlab")
+@EnabledIf("#{environment.getActiveProfiles().$[#this == 'gitlab'] == 'gitlab'}", loadContext = true)
 class RepositoryControllerGitlabTest : BaseRepositoryControllerTest(
     GitlabTestClient("http://$VCS_HOST", GITLAB_USER, GITLAB_PASSWORD),
     "ssh://git@$VCS_HOST:%s/%s.git"

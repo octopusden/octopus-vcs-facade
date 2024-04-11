@@ -90,7 +90,7 @@ docker {
 
 tasks.withType<Test> {
     dependsOn("composeUp")
-    systemProperties["test.profile"] = "testProfile".getExt()
+    systemProperties["spring.profiles.active"] = "ut,${"testProfile".getExt()}"
 }
 
 dockerCompose.isRequiredBy(tasks["test"])
