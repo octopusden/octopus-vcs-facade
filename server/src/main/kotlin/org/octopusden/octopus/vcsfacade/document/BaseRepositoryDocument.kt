@@ -9,6 +9,6 @@ abstract class BaseRepositoryDocument(
     * - lack of performance
     * - necessity of complicated queries involving repository
     */
-    @Field(type = FieldType.Text)
+    @Field(type = FieldType.Keyword)
     val repositoryId: String
 ) : BaseDocument(id)

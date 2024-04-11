@@ -109,23 +109,22 @@ class GiteaIndexerServiceImpl(
                     val orphanedRefsIds = refs.toSet().let { refsSet ->
                         indexRefs.mapNotNull { if (refsSet.contains(it)) null else it.id }
                     }
-                    log.debug(
-                        "Remove {} orphaned ref(s) from index for `{}` {} repository",
-                        orphanedRefsIds.size,
-                        fullName,
-                        GITEA
+                    logRepositoryScanMessage(
+                        "Remove ${orphanedRefsIds.size} ref(s) from index for `$fullName` $GITEA repository",
+                        orphanedRefsIds
                     )
                     openSearchService.deleteRefsByIds(orphanedRefsIds)
                     if (reindex) {
-                        log.debug("Update {} ref(s) in index for `{}` {} repository ", refs.size, fullName, GITEA)
+                        logRepositoryScanMessage(
+                            "Update ${refs.size} ref(s) in index for `$fullName` $GITEA repository ",
+                            refs
+                        )
                         openSearchService.saveRefs(refs)
                     } else {
                         val missingRefs = refs.filter { !indexRefs.contains(it) }
-                        log.debug(
-                            "Register {} missing ref(s) in index for `{}` {} repository ",
-                            missingRefs.size,
-                            fullName,
-                            GITEA
+                        logRepositoryScanMessage(
+                            "Register ${missingRefs.size} ref(s) in index for `$fullName` $GITEA repository ",
+                            missingRefs
                         )
                         openSearchService.saveRefs(missingRefs)
                     }
@@ -134,25 +133,22 @@ class GiteaIndexerServiceImpl(
                     val orphanedCommitsIds = commits.toSet().let { commitsSet ->
                         indexCommits.mapNotNull { if (commitsSet.contains(it)) null else it.id }
                     }
-                    log.debug(
-                        "Remove {} orphaned commit(s) from index for `{}` {} repository",
-                        orphanedCommitsIds.size,
-                        fullName,
-                        GITEA
+                    logRepositoryScanMessage(
+                        "Remove ${orphanedCommitsIds.size} commit(s) from index for `$fullName` $GITEA repository",
+                        orphanedCommitsIds
                     )
                     openSearchService.deleteCommitsByIds(orphanedCommitsIds)
                     if (reindex) {
-                        log.debug(
-                            "Update {} commit(s) in index for `{}` {} repository ", commits.size, fullName, GITEA
+                        logRepositoryScanMessage(
+                            "Update ${commits.size} commits(s) in index for `$fullName` $GITEA repository ",
+                            commits
                         )
                         openSearchService.saveCommits(commits)
                     } else {
                         val missingCommits = commits.filter { !indexCommits.contains(it) }
-                        log.debug(
-                            "Register {} missing commit(s) in index for `{}` {} repository ",
-                            missingCommits.size,
-                            fullName,
-                            GITEA
+                        logRepositoryScanMessage(
+                            "Register ${missingCommits.size} commit(s) in index for `$fullName` $GITEA repository ",
+                            missingCommits
                         )
                         openSearchService.saveCommits(missingCommits)
                     }
@@ -165,28 +161,22 @@ class GiteaIndexerServiceImpl(
                     val orphanedPullRequestsIds = pullRequests.toSet().let { pullRequestsSet ->
                         indexPullRequests.mapNotNull { if (pullRequestsSet.contains(it)) null else it.id }
                     }
-                    log.debug(
-                        "Remove {} orphaned pull request(s) from index for `{}` {} repository",
-                        orphanedPullRequestsIds.size,
-                        fullName,
-                        GITEA
+                    logRepositoryScanMessage(
+                        "Remove ${orphanedPullRequestsIds.size} pull request(s) from index for `$fullName` $GITEA repository",
+                        orphanedPullRequestsIds
                     )
                     openSearchService.deletePullRequestsByIds(orphanedPullRequestsIds)
                     if (reindex) {
-                        log.debug(
-                            "Update {} pull request(s) in index for `{}` {} repository ",
-                            pullRequests.size,
-                            fullName,
-                            GITEA
+                        logRepositoryScanMessage(
+                            "Update ${pullRequests.size} pull request(s) in index for `$fullName` $GITEA repository ",
+                            pullRequests
                         )
                         openSearchService.savePullRequests(pullRequests)
                     } else {
                         val missingPullRequests = pullRequests.filter { !indexPullRequests.contains(it) }
-                        log.debug(
-                            "Register {} missing pull request(s) in index for `{}` {} repository ",
-                            missingPullRequests.size,
-                            fullName,
-                            GITEA
+                        logRepositoryScanMessage(
+                            "Register ${missingPullRequests.size} pull request(s) in index for `$fullName` $GITEA repository ",
+                            missingPullRequests
                         )
                         openSearchService.savePullRequests(missingPullRequests)
                     }
@@ -265,5 +255,13 @@ class GiteaIndexerServiceImpl(
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaIndexerServiceImpl::class.java)
+
+        private fun logRepositoryScanMessage(message: String, documents: Collection<Any>) {
+            if (log.isTraceEnabled) {
+                log.trace("$message: $documents")
+            } else if (log.isDebugEnabled) {
+                log.debug(message)
+            }
+        }
     }
 }
