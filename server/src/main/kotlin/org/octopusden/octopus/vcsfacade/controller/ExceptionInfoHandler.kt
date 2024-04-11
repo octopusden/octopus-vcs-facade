@@ -5,7 +5,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.RetryResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeErrorCode
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
-import org.octopusden.octopus.vcsfacade.exception.IndexerDisabledException
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
 import org.slf4j.Logger
@@ -44,11 +43,6 @@ class ExceptionInfoHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ResponseBody
     fun handleInvalidSignature(exception: InvalidSignatureException) = handleError(VcsFacadeErrorCode.OTHER, exception)
-
-    @ExceptionHandler(IndexerDisabledException::class)
-    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-    @ResponseBody
-    fun handleIndexationDisabled(exception: IndexerDisabledException) = handleError(VcsFacadeErrorCode.OTHER, exception)
 
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -11,7 +11,7 @@ import org.springframework.data.elasticsearch.annotations.Setting
 @Document(indexName = "#{ 'vcs-facade-repositories-' + @opensearchIndexSuffix }")
 @Setting(settingPath = "opensearch-index-settings.json")
 @ConditionalOnProperty(
-    prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class Repository(
     @Field(type = FieldType.Keyword) val type: VcsServiceType,

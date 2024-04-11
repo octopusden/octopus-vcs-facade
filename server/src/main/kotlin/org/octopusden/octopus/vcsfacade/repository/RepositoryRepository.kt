@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.repository.CrudRepository
 
 @ConditionalOnProperty(
-    prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 interface RepositoryRepository : CrudRepository<Repository, String> {
     fun searchFirst1000ByTypeAndIdAfterOrderByIdAsc(type: VcsServiceType, id: String): List<Repository>

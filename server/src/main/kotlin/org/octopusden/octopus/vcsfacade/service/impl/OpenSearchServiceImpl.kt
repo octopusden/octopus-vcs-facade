@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service
 
 @Service
 @ConditionalOnProperty(
-    prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class OpenSearchServiceImpl(
     private val repositoryRepository: RepositoryRepository,

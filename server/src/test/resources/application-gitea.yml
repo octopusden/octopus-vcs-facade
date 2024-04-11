@@ -13,11 +13,10 @@ vcs-facade:
         expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
     gitlab:
       enabled: false
-
-opensearch:
-  host: localhost:9200
-  ssl: false
-  username: admin
-  password: admin
-  index:
-    suffix: ut
+  opensearch:
+    host: localhost:9200
+    ssl: false
+    username: admin
+    password: admin
+    index:
+      suffix: ut

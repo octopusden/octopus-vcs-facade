@@ -13,9 +13,9 @@ import org.springframework.context.annotation.Configuration
 class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
     data class OpenSearchIndexProperties(val suffix: String)
 
-    @ConfigurationProperties("opensearch")
+    @ConfigurationProperties("vcs-facade.opensearch")
     @ConditionalOnProperty(
-        prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+        prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
     data class OpenSearchProperties(
         val host: String,
@@ -30,7 +30,7 @@ class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
 
     @Configuration
     @ConditionalOnProperty(
-        prefix = "opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+        prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
     class OpenSearchClient(
         val openSearchProperties: OpenSearchProperties

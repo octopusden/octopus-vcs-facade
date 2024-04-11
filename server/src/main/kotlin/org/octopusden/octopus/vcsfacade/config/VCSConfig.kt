@@ -74,7 +74,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     @Bean
     @ConditionalOnProperty(
-        prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
+        prefix = "vcs-facade", name = ["vcs.gitea.enabled", "opensearch.enabled"], havingValue = "true", matchIfMissing = true
     )
     fun giteaIndexScanExecutor() =
         (giteaProperties?.index?.scan?.executor ?: ExecutorProperties()).buildThreadPoolTaskExecutor()

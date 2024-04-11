@@ -13,6 +13,5 @@ vcs-facade:
       enabled: false
     gitlab:
       enabled: false
-
-opensearch:
-  enabled: false
+  opensearch:
+    enabled: false

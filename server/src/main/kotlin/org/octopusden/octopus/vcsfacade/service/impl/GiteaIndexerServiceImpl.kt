@@ -13,7 +13,6 @@ import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 import org.octopusden.octopus.vcsfacade.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType.GITEA
-import org.octopusden.octopus.vcsfacade.exception.IndexerDisabledException
 import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.getPullRequestStatus
@@ -30,15 +29,13 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Ref as RepositoryRef
 
 @Service
 @ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade", name = ["vcs.gitea.enabled", "opensearch.enabled"], havingValue = "true", matchIfMissing = true
 )
 class GiteaIndexerServiceImpl(
     private val giteaService: GiteaService,
-    private val openSearchService: OpenSearchService?,
+    private val openSearchService: OpenSearchService,
     @Qualifier("giteaIndexScanExecutor") private val giteaIndexScanExecutor: AsyncTaskExecutor
 ) : GiteaIndexerService {
-    private fun getOpenSearchService() = openSearchService
-        ?: throw IndexerDisabledException("VCS indexation is disabled (opensearch integration is not configured)")
 
     @Scheduled(cron = "#{ @giteaIndexScanCron }")
     private fun scan() = submitRepositoriesScan(false)
@@ -48,25 +45,25 @@ class GiteaIndexerServiceImpl(
 
     override fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent) {
         log.trace("=> registerGiteaCreateRefEvent({})", giteaCreateRefEvent)
-        getOpenSearchService().saveRefs(listOf(giteaCreateRefEvent.toDocument()))
+        openSearchService.saveRefs(listOf(giteaCreateRefEvent.toDocument()))
         log.trace("<= registerGiteaCreateRefEvent({})", giteaCreateRefEvent)
     }
 
     override fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent) {
         log.trace("=> registerGiteaDeleteRefEvent({})", giteaDeleteRefEvent)
-        getOpenSearchService().deleteRefsByIds(listOf(giteaDeleteRefEvent.toDocumentId()))
+        openSearchService.deleteRefsByIds(listOf(giteaDeleteRefEvent.toDocumentId()))
         log.trace("<= registerGiteaDeleteRefEvent({})", giteaDeleteRefEvent)
     }
 
     override fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent) {
         log.trace("=> registerGiteaPushEvent({})", giteaPushEvent)
-        getOpenSearchService().saveCommits(giteaPushEvent.toDocuments())
+        openSearchService.saveCommits(giteaPushEvent.toDocuments())
         log.trace("<= registerGiteaPushEvent({})", giteaPushEvent)
     }
 
     override fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent) {
         log.trace("=> registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
-        getOpenSearchService().savePullRequests(listOf(giteaPullRequestEvent.toDocument()))
+        openSearchService.savePullRequests(listOf(giteaPullRequestEvent.toDocument()))
         log.trace("<= registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
     }
 
@@ -78,14 +75,14 @@ class GiteaIndexerServiceImpl(
 
     override fun getIndexReport(): IndexReport {
         log.trace("=> getIndexReport()")
-        return IndexReport(getOpenSearchService().getRepositories(GITEA).map { it.toIndexReportRepository() }).also {
+        return IndexReport(openSearchService.getRepositories(GITEA).map { it.toIndexReportRepository() }).also {
             log.trace("=> getIndexReport(): {}", it)
         }
     }
 
     private fun submitRepositoriesScan(reindex: Boolean) = try {
         log.trace("Submitting {} repositories for {}scan", GITEA, if (reindex) "reindexing " else "")
-        val repositories = getOpenSearchService().getRepositories(GITEA) + giteaService.getRepositories()
+        val repositories = openSearchService.getRepositories(GITEA) + giteaService.getRepositories()
             .map { it.sshUrl.toRepository() }
         log.trace("Repositories collected for {}scan: {}", if (reindex) "reindexing " else "", repositories)
         repositories.forEach { submitRepositoryScan(it, reindex) }
@@ -98,7 +95,7 @@ class GiteaIndexerServiceImpl(
 
     private fun submitRepositoryScan(repository: Repository, reindex: Boolean) = giteaIndexScanExecutor.submit {
         try {
-            val openSearchService = getOpenSearchService()
+            val openSearchService = openSearchService
             if (giteaService.isRepositoryExist(repository.group, repository.name)) {
                 with(
                     openSearchService.findRepositoryById(repository.id) ?: openSearchService.saveRepository(repository)
@@ -200,7 +197,7 @@ class GiteaIndexerServiceImpl(
     }
 
     private fun registerGiteaRepository(giteaRepository: GiteaRepository): Repository {
-        val openSearchService = getOpenSearchService()
+        val openSearchService = openSearchService
         val repository = giteaRepository.toDocument()
         return openSearchService.findRepositoryById(repository.id) ?: openSearchService.saveRepository(repository)
     }

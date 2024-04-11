@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("rest/api/1/indexer/gitea")
 @ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade", name = ["vcs.gitea.enabled", "opensearch.enabled"], havingValue = "true", matchIfMissing = true
 )
 class GiteaIndexerController(
     giteaProperties: VCSConfig.GiteaProperties,
