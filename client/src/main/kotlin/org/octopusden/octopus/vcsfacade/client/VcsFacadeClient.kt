@@ -1,53 +1,58 @@
 package org.octopusden.octopus.vcsfacade.client
 
-import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import feign.Headers
 import feign.Param
 import feign.RequestLine
-import java.util.*
+import java.util.Date
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
+import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
 interface VcsFacadeClient {
-
-    @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET repository/commits?vcsPath={vcsPath}&from={from}&fromDate={fromDate}&to={to}")
+    @RequestLine("GET rest/api/1/repository/commits?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")
     fun getCommits(
-        @Param("vcsPath") vcsPath: String,
+        @Param("sshUrl") sshUrl: String,
         @Param("from") fromId: String?,
         @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
         @Param("to") toId: String
     ): List<Commit>
 
-    @RequestLine("GET repository/issues/{issueKey}")
-    fun getCommits(@Param("issueKey") issueKey: String): List<Commit>
+    @RequestLine("GET rest/api/1/repository/commit?sshUrl={sshUrl}&commitId={commitId}")
+    fun getCommit(@Param("sshUrl") sshUrl: String, @Param("commitId") commitId: String): Commit
 
-    @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET repository/commit?vcsPath={vcsPath}&commitId={cid}")
-    fun getCommit(@Param("vcsPath") vcsPath: String, @Param("cid") cid: String): Commit
-
-    @Throws(IllegalStateException::class)
-    @RequestLine("GET repository/tags?vcsPath={vcsPath}")
-    fun getTags(@Param("vcsPath") vcsUrl: String): List<Tag>
-
-    @Throws(NotFoundException::class, IllegalStateException::class)
-    @RequestLine("GET repository/issues?vcsPath={vcsPath}&from={from}&fromDate={fromDate}&to={to}")
+    @RequestLine("GET rest/api/1/repository/issues?sshUrl={sshUrl}&from={from}&fromDate={fromDate}&to={to}")
     fun getIssuesFromCommits(
-        @Param("vcsPath") vcsPath: String,
+        @Param("sshUrl") sshUrl: String,
         @Param("from") fromId: String?,
         @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
         @Param("to") toId: String
     ): List<String>
 
-    @RequestLine("POST repository/search-issues-in-ranges")
-    @Headers("Content-Type: application/json")
-    fun analyzeRepositoryGraph(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
+    @RequestLine("GET rest/api/1/repository/tags?sshUrl={sshUrl}")
+    fun getTags(@Param("sshUrl") sshUrl: String): List<Tag>
 
-    @RequestLine("POST repository/pull-requests?vcsPath={vcsPath}")
+    @RequestLine("POST rest/api/1/repository/search-issues-in-ranges")
     @Headers("Content-Type: application/json")
-    fun createPullRequest(@Param("vcsPath") vcsPath: String, pullRequestRequest: PullRequestRequest): PullRequestResponse
+    fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
+
+    @RequestLine("POST rest/api/1/repository/pull-requests?sshUrl={sshUrl}")
+    @Headers("Content-Type: application/json")
+    fun createPullRequest(@Param("sshUrl") sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
+
+    @RequestLine("GET rest/api/1/repository/find/{issueKey}")
+    fun findByIssueKey(@Param("issueKey") issueKey: String): SearchSummary
+
+    @RequestLine("GET rest/api/1/repository/find/{issueKey}/branches")
+    fun findBranchesByIssueKey(@Param("issueKey") issueKey: String): List<Branch>
+
+    @RequestLine("GET rest/api/1/repository/find/{issueKey}/commits")
+    fun findCommitsByIssueKey(@Param("issueKey") issueKey: String): List<Commit>
+
+    @RequestLine("GET rest/api/1/repository/find/{issueKey}/pull-requests")
+    fun findPullRequestsByIssueKey(@Param("issueKey") issueKey: String): List<PullRequest>
 }

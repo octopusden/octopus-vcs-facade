@@ -1,44 +1,65 @@
-eureka:
-  client:
-    enabled: false
-
 vcs-facade:
   vcs:
-    gitlab:
-      enabled: # envFile property
-      host: # envFile property
-      token: # envFile property
-      health-check:
-        repo: # envFile property
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
     bitbucket:
       enabled: # envFile property
       host: # envFile property
       token: # envFile property
       health-check:
         repo: # envFile property
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
     gitea:
       enabled: # envFile property
       host: # envFile property
       token: # envFile property
       health-check:
         repo: # envFile property
-        rootCommit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        lastRelease: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expectedCommits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+      index:
+        scan:
+          cron: "-"
+          reindex-cron: "-"
+          executor:
+            core-pool-size: 1
+            max-pool-size: 1
+            queue-capacity: 10
+            pre-start-all-core-threads: true
+    gitlab:
+      enabled: # envFile property
+      host: # envFile property
+      token: # envFile property
+      health-check:
+        repo: # envFile property
+        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
   job:
-    executor:
-      corePoolSize: 4
-      maxPoolSize: 10
-      queueCapacity: 500
     fast-work-timout-secs: 0
     retry-interval-secs: 1
+    executor:
+      core-pool-size: 4
+      max-pool-size: 10
+      queue-capacity: 500
+      pre-start-all-core-threads: true
+  opensearch:
+    enabled: # envFile property
+    host: # envFile property
+    ssl: # envFile property
+    username: # envFile property
+    password: # envFile property
+    index:
+      suffix: dev
 
 logging:
   level:
-    org.octopusden.octopus.vcsfacade.controller: trace
+    org.octopusden.octopus.vcsfacade: trace
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # curl -i -X POST -H 'Content-Type: application/json' -d '{"configuredLevel": "INFO"}' http://localhost:8080/actuator/loggers/ROOT
+        include: health, env, metrics, threaddump, heapdump, info, configprops, prometheus, loggers

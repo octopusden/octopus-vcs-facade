@@ -11,8 +11,8 @@ import org.octopusden.octopus.vcsfacade.CheckError
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
@@ -22,7 +22,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletResponse
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -37,9 +36,8 @@ private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 @ExtendWith(SpringExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootFormat: String) :
-    BaseVcsFacadeTest(testClient, vcsRootFormat) {
+abstract class BaseRepositoryControllerTest(testClient: TestClient, sshUrlFormat: String) :
+    BaseVcsFacadeTest(testClient, sshUrlFormat) {
 
     @Autowired
     private lateinit var mvc: MockMvc
@@ -53,7 +51,7 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
     }
 
     override fun requestCommitsInterval(
-        repository: String,
+        sshUrl: String,
         fromId: String?,
         fromDate: Date?,
         toId: String,
@@ -62,8 +60,8 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/commits")
-                .param("vcsPath", repository)
+            MockMvcRequestBuilders.get("/rest/api/1/repository/commits")
+                .param("sshUrl", sshUrl)
                 .param("to", toId)
                 .param("from", fromId)
                 .param("fromDate", fromDate?.toVcsFacadeFormat())
@@ -72,45 +70,42 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<List<Commit>>() {}, checkSuccess, checkError)
     }
 
     override fun requestCommitById(
-        vcsPath: String,
+        sshUrl: String,
         commitId: String,
         status: Int,
         checkSuccess: (Commit) -> Unit,
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/commit")
-                .param("vcsPath", vcsPath)
+            MockMvcRequestBuilders.get("/rest/api/1/repository/commit")
+                .param("sshUrl", sshUrl)
                 .param("commitId", commitId)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<Commit>() {}, checkSuccess, checkError)
     }
 
     override fun requestTags(
-        repository: String,
+        sshUrl: String,
         status: Int,
         checkSuccess: (List<Tag>) -> Unit,
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/tags")
-                .param("vcsPath", repository)
+            MockMvcRequestBuilders.get("/rest/api/1/repository/tags")
+                .param("sshUrl", sshUrl)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<List<Tag>>() {}, checkSuccess, checkError)
     }
 
@@ -121,14 +116,12 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/repository/issues/$issueKey")
-
+            MockMvcRequestBuilders.get("/rest/api/1/repository/find/$issueKey/commits")
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(response, status, object : TypeReference<List<Commit>>() {}, checkSuccess, checkError)
     }
 
@@ -139,9 +132,8 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
         checkError: CheckError
     ) {
         val content = mapper.writeValueAsString(searchRequest)
-
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/repository/search-issues-in-ranges")
+            MockMvcRequestBuilders.post("/rest/api/1/repository/search-issues-in-ranges")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)
                 .accept(MediaType.APPLICATION_JSON)
@@ -149,7 +141,6 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(
             response,
             status,
@@ -160,17 +151,16 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
     }
 
     override fun createPullRequest(
-        repository: String,
-        pullRequestRequest: PullRequestRequest,
+        sshUrl: String,
+        createPullRequest: CreatePullRequest,
         status: Int,
-        checkSuccess: (PullRequestResponse) -> Unit,
+        checkSuccess: (PullRequest) -> Unit,
         checkError: CheckError
     ) {
-        val content = mapper.writeValueAsString(pullRequestRequest)
-
+        val content = mapper.writeValueAsString(createPullRequest)
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/repository/pull-requests?vcsUrl={}", repository)
-                .param("vcsPath", repository)
+            MockMvcRequestBuilders.post("/rest/api/1/repository/pull-requests", sshUrl)
+                .param("sshUrl", sshUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)
                 .accept(MediaType.APPLICATION_JSON)
@@ -178,11 +168,10 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
             .andExpect(MockMvcResultMatchers.status().`is`(status))
             .andReturn()
             .response
-
         checkResponse(
             response,
             status,
-            object : TypeReference<PullRequestResponse>() {},
+            object : TypeReference<PullRequest>() {},
             checkSuccess,
             checkError
         )
@@ -204,7 +193,7 @@ abstract class BaseRepositoryControllerTest(testClient: TestClient, vcsRootForma
     }
 
     private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T =
-        mapper.readValue(this.contentAsByteArray, typeReference)
+        mapper.readValue(contentAsByteArray, typeReference)
 
     private fun Date.toVcsFacadeFormat(): String {
         return FORMATTER.format(toInstant())
