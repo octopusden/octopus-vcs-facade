@@ -56,7 +56,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     data class GiteaIndexProperties(val webhookSecret: String?, val scan: GiteaIndexScanProperties?)
 
-    data class GiteaIndexScanProperties(val cron: String?, val reindexCron: String?, val executor: ExecutorProperties?)
+    data class GiteaIndexScanProperties(val cron: String?, val executor: ExecutorProperties?)
 
     abstract class VCSProperties(
         val host: String, val token: String?, val username: String?, val password: String?, val healthCheck: HealthCheck
@@ -68,9 +68,6 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     @Bean //dedicated bean to simplify SpEL expression
     fun giteaIndexScanCron() = giteaProperties?.index?.scan?.cron ?: "-"
-
-    @Bean //dedicated bean to simplify SpEL expression
-    fun giteaIndexScanReindexCron() = giteaProperties?.index?.scan?.reindexCron ?: "-"
 
     @Bean
     @ConditionalOnProperty(

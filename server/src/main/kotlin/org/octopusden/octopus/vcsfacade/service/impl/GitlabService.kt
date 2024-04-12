@@ -21,7 +21,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.VCSService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -36,7 +35,7 @@ import org.gitlab4j.api.models.Tag as GitlabTag
 )
 class GitlabService(
     gitLabProperties: VCSConfig.GitLabProperties
-) : VCSService(gitLabProperties, VcsServiceType.GITLAB) {
+) : VCSService(gitLabProperties) {
     private val clientFunc: () -> GitLabApi = {
         val authException by lazy {
             IllegalStateException("Auth Token or username/password must be specified for Gitlab access")
@@ -167,17 +166,17 @@ class GitlabService(
     }
 
     override fun findBranches(issueKey: String): List<Branch> {
-        log.warn("There is no native implementation of findBranches for $vcsServiceType")
+        log.warn("There is no native implementation of findBranches")
         return emptyList()
     }
 
     override fun findCommits(issueKey: String): List<Commit> {
-        log.warn("There is no native implementation of findCommits for $vcsServiceType")
+        log.warn("There is no native implementation of findCommits")
         return emptyList()
     }
 
     override fun findPullRequests(issueKey: String): List<PullRequest> {
-        log.warn("There is no native implementation of findPullRequests for $vcsServiceType")
+        log.warn("There is no native implementation of findPullRequests")
         return emptyList()
     }
 

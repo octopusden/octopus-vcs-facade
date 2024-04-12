@@ -21,7 +21,6 @@ vcs-facade:
       index:
         scan:
           cron: "-"
-          reindex-cron: "-"
           executor:
             core-pool-size: 1
             max-pool-size: 1

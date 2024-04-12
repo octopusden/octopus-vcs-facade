@@ -1,15 +1,15 @@
 package org.octopusden.octopus.vcsfacade.repository
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
-import org.octopusden.octopus.vcsfacade.document.Ref
+import org.octopusden.octopus.vcsfacade.document.RefDocument
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.repository.CrudRepository
 
 @ConditionalOnProperty(
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
-interface RefRepository : CrudRepository<Ref, String> {
-    fun searchByTypeAndNameContaining(type: RefType, nameToken: String): List<Ref>
-    fun searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId: String, id: String): List<Ref>
+interface RefRepository : CrudRepository<RefDocument, String> {
+    fun searchByTypeAndNameContaining(type: RefType, nameToken: String): List<RefDocument>
+    fun searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId: String, id: String): List<RefDocument>
     fun deleteByRepositoryId(repositoryId: String)
 }

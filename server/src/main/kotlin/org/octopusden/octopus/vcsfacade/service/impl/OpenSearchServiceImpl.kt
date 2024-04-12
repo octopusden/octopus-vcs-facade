@@ -2,13 +2,16 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.min
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
+import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.document.BaseDocument
-import org.octopusden.octopus.vcsfacade.document.Commit
-import org.octopusden.octopus.vcsfacade.document.PullRequest
-import org.octopusden.octopus.vcsfacade.document.Ref
-import org.octopusden.octopus.vcsfacade.document.Repository
+import org.octopusden.octopus.vcsfacade.document.CommitDocument
+import org.octopusden.octopus.vcsfacade.document.PullRequestDocument
+import org.octopusden.octopus.vcsfacade.document.RefDocument
+import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.repository.CommitRepository
@@ -30,34 +33,34 @@ class OpenSearchServiceImpl(
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
 ) : OpenSearchService {
-    override fun getRepositories(type: VcsServiceType): Set<Repository> {
+    override fun getRepositories(type: VcsServiceType): Set<RepositoryDocument> {
         log.trace("=> getRepositories({})", type)
         return fetchAll { repositoryRepository.searchFirst1000ByTypeAndIdAfterOrderByIdAsc(type, it) }.also {
             log.trace("<= getRepositories({}): {}", type, it)
         }
     }
 
-    override fun findRepositoryById(repositoryId: String): Repository? {
+    override fun findRepositoryById(repositoryId: String): RepositoryDocument? {
         log.trace("=> findRepositoryById({})", repositoryId)
         return repositoryRepository.findById(repositoryId).getOrNull().also {
             log.trace("<= findRepositoryById({}): {}", repositoryId, it)
         }
     }
 
-    override fun saveRepository(repository: Repository): Repository {
+    override fun saveRepository(repository: RepositoryDocument): RepositoryDocument {
         log.trace("=> saveRepository({})", repository)
         return repositoryRepository.save(repository).also {
             log.trace("<= saveRepository({}): {}", repository, it)
         }
     }
 
-    override fun deleteRepository(repository: Repository) {
+    override fun deleteRepository(repository: RepositoryDocument) {
         log.trace("=> deleteRepository({})", repository)
         repositoryRepository.delete(repository)
         log.trace("<= deleteRepository({})", repository)
     }
 
-    override fun findRefsByRepositoryId(repositoryId: String): Set<Ref> {
+    override fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
         return fetchAll { id ->
             refRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
@@ -66,7 +69,7 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun saveRefs(refs: List<Ref>) {
+    override fun saveRefs(refs: List<RefDocument>) {
         log.trace("=> saveRef({})", refs)
         saveAll(refs) { batch -> refRepository.saveAll(batch) }
         log.trace("<= saveRef({})", refs)
@@ -84,7 +87,7 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRefsByRepositoryId({})", repositoryId)
     }
 
-    override fun findCommitsByRepositoryId(repositoryId: String): Set<Commit> {
+    override fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
         return fetchAll { id ->
             commitRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
@@ -93,7 +96,7 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun saveCommits(commits: List<Commit>) {
+    override fun saveCommits(commits: List<CommitDocument>) {
         log.trace("=> saveCommits({})", commits)
         saveAll(commits) { batch -> commitRepository.saveAll(batch) }
         log.trace("<= saveCommits({})", commits)
@@ -111,7 +114,7 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteCommitsByRepositoryId({})", repositoryId)
     }
 
-    override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequest> {
+    override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
         return fetchAll { id ->
             pullRequestRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
@@ -120,7 +123,7 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun savePullRequests(pullRequests: List<PullRequest>) {
+    override fun savePullRequests(pullRequests: List<PullRequestDocument>) {
         log.trace("=> savePullRequests({})", pullRequests)
         saveAll(pullRequests) { batch -> pullRequestRepository.saveAll(batch) }
         log.trace("<= savePullRequests({})", pullRequests)
@@ -138,10 +141,12 @@ class OpenSearchServiceImpl(
         log.trace("<= deletePullRequestsByRepositoryId({})", repositoryId)
     }
 
-    override fun findBranchesByIssueKey(issueKey: String): List<Ref> {
+    override fun findBranchesByIssueKey(issueKey: String): List<Branch> {
         log.trace("=> findBranchesByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
-            refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey).filter { containsMatchIn(it.name) }
+            refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
+                .filter { containsMatchIn(it.name) }
+                .map { it.toDto() as Branch }
         }.also {
             log.trace("<= findBranchesByIssueKey({}): {}", issueKey, it)
         }
@@ -150,7 +155,9 @@ class OpenSearchServiceImpl(
     override fun findCommitsByIssueKey(issueKey: String): List<Commit> {
         log.trace("=> findCommitsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
-            commitRepository.searchByMessageContaining(issueKey).filter { containsMatchIn(it.message) }
+            commitRepository.searchByMessageContaining(issueKey)
+                .filter { containsMatchIn(it.message) }
+                .map { it.toDto() }
         }.also {
             log.trace("<= findCommitsByIssueKey({}): {}", issueKey, it)
         }
@@ -161,6 +168,7 @@ class OpenSearchServiceImpl(
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
                 .filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
+                .map { it.toDto() }
         }.also {
             log.trace("<= findPullRequestsByIssueKey({}): {}", issueKey, it)
         }

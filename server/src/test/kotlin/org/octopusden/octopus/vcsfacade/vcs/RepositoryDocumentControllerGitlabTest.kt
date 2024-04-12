@@ -8,7 +8,7 @@ import org.springframework.test.context.junit.jupiter.EnabledIf
 private const val VCS_HOST = "localhost:8990"
 
 @EnabledIf("#{environment.getActiveProfiles().$[#this == 'gitlab'] == 'gitlab'}", loadContext = true)
-class RepositoryControllerGitlabTest : BaseRepositoryControllerTest(
+class RepositoryDocumentControllerGitlabTest : BaseRepositoryControllerTestDocument(
     GitlabTestClient("http://$VCS_HOST", GITLAB_USER, GITLAB_PASSWORD),
     "ssh://git@$VCS_HOST:%s/%s.git"
 ) {

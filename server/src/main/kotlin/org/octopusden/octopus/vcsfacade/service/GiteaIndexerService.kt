@@ -11,6 +11,6 @@ interface GiteaIndexerService {
     fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent)
     fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent)
     fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent)
-    fun submitRepositoryScan(sshUrl: String, reindex: Boolean)
+    fun submitRepositoryScan(sshUrl: String)
     fun getIndexReport(): IndexReport
 }
