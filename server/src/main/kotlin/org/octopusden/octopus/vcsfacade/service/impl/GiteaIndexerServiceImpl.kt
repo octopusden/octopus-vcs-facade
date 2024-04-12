@@ -104,7 +104,7 @@ class GiteaIndexerServiceImpl(
                             indexRefs.mapNotNull { if (refsSet.contains(it)) null else it.id }
                         }
                         logRepositoryScanMessage(
-                            "Delete ${orphanedRefsIds.size} ref(s) from index for `$fullName` $GITEA repository",
+                            "Remove ${orphanedRefsIds.size} ref(s) from index for `$fullName` $GITEA repository",
                             orphanedRefsIds
                         )
                         openSearchService.deleteRefsByIds(orphanedRefsIds)
