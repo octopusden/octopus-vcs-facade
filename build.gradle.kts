@@ -96,7 +96,7 @@ subprojects {
     if (emptyProperties.isNotEmpty()) {
         throw IllegalArgumentException(
             "Start gradle build with" +
-                    (if (emptyProperties.contains("dockerRegistry")) " -Ptest.profile=..." else "") +
+                    (if (emptyProperties.contains("dockerRegistry")) " -Pdocker.registry=..." else "") +
                     (if (emptyProperties.contains("octopusGithubDockerRegistry")) " -Poctopus.github.docker.registry=..." else "") +
                     (if (emptyProperties.contains("bitbucketLicense")) " -Pbitbucket.license=..." else "") +
                     " or set env variable(s):" +
