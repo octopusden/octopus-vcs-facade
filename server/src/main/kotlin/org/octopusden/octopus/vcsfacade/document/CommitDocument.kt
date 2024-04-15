@@ -1,8 +1,6 @@
 package org.octopusden.octopus.vcsfacade.document
 
 import java.util.Date
-import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.document.UserDocument.Companion.toDocument
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.elasticsearch.annotations.Document
 import org.springframework.data.elasticsearch.annotations.Field
@@ -25,19 +23,4 @@ class CommitDocument(
 ) : BaseDocument(id(repository.id, hash)) {
     override fun toString() =
         "CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"
-
-    fun toDto() = Commit(hash, message, date, author.toDto(), parents, link, repository.toDto())
-
-    companion object {
-        fun Commit.toDocument(repositoryDocument: RepositoryDocument) =
-            CommitDocument(
-                repositoryDocument,
-                id,
-                message,
-                date,
-                author.toDocument(),
-                parents,
-                link
-            )
-    }
 }

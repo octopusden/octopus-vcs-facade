@@ -1,10 +1,7 @@
 package org.octopusden.octopus.vcsfacade.document
 
 import java.util.Date
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
-import org.octopusden.octopus.vcsfacade.document.PullRequestReviewerDocument.Companion.toDocument
-import org.octopusden.octopus.vcsfacade.document.UserDocument.Companion.toDocument
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.elasticsearch.annotations.Document
 import org.springframework.data.elasticsearch.annotations.Field
@@ -33,38 +30,4 @@ class PullRequestDocument(
 ) : BaseDocument(id(repository.id, index)) {
     override fun toString() =
         "PullRequestDocument(id=$id, repository=$repository, index=$index, title=$title, description=$description, author=$author, source=$source, target=$target, assignees=$assignees, reviewers=$reviewers, status=$status, createdAt=$createdAt, updatedAt=$updatedAt, link=$link)"
-
-    fun toDto() = PullRequest(
-        index,
-        title,
-        description,
-        author.toDto(),
-        source,
-        target,
-        assignees.map { it.toDto() },
-        reviewers.map { it.toDto() },
-        status,
-        createdAt,
-        updatedAt,
-        link,
-        repository.toDto()
-    )
-
-    companion object {
-        fun PullRequest.toDocument(repositoryDocument: RepositoryDocument) = PullRequestDocument(
-            repositoryDocument,
-            index,
-            title,
-            description,
-            author.toDocument(),
-            source,
-            target,
-            assignees.map { it.toDocument() },
-            reviewers.map { it.toDocument() },
-            status,
-            createdAt,
-            updatedAt,
-            link
-        )
-    }
 }

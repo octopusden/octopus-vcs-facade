@@ -1,7 +1,6 @@
 package org.octopusden.octopus.vcsfacade.document
 
 import java.util.Date
-import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.elasticsearch.annotations.Document
@@ -27,6 +26,4 @@ class RepositoryDocument(
 
     override fun toString() =
         "RepositoryDocument(id=$id, type=$type, group=$group, name=$name, sshUrl=$sshUrl, link=$link, avatar=$avatar, lastScanAt=$lastScanAt)"
-
-    fun toDto() = Repository(sshUrl, link, avatar)
 }

@@ -19,6 +19,7 @@ import org.octopusden.octopus.vcsfacade.repository.PullRequestRepository
 import org.octopusden.octopus.vcsfacade.repository.RefRepository
 import org.octopusden.octopus.vcsfacade.repository.RepositoryRepository
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
+import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service

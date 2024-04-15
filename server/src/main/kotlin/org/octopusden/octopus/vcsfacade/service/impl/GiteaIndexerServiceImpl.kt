@@ -7,9 +7,6 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaShortCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
-import org.octopusden.octopus.vcsfacade.document.CommitDocument.Companion.toDocument
-import org.octopusden.octopus.vcsfacade.document.PullRequestDocument.Companion.toDocument
-import org.octopusden.octopus.vcsfacade.document.RefDocument.Companion.toDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
@@ -23,6 +20,8 @@ import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toBr
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toOrganizationAndRepository
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toPullRequest
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toTag
+import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDocument
+import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
