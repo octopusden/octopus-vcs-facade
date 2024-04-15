@@ -12,7 +12,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.VCSManager
@@ -102,47 +101,24 @@ class VCSManagerImpl(
 
     override fun findBranches(issueKey: String): List<Branch> {
         log.trace("=> findBranches({})", issueKey)
-        val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.groupBy {
-            openSearchService.findRepositoryById(it.repositoryId)
-        }?.map { (repository, refs) ->
-            repository?.let {
-                getVcsService(it.type)?.let { vcsService ->
-                    vcsService.findBranches(it.group, it.name, refs.map { ref -> ref.name }.toSet())
-                }
-            } ?: emptyList()
-        }?.flatten() ?: vcsServices.flatMap { it.findBranches(issueKey) }
+        val branches = openSearchService?.findBranchesByIssueKey(issueKey)
+            ?: vcsServices.flatMap { it.findBranches(issueKey) }
         log.trace("<= findBranches({}): {}", issueKey, branches)
         return branches
     }
 
     override fun findCommits(issueKey: String): List<Commit> {
         log.trace("=> findCommits({})", issueKey)
-        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.groupBy {
-            openSearchService.findRepositoryById(it.repositoryId)
-        }?.map { (repository, commits) ->
-            repository?.let {
-                getVcsService(it.type)?.let { vcsService ->
-                    vcsService.findCommits(it.group, it.name, commits.map { commit -> commit.hash }.toSet())
-                }
-            } ?: emptyList()
-        }?.flatten() ?: vcsServices.flatMap { it.findCommits(issueKey) }
+        val commits = openSearchService?.findCommitsByIssueKey(issueKey)
+            ?: vcsServices.flatMap { it.findCommits(issueKey) }
         log.trace("<= findCommits({}): {}", issueKey, commits)
         return commits
     }
 
     override fun findPullRequests(issueKey: String): List<PullRequest> {
         log.trace("=> findPullRequests({})", issueKey)
-        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.groupBy {
-            openSearchService.findRepositoryById(it.repositoryId)
-        }?.map { (repository, pullRequests) ->
-            repository?.let {
-                getVcsService(it.type)?.let { vcsService ->
-                    vcsService.findPullRequests(
-                        it.group, it.name, pullRequests.map { pullRequest -> pullRequest.index }.toSet()
-                    )
-                }
-            } ?: emptyList()
-        }?.flatten() ?: vcsServices.flatMap { it.findPullRequests(issueKey) }
+        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)
+            ?: vcsServices.flatMap { it.findPullRequests(issueKey) }
         log.trace("<= findPullRequests({}): {}", issueKey, pullRequests)
         return pullRequests
     }
@@ -204,9 +180,6 @@ class VCSManagerImpl(
 
     private fun getVcsService(sshUrl: String) = vcsServices.firstOrNull { it.isSupport(sshUrl) }
         ?: throw IllegalStateException("There is no configured VCS service for `$sshUrl`")
-
-    private fun getVcsService(vcsServiceType: VcsServiceType) =
-        vcsServices.firstOrNull { it.vcsServiceType == vcsServiceType }
 
     companion object {
         private val log = LoggerFactory.getLogger(VCSManagerImpl::class.java)

@@ -13,11 +13,17 @@ import org.springframework.data.elasticsearch.annotations.Setting
 @ConditionalOnProperty(
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
-class Repository(
+class RepositoryDocument(
     @Field(type = FieldType.Keyword) val type: VcsServiceType,
     @Field(type = FieldType.Keyword) val group: String,
     @Field(type = FieldType.Keyword) val name: String,
+    @Field(type = FieldType.Keyword) val sshUrl: String,
+    @Field(type = FieldType.Keyword) val link: String,
+    @Field(type = FieldType.Keyword) val avatar: String?,
     @Field(type = FieldType.Date) var lastScanAt: Date? = null
 ) : BaseDocument(id(type, group, name)) {
-    override fun toString() = "Repository(id=$id, type=$type, group=$group, name=$name, lastScanAt=$lastScanAt)"
+    val fullName = "$group/$name"
+
+    override fun toString() =
+        "RepositoryDocument(id=$id, type=$type, group=$group, name=$name, sshUrl=$sshUrl, link=$link, avatar=$avatar, lastScanAt=$lastScanAt)"
 }

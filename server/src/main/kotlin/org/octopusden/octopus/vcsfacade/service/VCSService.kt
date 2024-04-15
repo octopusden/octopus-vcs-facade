@@ -7,9 +7,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 
-abstract class VCSService(vcsProperties: VCSConfig.VCSProperties, val vcsServiceType: VcsServiceType) {
+abstract class VCSService(vcsProperties: VCSConfig.VCSProperties) {
     protected val httpUrl = vcsProperties.host.lowercase().trimEnd('/')
     protected val host = httpUrl.replace("^(https|http)://".toRegex(), "")
 
@@ -26,7 +25,6 @@ abstract class VCSService(vcsProperties: VCSConfig.VCSProperties, val vcsService
     abstract fun getCommit(group: String, repository: String, id: String): Commit
     abstract fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest): PullRequest
     abstract fun getPullRequest(group: String, repository: String, index: Long): PullRequest
-    fun findBranches(group: String, repository: String, names: Set<String>) = getBranches(group, repository).filter { it.name in names }
     abstract fun findCommits(group: String, repository: String, ids: Set<String>): List<Commit>
     abstract fun findPullRequests(group: String, repository: String, indexes: Set<Long>): List<PullRequest>
     abstract fun findBranches(issueKey: String): List<Branch>

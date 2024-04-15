@@ -8,7 +8,7 @@ import org.springframework.test.context.junit.jupiter.EnabledIf
 private const val VCS_HOST = "localhost:3000"
 
 @EnabledIf("#{environment.getActiveProfiles().$[#this == 'gitea'] == 'gitea'}", loadContext = true)
-class RepositoryControllerGiteaTest : BaseRepositoryControllerTest(
+class RepositoryDocumentControllerGiteaTest : BaseRepositoryControllerTestDocument(
     GiteaTestClient("http://$VCS_HOST", GITEA_USER, GITEA_PASSWORD),
     "ssh://git@$VCS_HOST/%s/%s.git"
 ) {

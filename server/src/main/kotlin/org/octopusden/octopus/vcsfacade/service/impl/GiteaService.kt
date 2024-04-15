@@ -34,7 +34,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.VCSService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -46,7 +45,7 @@ import org.springframework.stereotype.Service
 )
 class GiteaService(
     giteaProperties: VCSConfig.GiteaProperties
-) : VCSService(giteaProperties, VcsServiceType.GITEA) {
+) : VCSService(giteaProperties) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
 
@@ -67,7 +66,7 @@ class GiteaService(
 
     fun getRepositories(): List<Repository> {
         log.trace("=> getRepositories()")
-        return client.getOrganizations().flatMap { client.getRepositories(it.name) }.map { it.toRepository() }.also {
+        return client.getOrganizations().flatMap { client.getRepositories(it.name) }.map { toRepository(it) }.also {
             log.trace("<= getRepositories(): {}", it)
         }
     }
@@ -84,9 +83,9 @@ class GiteaService(
         }
     }
 
-    private fun getRepository(group: String, repository: String): Repository {
+    fun getRepository(group: String, repository: String): Repository {
         log.trace("=> getRepository({}, {})", group, repository)
-        return client.getRepository(group, repository).toRepository().also {
+        return toRepository(client.getRepository(group, repository)).also {
             log.trace("<= getRepository({}, {}): {}", group, repository, it)
         }
     }
@@ -143,11 +142,18 @@ class GiteaService(
         }
     }
 
+    fun getPullRequestReviews(group: String, repository: String, number: Long): List<GiteaPullRequestReview> {
+        log.trace("=> getPullRequestReviews({}, {}, {})", group, repository, number)
+        return client.getPullRequestReviews(group, repository, number).also {
+            log.trace("<= getPullRequestReviews({}, {}, {}): {}", group, repository, number, it)
+        }
+    }
+
     fun getPullRequests(group: String, repository: String): List<PullRequest> {
         log.trace("=> getPullRequests({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getPullRequests(group, repository).map {
-                it.toPullRequest(this, client.getPullRequestReviews(group, repository, it.number))
+                it.toPullRequest(this, getPullRequestReviews(group, repository, it.number))
             }
         }.also {
             log.trace("<= getPullRequests({}, {}): {}", group, repository, it)
@@ -217,68 +223,25 @@ class GiteaService(
     }
 
     override fun findBranches(issueKey: String): List<Branch> {
-        log.warn("There is no native implementation of findBranches for $vcsServiceType")
+        log.warn("There is no native implementation of findBranches")
         return emptyList()
     }
 
     override fun findCommits(issueKey: String): List<Commit> {
-        log.warn("There is no native implementation of findCommits for $vcsServiceType")
+        log.warn("There is no native implementation of findCommits")
         return emptyList()
     }
 
     override fun findPullRequests(issueKey: String): List<PullRequest> {
-        log.warn("There is no native implementation of findPullRequests for $vcsServiceType")
+        log.warn("There is no native implementation of findPullRequests")
         return emptyList()
     }
 
-    private fun GiteaRepository.toRepository(): Repository {
-        val (organization, repository) = toOrganizationAndRepository()
+    fun toRepository(giteaRepository: GiteaRepository): Repository {
+        val (organization, repository) = giteaRepository.toOrganizationAndRepository()
         return Repository(getSshUrl(organization, repository),
             "$httpUrl/$organization/$repository",
-            avatarUrl.ifBlank { null })
-    }
-
-    private fun GiteaBranch.toBranch(repository: Repository) = Branch(
-        name, commit.id, "${repository.link}/src/branch/$name", repository
-    )
-
-    private fun GiteaTag.toTag(repository: Repository) = Tag(
-        name, commit.sha, "${repository.link}/src/tag/$name", repository
-    )
-
-    private fun GiteaUser.toUser() = User(username, avatarUrl.ifBlank { null })
-
-    private fun GiteaCommit.toCommit(repository: Repository) = Commit(
-        sha,
-        commit.message,
-        created,
-        author?.toUser() ?: User(commit.author.name),
-        parents.map { it.sha },
-        "${repository.link}/commit/$sha",
-        repository
-    )
-
-    private fun GiteaPullRequest.toPullRequest(
-        repository: Repository, giteaPullRequestReviews: List<GiteaPullRequestReview>
-    ): PullRequest {
-        val approvedGiteaUserIds = giteaPullRequestReviews.filter {
-            it.state == GiteaPullRequestReview.GiteaPullRequestReviewState.APPROVED && !it.dismissed
-        }.mapNotNull { it.user?.id }.toSet()
-        return PullRequest(
-            number,
-            title,
-            body,
-            user.toUser(),
-            head.label,
-            base.label,
-            assignees.map { it.toUser() },
-            requestedReviewers.map { PullRequestReviewer(it.toUser(), approvedGiteaUserIds.contains(it.id)) },
-            getPullRequestStatus(),
-            createdAt,
-            updatedAt,
-            "${repository.link}/pulls/$number",
-            repository
-        )
+            giteaRepository.avatarUrl.ifBlank { null })
     }
 
     companion object {
@@ -289,12 +252,53 @@ class GiteaService(
             return repositoryFullNameParts[0] to repositoryFullNameParts[1]
         }
 
-        fun GiteaPullRequest.getPullRequestStatus() = if (merged) {
-            PullRequestStatus.MERGED
-        } else if (state == GiteaPullRequest.GiteaPullRequestState.CLOSED) {
-            PullRequestStatus.DECLINED
-        } else {
-            PullRequestStatus.OPEN
+        fun GiteaBranch.toBranch(repository: Repository) = Branch(
+            name, commit.id, "${repository.link}/src/branch/$name", repository
+        )
+
+        fun GiteaTag.toTag(repository: Repository) = Tag(
+            name, commit.sha, "${repository.link}/src/tag/$name", repository
+        )
+
+        private fun GiteaUser.toUser() = User(username, avatarUrl.ifBlank { null })
+
+        private fun GiteaCommit.toCommit(repository: Repository) = Commit(
+            sha,
+            commit.message,
+            created,
+            author?.toUser() ?: User(commit.author.name),
+            parents.map { it.sha },
+            "${repository.link}/commit/$sha",
+            repository
+        )
+
+        fun GiteaPullRequest.toPullRequest(
+            repository: Repository, giteaPullRequestReviews: List<GiteaPullRequestReview>
+        ): PullRequest {
+            val approvedGiteaUserIds = giteaPullRequestReviews.filter {
+                it.state == GiteaPullRequestReview.GiteaPullRequestReviewState.APPROVED && !it.dismissed
+            }.mapNotNull { it.user?.id }.toSet()
+            return PullRequest(
+                number,
+                title,
+                body,
+                user.toUser(),
+                head.label,
+                base.label,
+                assignees.map { it.toUser() },
+                requestedReviewers.map { PullRequestReviewer(it.toUser(), approvedGiteaUserIds.contains(it.id)) },
+                if (merged) {
+                    PullRequestStatus.MERGED
+                } else if (state == GiteaPullRequest.GiteaPullRequestState.CLOSED) {
+                    PullRequestStatus.DECLINED
+                } else {
+                    PullRequestStatus.OPEN
+                },
+                createdAt,
+                updatedAt,
+                "${repository.link}/pulls/$number",
+                repository
+            )
         }
     }
 }

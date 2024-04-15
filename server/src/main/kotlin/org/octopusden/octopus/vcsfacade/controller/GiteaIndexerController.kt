@@ -100,11 +100,10 @@ class GiteaIndexerController(
 
     @PostMapping("scan")
     fun scanRepository(
-        @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("reindex", required = false, defaultValue = "false") reindex: Boolean
+        @RequestParam("sshUrl") sshUrl: String
     ) {
-        log.info("Submit {}scan of {}", if (reindex) "reindexing " else "", sshUrl)
-        giteaIndexerService.submitRepositoryScan(sshUrl, reindex)
+        log.info("Submit scan of {}", sshUrl)
+        giteaIndexerService.submitRepositoryScan(sshUrl)
     }
 
     @GetMapping("report")

@@ -6,7 +6,7 @@ import org.springframework.test.context.junit.jupiter.EnabledIf
 private const val VCS_HOST = "localhost:7990"
 
 @EnabledIf("#{environment.getActiveProfiles().$[#this == 'bitbucket'] == 'bitbucket'}", loadContext = true)
-class RepositoryControllerBitbucketTest : BaseRepositoryControllerTest(
+class RepositoryDocumentControllerBitbucketTest : BaseRepositoryControllerTestDocument(
     BitbucketTestClient("http://$VCS_HOST", BITBUCKET_USER, BITBUCKET_PASSWORD),
     "ssh://git@$VCS_HOST/%s/%s.git"
 ) {
