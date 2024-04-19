@@ -10,7 +10,6 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentia
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
-import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketLinkName
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequest
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
@@ -29,8 +28,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.service.VCSService
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -40,8 +39,8 @@ import org.springframework.stereotype.Service
     prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class BitbucketService(
-    bitbucketProperties: VCSConfig.BitbucketProperties,
-) : VCSService(bitbucketProperties) {
+    bitbucketProperties: VcsConfig.BitbucketProperties,
+) : VcsService(bitbucketProperties) {
     private val bitbucketClient: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = httpUrl
 
@@ -151,9 +150,8 @@ class BitbucketService(
 
     override fun findCommits(issueKey: String): List<Commit> {
         log.trace("=> findCommits({})", issueKey)
-        return bitbucketClient.getCommits(issueKey).map { bitbucketJiraCommit ->
-            val (group, repository) = parse(bitbucketJiraCommit.repository.links.clone.find { it.name == BitbucketLinkName.SSH }!!.href)
-            bitbucketJiraCommit.toCommit.toCommit(group, repository)
+        return bitbucketClient.getCommits(issueKey).map {
+            it.toCommit.toCommit(it.repository.project.key.lowercase(), it.repository.slug.lowercase())
         }.also {
             log.trace("<= findCommits({}): {}", issueKey, it)
         }

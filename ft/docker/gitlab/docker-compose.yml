@@ -35,5 +35,3 @@ services:
       POSTGRES_USER: gitlab
       POSTGRES_PASSWORD: gitlab
       POSTGRES_DB: gitlab
-    ports:
-      - "6432:5432"

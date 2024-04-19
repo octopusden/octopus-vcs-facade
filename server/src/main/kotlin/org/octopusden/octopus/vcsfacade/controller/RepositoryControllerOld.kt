@@ -24,7 +24,7 @@ import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
-import org.octopusden.octopus.vcsfacade.service.VCSManager
+import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.AsyncTaskExecutor
@@ -45,7 +45,7 @@ import org.springframework.web.bind.annotation.RestController
 @Deprecated(message = "Deprecated controller", replaceWith = ReplaceWith("RepositoryController"))
 class RepositoryControllerOld(
     private val jobProperties: JobConfig.JobProperties,
-    private val vcsManager: VCSManager,
+    private val vcsManager: VcsManager,
     @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
 ) {
     private val requestJobs = ConcurrentHashMap<String, Future<out VcsFacadeResponse>>()

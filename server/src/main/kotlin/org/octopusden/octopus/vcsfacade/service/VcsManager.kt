@@ -10,7 +10,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRe
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
-interface VCSManager {
+interface VcsManager {
     fun getTags(sshUrl: String): List<Tag>
     fun getCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String): List<Commit>
     fun getCommit(sshUrl: String, id: String): Commit

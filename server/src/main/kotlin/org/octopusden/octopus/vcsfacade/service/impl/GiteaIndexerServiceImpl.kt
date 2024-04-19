@@ -16,12 +16,12 @@ import org.octopusden.octopus.vcsfacade.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType.GITEA
 import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
+import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDocument
+import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toBranch
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toOrganizationAndRepository
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toPullRequest
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toTag
-import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDocument
-import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -39,19 +39,24 @@ import org.springframework.stereotype.Service
 class GiteaIndexerServiceImpl(
     private val giteaService: GiteaService,
     private val openSearchService: OpenSearchService,
-    @Qualifier("giteaIndexScanExecutor") private val giteaIndexScanExecutor: AsyncTaskExecutor
+    @Qualifier("giteaIndexScanExecutor") private val giteaIndexScanExecutor: AsyncTaskExecutor,
+    @Qualifier("isMaster") private val isMaster: Boolean
 ) : GiteaIndexerService {
 
     @Scheduled(cron = "#{ @giteaIndexScanCron }")
-    private fun scan() = try {
-        log.trace("Submitting {} repositories for scan", GITEA)
-        val repositories = openSearchService.getRepositories(GITEA) + giteaService.getRepositories()
-            .map { it.sshUrl.toRepositoryDocument() }
-        log.trace("Repositories collected for scan: {}", repositories)
-        repositories.forEach { submitRepositoryScan(it) }
-        log.debug("Submitted {} {} repositories for scan", repositories.size, GITEA)
-    } catch (e: Exception) {
-        log.error("Unable to submit $GITEA repositories for scan", e)
+    private fun scan() = if (isMaster) {
+        try {
+            log.trace("Submitting {} repositories for scan", GITEA)
+            val repositories = openSearchService.getRepositories(GITEA) + giteaService.getRepositories()
+                .map { it.sshUrl.toRepositoryDocument() }
+            log.trace("Repositories collected for scan: {}", repositories)
+            repositories.forEach { submitRepositoryScan(it) }
+            log.debug("Submitted {} {} repositories for scan", repositories.size, GITEA)
+        } catch (e: Exception) {
+            log.error("Unable to submit $GITEA repositories for scan", e)
+        }
+    } else {
+        log.debug("Suppress {} gitea repositories scan on non-master instance", GITEA)
     }
 
     override fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent) {

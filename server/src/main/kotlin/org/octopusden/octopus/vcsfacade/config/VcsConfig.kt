@@ -6,14 +6,14 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class VCSConfig(val giteaProperties: GiteaProperties?) {
+class VcsConfig(val giteaProperties: GiteaProperties?) {
     @ConfigurationProperties("vcs-facade.vcs.bitbucket")
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
     class BitbucketProperties(
         host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
-    ) : VCSProperties(
+    ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
         if (token?.isNotBlank() == true) null else username,
@@ -32,7 +32,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
         password: String?,
         healthCheck: HealthCheck,
         val index: GiteaIndexProperties?
-    ) : VCSProperties(
+    ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
         if (token?.isNotBlank() == true) null else username,
@@ -44,9 +44,9 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
-    class GitLabProperties(
+    class GitlabProperties(
         host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
-    ) : VCSProperties(
+    ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
         if (token?.isNotBlank() == true) null else username,
@@ -58,7 +58,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
 
     data class GiteaIndexScanProperties(val cron: String?, val executor: ExecutorProperties?)
 
-    abstract class VCSProperties(
+    abstract class VcsProperties(
         val host: String, val token: String?, val username: String?, val password: String?, val healthCheck: HealthCheck
     )
 
