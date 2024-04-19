@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service
 @Service
 class VcsManagerImpl(
     private val vcsServices: List<VcsService>,
-    private val vcsProperties: List<VcsConfig.VCSProperties>,
+    private val vcsProperties: List<VcsConfig.VcsProperties>,
     private val openSearchService: OpenSearchService?
 ) : VcsManager, HealthIndicator {
     override fun getTags(sshUrl: String): List<Tag> {

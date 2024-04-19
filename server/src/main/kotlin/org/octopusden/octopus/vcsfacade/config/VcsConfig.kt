@@ -13,7 +13,7 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
     )
     class BitbucketProperties(
         host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
-    ) : VCSProperties(
+    ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
         if (token?.isNotBlank() == true) null else username,
@@ -32,7 +32,7 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
         password: String?,
         healthCheck: HealthCheck,
         val index: GiteaIndexProperties?
-    ) : VCSProperties(
+    ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
         if (token?.isNotBlank() == true) null else username,
@@ -46,7 +46,7 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
     )
     class GitlabProperties(
         host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
-    ) : VCSProperties(
+    ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
         if (token?.isNotBlank() == true) null else username,
@@ -58,7 +58,7 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
 
     data class GiteaIndexScanProperties(val cron: String?, val executor: ExecutorProperties?)
 
-    abstract class VCSProperties(
+    abstract class VcsProperties(
         val host: String, val token: String?, val username: String?, val password: String?, val healthCheck: HealthCheck
     )
 

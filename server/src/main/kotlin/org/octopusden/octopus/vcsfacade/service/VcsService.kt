@@ -8,7 +8,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsConfig
 
-abstract class VcsService(vcsProperties: VcsConfig.VCSProperties) {
+abstract class VcsService(vcsProperties: VcsConfig.VcsProperties) {
     protected val httpUrl = vcsProperties.host.lowercase().trimEnd('/')
     protected val host = httpUrl.replace("^(https|http)://".toRegex(), "")
 
