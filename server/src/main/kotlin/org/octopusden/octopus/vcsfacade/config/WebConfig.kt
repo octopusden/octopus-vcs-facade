@@ -8,13 +8,12 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
-class WebConfig : WebMvcConfigurer {
+class WebConfig(
+    @Value("\${vcs-facade.master:}") val master: String
+) : WebMvcConfigurer {
     override fun addViewControllers(registry: ViewControllerRegistry) {
         registry.addRedirectViewController("/", "swagger-ui/index.html")
     }
-
-    @Value("\${vcs-facade.master:}")
-    lateinit var master: String
 
     @Bean
     fun isMaster() = master.isBlank() || master.equals(InetAddress.getLocalHost().hostName, true)
