@@ -38,6 +38,11 @@ services:
       JDBC_USER: bitbucket
       JDBC_PASSWORD: bitbucket
       JDBC_URL: jdbc:postgresql://bitbucket-db:5432/bitbucket
+    healthcheck:
+      test: curl -s -f bitbucket:7990/status >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   bitbucket-db:
     container_name: vcs-facade-ft-bitbucket-db
