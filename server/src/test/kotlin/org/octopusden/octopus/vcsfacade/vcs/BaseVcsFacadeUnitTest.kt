@@ -36,7 +36,7 @@ private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 @ExtendWith(SpringExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-abstract class BaseRepositoryControllerTestDocument(testClient: TestClient, sshUrlFormat: String) :
+abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: String) :
     BaseVcsFacadeTest(testClient, sshUrlFormat) {
 
     @Autowired

@@ -1,15 +1,15 @@
-package org.octopusden.octopus.vcsfacade.vcs
+package org.octopusden.octopus.vcsfacade
 
 import java.util.stream.Stream
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.junit.jupiter.params.provider.Arguments
 import org.octopusden.octopus.infrastructure.gitlab.test.GitlabTestClient
-import org.springframework.test.context.junit.jupiter.EnabledIf
 
-private const val VCS_HOST = "localhost:8990"
+private const val VCS_HOST = "gitlab:8990"
 
-@EnabledIf("#{environment.getActiveProfiles().$[#this == 'gitlab'] == 'gitlab'}", loadContext = true)
-class RepositoryDocumentControllerGitlabTest : BaseRepositoryControllerTestDocument(
-    GitlabTestClient("http://$VCS_HOST", GITLAB_USER, GITLAB_PASSWORD),
+@EnabledIfSystemProperty(named = "test.profile", matches = "gitlab")
+class VcsFacadeFunctionalTestGitlab : BaseVcsFacadeFunctionalTest(
+    GitlabTestClient("http://localhost:8990", GITLAB_USER, GITLAB_PASSWORD, VCS_HOST),
     "ssh://git@$VCS_HOST:%s/%s.git"
 ) {
     override fun issueCommits(): Stream<Arguments> = Stream.of(

@@ -10,7 +10,6 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentia
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
-import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketLinkName
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequest
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
@@ -151,9 +150,8 @@ class BitbucketService(
 
     override fun findCommits(issueKey: String): List<Commit> {
         log.trace("=> findCommits({})", issueKey)
-        return bitbucketClient.getCommits(issueKey).map { bitbucketJiraCommit ->
-            val (group, repository) = parse(bitbucketJiraCommit.repository.links.clone.find { it.name == BitbucketLinkName.SSH }!!.href)
-            bitbucketJiraCommit.toCommit.toCommit(group, repository)
+        return bitbucketClient.getCommits(issueKey).map {
+            it.toCommit.toCommit(it.repository.project.key.lowercase(), it.repository.slug.lowercase())
         }.also {
             log.trace("<= findCommits({}): {}", issueKey, it)
         }

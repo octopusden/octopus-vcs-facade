@@ -1,13 +1,13 @@
-package org.octopusden.octopus.vcsfacade
+package org.octopusden.octopus.vcsfacade.vcs
 
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.octopusden.octopus.infastructure.bitbucket.test.BitbucketTestClient
+import org.springframework.test.context.junit.jupiter.EnabledIf
 
-private const val VCS_HOST = "bitbucket:7990"
+private const val VCS_HOST = "localhost:7990"
 
-@EnabledIfSystemProperty(named = "test.profile", matches = "bitbucket")
-class VcsFacadeBitbucketTest : BaseVcsFacadeFuncTest(
-    BitbucketTestClient("http://localhost:7990", BITBUCKET_USER, BITBUCKET_PASSWORD, VCS_HOST),
+@EnabledIf("#{environment.getActiveProfiles().$[#this == 'bitbucket'] == 'bitbucket'}", loadContext = true)
+class VcsFacadeUnitTestBitbucket : BaseVcsFacadeUnitTest(
+    BitbucketTestClient("http://$VCS_HOST", BITBUCKET_USER, BITBUCKET_PASSWORD),
     "ssh://git@$VCS_HOST/%s/%s.git"
 ) {
     override val exceptionsMessageInfo: Map<String, String> by lazy {

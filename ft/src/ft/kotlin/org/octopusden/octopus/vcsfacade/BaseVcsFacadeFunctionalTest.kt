@@ -13,7 +13,7 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundExceptio
 import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
 
-abstract class BaseVcsFacadeFuncTest(testClient: TestClient, sshUrlFormat: String) :
+abstract class BaseVcsFacadeFunctionalTest(testClient: TestClient, sshUrlFormat: String) :
     BaseVcsFacadeTest(testClient, sshUrlFormat) {
 
     override fun requestTags(
