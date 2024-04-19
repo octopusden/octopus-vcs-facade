@@ -11,22 +11,22 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRe
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
-import org.octopusden.octopus.vcsfacade.config.VCSConfig
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
-import org.octopusden.octopus.vcsfacade.service.VCSManager
-import org.octopusden.octopus.vcsfacade.service.VCSService
+import org.octopusden.octopus.vcsfacade.service.VcsManager
+import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
 import org.springframework.stereotype.Service
 
 @Service
-class VCSManagerImpl(
-    private val vcsServices: List<VCSService>,
-    private val vcsProperties: List<VCSConfig.VCSProperties>,
+class VcsManagerImpl(
+    private val vcsServices: List<VcsService>,
+    private val vcsProperties: List<VcsConfig.VCSProperties>,
     private val openSearchService: OpenSearchService?
-) : VCSManager, HealthIndicator {
+) : VcsManager, HealthIndicator {
     override fun getTags(sshUrl: String): List<Tag> {
         log.trace("=> getTags({})", sshUrl)
         return getVcsService(sshUrl).run {
@@ -182,6 +182,6 @@ class VCSManagerImpl(
         ?: throw IllegalStateException("There is no configured VCS service for `$sshUrl`")
 
     companion object {
-        private val log = LoggerFactory.getLogger(VCSManagerImpl::class.java)
+        private val log = LoggerFactory.getLogger(VcsManagerImpl::class.java)
     }
 }

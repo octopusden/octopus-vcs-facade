@@ -20,8 +20,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
-import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.service.VCSService
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -34,16 +34,16 @@ import org.gitlab4j.api.models.Tag as GitlabTag
     prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class GitlabService(
-    gitLabProperties: VCSConfig.GitLabProperties
-) : VCSService(gitLabProperties) {
+    gitlabProperties: VcsConfig.GitlabProperties
+) : VcsService(gitlabProperties) {
     private val clientFunc: () -> GitLabApi = {
         val authException by lazy {
             IllegalStateException("Auth Token or username/password must be specified for Gitlab access")
         }
-        gitLabProperties.token?.let { GitLabApi(httpUrl, gitLabProperties.token) } ?: getGitlabApi(
-            gitLabProperties, authException
+        gitlabProperties.token?.let { GitLabApi(httpUrl, gitlabProperties.token) } ?: getGitlabApi(
+            gitlabProperties, authException
         ).also { api ->
-            api.setAuthTokenSupplier { getToken(gitLabProperties, authException) }
+            api.setAuthTokenSupplier { getToken(gitlabProperties, authException) }
         }
     }
 
@@ -264,22 +264,22 @@ class GitlabService(
     }
 
     private fun getGitlabApi(
-        gitLabProperties: VCSConfig.GitLabProperties, authException: IllegalStateException
+        gitlabProperties: VcsConfig.GitlabProperties, authException: IllegalStateException
     ) = GitLabApi.oauth2Login(
-        gitLabProperties.host,
-        gitLabProperties.username ?: throw authException,
-        gitLabProperties.password ?: throw authException
+        gitlabProperties.host,
+        gitlabProperties.username ?: throw authException,
+        gitlabProperties.password ?: throw authException
     ).also { api ->
         tokenObtained = Instant.now()
         token = api.authToken
     }
 
     private fun getToken(
-        gitLabProperties: VCSConfig.GitLabProperties, authException: IllegalStateException
+        gitlabProperties: VcsConfig.GitlabProperties, authException: IllegalStateException
     ): String {
         if (tokenObtained.isBefore(Instant.now().minus(Duration.ofMinutes(110)))) {
             log.info("Refresh auth token")
-            getGitlabApi(gitLabProperties, authException)
+            getGitlabApi(gitlabProperties, authException)
         }
         return token
     }

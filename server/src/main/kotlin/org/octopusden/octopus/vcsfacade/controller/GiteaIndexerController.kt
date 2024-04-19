@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import org.octopusden.octopus.vcsfacade.config.VCSConfig
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController
     prefix = "vcs-facade", name = ["vcs.gitea.enabled", "opensearch.enabled"], havingValue = "true", matchIfMissing = true
 )
 class GiteaIndexerController(
-    giteaProperties: VCSConfig.GiteaProperties,
+    giteaProperties: VcsConfig.GiteaProperties,
     private val giteaIndexerService: GiteaIndexerService,
     private val objectMapper: ObjectMapper
 ) {

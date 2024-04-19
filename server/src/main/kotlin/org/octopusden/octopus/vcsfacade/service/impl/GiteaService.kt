@@ -33,8 +33,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VCSConfig
-import org.octopusden.octopus.vcsfacade.service.VCSService
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -44,8 +44,8 @@ import org.springframework.stereotype.Service
     prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class GiteaService(
-    giteaProperties: VCSConfig.GiteaProperties
-) : VCSService(giteaProperties) {
+    giteaProperties: VcsConfig.GiteaProperties
+) : VcsService(giteaProperties) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
 

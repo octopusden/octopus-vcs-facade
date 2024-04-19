@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class VCSConfig(val giteaProperties: GiteaProperties?) {
+class VcsConfig(val giteaProperties: GiteaProperties?) {
     @ConfigurationProperties("vcs-facade.vcs.bitbucket")
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true
@@ -44,7 +44,7 @@ class VCSConfig(val giteaProperties: GiteaProperties?) {
     @ConditionalOnProperty(
         prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
-    class GitLabProperties(
+    class GitlabProperties(
         host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
     ) : VCSProperties(
         host,
