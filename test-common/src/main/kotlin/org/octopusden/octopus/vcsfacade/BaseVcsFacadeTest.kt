@@ -133,7 +133,7 @@ abstract class BaseVcsFacadeTest(
         requestTags(
             sshUrl,
             200,
-            { Assertions.assertEquals(expectedTags, it.map { tag -> tag.toTestTag() }) },
+            { Assertions.assertIterableEquals(expectedTags, it.map { tag -> tag.toTestTag() }) },
             checkError
         )
     }
@@ -484,16 +484,16 @@ abstract class BaseVcsFacadeTest(
                 sshUrlFormat.format(PROJECT, REPOSITORY),
                 listOf(
                     TestTag(
-                        TAG_3,
-                        MESSAGE_3.commitId(REPOSITORY)
+                        TAG_1,
+                        MESSAGE_1.commitId(REPOSITORY)
                     ),
                     TestTag(
                         TAG_2,
                         MESSAGE_2.commitId(REPOSITORY)
                     ),
                     TestTag(
-                        TAG_1,
-                        MESSAGE_1.commitId(REPOSITORY)
+                        TAG_3,
+                        MESSAGE_3.commitId(REPOSITORY)
                     )
                 )
             )

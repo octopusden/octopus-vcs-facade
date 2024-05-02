@@ -10,4 +10,7 @@ data class Commit(
     val parents: List<String>,
     val link: String,
     val repository: Repository
-)
+) : Comparable<Commit> {
+    override fun compareTo(other: Commit) =
+        compareBy(Commit::repository).thenByDescending(Commit::date).compare(this, other)
+}
