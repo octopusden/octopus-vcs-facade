@@ -20,7 +20,9 @@ abstract class Ref(
     val commitId: String,
     val link: String,
     val repository: Repository
-) {
+) : Comparable<Ref> {
+    override fun compareTo(other: Ref) = compareBy(Ref::repository, Ref::type, Ref::name).compare(this, other)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Ref) return false

@@ -16,4 +16,7 @@ data class PullRequest(
     val updatedAt: Date,
     val link: String,
     val repository: Repository
-)
+) : Comparable<PullRequest> {
+    override fun compareTo(other: PullRequest) =
+        compareBy(PullRequest::repository).thenByDescending(PullRequest::index).compare(this, other)
+}

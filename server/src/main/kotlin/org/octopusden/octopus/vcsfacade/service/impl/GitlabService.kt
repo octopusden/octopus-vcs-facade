@@ -315,7 +315,7 @@ class GitlabService(
         val filter = fromId?.let { _ ->
             { true }
         } ?: fromDate?.let { fromDateValue -> { c: Commit -> c.date > fromDateValue } } ?: { true }
-        return visited.filter(filter).sortedByDescending { it.date }
+        return visited.filter(filter)
     }
 
     companion object {

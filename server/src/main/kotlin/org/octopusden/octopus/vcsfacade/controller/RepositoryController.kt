@@ -52,7 +52,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get commits ({},{}] in `{}` repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
         RepositoryResponse(vcsManager.getCommits(sshUrl, from, fromDate, to))
-    }.data
+    }.data.sorted()
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String): Commit {
@@ -76,7 +76,7 @@ class RepositoryController(
             vcsManager.getCommits(sshUrl, from, fromDate, to)
                 .flatMap { IssueKeyParser.findIssueKeys(it.message) }.distinct()
         )
-    }.data
+    }.data.sorted()
 
 
     @GetMapping("tags", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -86,7 +86,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get tags in `{}` repository", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl))
-    }.data
+    }.data.sorted()
 
     @PostMapping(
         "search-issues-in-ranges",
@@ -130,7 +130,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find branches by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findBranches(issueKey))
-    }.data
+    }.data.sorted()
 
     @GetMapping("find/{issueKey}/commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsByIssueKey(
@@ -139,7 +139,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findCommits(issueKey))
-    }.data
+    }.data.sorted()
 
     @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findPullRequestsByIssueKey(
@@ -148,7 +148,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find pull requests by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findPullRequests(issueKey))
-    }.data
+    }.data.sorted()
 
     private fun <T : VcsFacadeResponse> processRequest(requestId: String, func: () -> T): T {
         with(requestJobs.computeIfAbsent(requestId) { newRequest ->
