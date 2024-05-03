@@ -29,13 +29,13 @@ class ClassicVcsFacadeClient(
         apiParametersProvider, getMapper()
     )
 
-    override fun getCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String) =
-        client.getCommits(sshUrl, fromId, fromDate, toId)
+    override fun getCommits(sshUrl: String, toHashOrRef: String, fromHashOrRef: String?, fromDate: Date?) =
+        client.getCommits(sshUrl, toHashOrRef, fromHashOrRef, fromDate)
 
-    override fun getCommit(sshUrl: String, commitId: String) = client.getCommit(sshUrl, commitId)
+    override fun getCommit(sshUrl: String, hashOrRef: String) = client.getCommit(sshUrl, hashOrRef)
 
-    override fun getIssuesFromCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String) =
-        client.getIssuesFromCommits(sshUrl, fromId, fromDate, toId)
+    override fun getIssuesFromCommits(sshUrl: String, toHashOrRef: String, fromHashOrRef: String?, fromDate: Date?) =
+        client.getIssuesFromCommits(sshUrl, toHashOrRef, fromHashOrRef, fromDate)
 
     override fun getTags(sshUrl: String) = client.getTags(sshUrl)
 

@@ -21,7 +21,7 @@ class VcsFacadeFunctionalTestGitlab : BaseVcsFacadeFunctionalTest(
             "absent-repo" to "Repository '$PROJECT:absent' does not exist.",
             "commitById" to "Commit '$DEFAULT_ID' does not exist in repository '$PROJECT:$REPOSITORY'.",
             "commitsException_1" to "Commit '$DEFAULT_ID' does not exist in repository '$PROJECT:$REPOSITORY'.",
-            "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
+            "commitsException_2" to "Params 'fromHashOrRef' and 'fromDate' can not be used together",
             "commitsException_3" to "Can't find commit '${MESSAGE_3.commitId(REPOSITORY)}' in graph but it exists in the '$PROJECT:$REPOSITORY'",
             "pr_1" to "Group 'absent' does not exist.",
             "pr_2" to "Source branch 'absent' not found in '$PROJECT:$REPOSITORY'",

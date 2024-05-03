@@ -43,7 +43,7 @@ interface OpenSearchService {
 
     companion object {
         fun Ref.toDocument(repositoryDocument: RepositoryDocument) =
-            RefDocument(repositoryDocument, type, name, commitId, link)
+            RefDocument(repositoryDocument, type, name, hash, link)
 
         fun RefDocument.toDto() = when (type) {
             RefType.BRANCH -> Branch(name, hash, link, repository.toDto())
@@ -51,7 +51,7 @@ interface OpenSearchService {
         }
 
         fun Commit.toDocument(repositoryDocument: RepositoryDocument) = CommitDocument(
-            repositoryDocument, id, message, date, author.toDocument(), parents, link
+            repositoryDocument, hash, message, date, author.toDocument(), parents, link
         )
 
         fun CommitDocument.toDto() =

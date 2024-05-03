@@ -110,7 +110,7 @@ abstract class BaseVcsFacadeTest(
             sshUrl,
             commitId,
             200,
-            { Assertions.assertEquals(commitIdName, it.id to it.message) },
+            { Assertions.assertEquals(commitIdName, it.hash to it.message) },
             checkError
         )
     }
@@ -155,7 +155,7 @@ abstract class BaseVcsFacadeTest(
         requestCommitsByIssueKey(
             issueKey,
             200,
-            { Assertions.assertEquals(expectedCommitIds, it.map { c -> c.id }) },
+            { Assertions.assertEquals(expectedCommitIds, it.map { c -> c.hash }) },
             checkError
         )
     }
@@ -258,7 +258,7 @@ abstract class BaseVcsFacadeTest(
 
     data class TestTag(val name: String, val commitId: String)
 
-    private fun Tag.toTestTag() = TestTag(name, commitId)
+    private fun Tag.toTestTag() = TestTag(name, hash)
 
     data class TestCommit(val id: String, val message: String, val parents: Set<String>)
 
@@ -266,7 +266,7 @@ abstract class BaseVcsFacadeTest(
     BitBucket does trim commit message, but GitLab/Gitea does not!
     TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
     */
-    private fun Commit.toTestCommit() = TestCommit(id, message.removeSuffix("\n"), parents.toSet())
+    private fun Commit.toTestCommit() = TestCommit(hash, message.removeSuffix("\n"), parents.toSet())
 
     private fun getTestCommits(resource: String) =
         OBJECT_MAPPER.readValue(

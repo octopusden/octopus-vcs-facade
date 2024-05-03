@@ -33,6 +33,7 @@ import org.gitlab4j.api.models.Tag as GitlabTag
 @ConditionalOnProperty(
     prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
+@Deprecated("Not used")
 class GitlabService(
     gitlabProperties: VcsConfig.GitlabProperties
 ) : VcsService(gitlabProperties) {
@@ -74,36 +75,40 @@ class GitlabService(
         }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromId: String): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromId)
+    override fun getCommits(group: String, repository: String, toHashOrRef: String, fromHashOrRef: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toHashOrRef, fromHashOrRef)
         val project = getProject(group, repository)
-        val toIdValue = getCommitByBranchOrId(project, toId).id
+        val toHash = getCommitByHashOrRef(project, toHashOrRef).id
+        val fromHash = getCommitByHashOrRef(project, fromHashOrRef).id
+        if (toHash == fromHash) {
+            return emptyList()
+        }
         val commits = retryableExecution {
-            client.commitsApi.getCommits(project.id, toIdValue, null, null, 100).asSequence().flatten()
+            client.commitsApi.getCommits(project.id, toHash, null, null, 100).asSequence().flatten()
                 .map { it.toCommit(group, repository) }.toList()
         }
-        return filterCommitGraph(group, repository, commits, fromId, null, toIdValue).also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromId, it)
+        return filterCommitGraph(group, repository, commits, fromHash, null, toHash).also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toHashOrRef, fromHashOrRef, it)
         }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromDate)
+    override fun getCommits(group: String, repository: String, toHashOrRef: String, fromDate: Date?): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toHashOrRef, fromDate)
         val project = getProject(group, repository)
-        val toIdValue = getCommitByBranchOrId(project, toId).id
+        val toHash = getCommitByHashOrRef(project, toHashOrRef).id
         val commits = retryableExecution {
-            client.commitsApi.getCommits(project.id, toIdValue, null, null, 100).asSequence().flatten()
+            client.commitsApi.getCommits(project.id, toHash, null, null, 100).asSequence().flatten()
                 .map { it.toCommit(group, repository) }.toList()
         }
-        return filterCommitGraph(group, repository, commits, null, fromDate, toIdValue).also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromDate, it)
+        return filterCommitGraph(group, repository, commits, null, fromDate, toHash).also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toHashOrRef, fromDate, it)
         }
     }
 
-    override fun getCommit(group: String, repository: String, id: String): Commit {
-        log.trace("=> getCommit({}, {}, {})", group, repository, id)
-        return getCommitByBranchOrId(getProject(group, repository), id).toCommit(group, repository).also {
-            log.trace("<= getCommit({}, {}, {}): {}", group, repository, id, it)
+    override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
+        log.trace("=> getCommit({}, {}, {})", group, repository, hashOrRef)
+        return getCommitByHashOrRef(getProject(group, repository), hashOrRef).toCommit(group, repository).also {
+            log.trace("<= getCommit({}, {}, {}): {}", group, repository, hashOrRef, it)
         }
     }
 
@@ -113,8 +118,8 @@ class GitlabService(
     ): PullRequest {
         log.trace("=> createPullRequest({}, {}, {})", group, repository, createPullRequest)
         val project = getProject(group, repository)
-        val sourceBranch = createPullRequest.sourceBranch.toShortBranchName()
-        val targetBranch = createPullRequest.targetBranch.toShortBranchName()
+        val sourceBranch = createPullRequest.sourceBranch.toShortRefName()
+        val targetBranch = createPullRequest.targetBranch.toShortRefName()
         retryableExecution("Source branch 'absent' not found in '$group:$repository'") {
             client.repositoryApi.getBranch(project.id, sourceBranch)
         }
@@ -139,16 +144,16 @@ class GitlabService(
         }
     }
 
-    override fun findCommits(group: String, repository: String, ids: Set<String>): List<Commit> {
-        log.trace("=> findCommits({}, {}, {})", group, repository, ids)
-        return ids.mapNotNull {
+    override fun findCommits(group: String, repository: String, hashes: Set<String>): List<Commit> {
+        log.trace("=> findCommits({}, {}, {})", group, repository, hashes)
+        return hashes.mapNotNull {
             try {
                 getCommit(group, repository, it)
             } catch (e: NotFoundException) {
                 null
             }
         }.also {
-            log.trace("<= findCommits({}, {}, {}): {}", group, repository, ids, it)
+            log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it)
         }
     }
 
@@ -180,14 +185,15 @@ class GitlabService(
         return emptyList()
     }
 
-    private fun getCommitByBranchOrId(project: Project, branchOrId: String): GitlabCommit {
-        val shortBranchName = branchOrId.toShortBranchName()
-        val id = retryableExecution {
-            client.repositoryApi.getBranches(project, shortBranchName)
-                .firstOrNull { b -> b.name == shortBranchName }?.commit?.id
-        } ?: branchOrId
-        return retryableExecution("Commit '$id' does not exist in repository '${project.namespace.path}:${project.name}'.") {
-            client.commitsApi.getCommit(project.id, id)
+    private fun getCommitByHashOrRef(project: Project, hashOrRef: String): GitlabCommit {
+        val shortRefName = hashOrRef.toShortRefName()
+        val hash = retryableExecution {
+            client.repositoryApi.getBranches(project, shortRefName).firstOrNull { b -> b.name == shortRefName }?.commit?.id
+        } ?: retryableExecution {
+            client.tagsApi.getTags(project.id).firstOrNull { t -> t.name == shortRefName }?.commit?.id
+        } ?: hashOrRef
+        return retryableExecution("Commit '$hash' does not exist in repository '${project.namespace.path}:${project.name}'.") {
+            client.commitsApi.getCommit(project.id, hash)
         }
     }
 
@@ -288,21 +294,21 @@ class GitlabService(
         namespace: String,
         project: String,
         commits: List<Commit>,
-        fromId: String?,
+        fromHash: String?,
         fromDate: Date?,
-        toIdValue: String
+        toHash: String
     ): List<Commit> {
-        val graph = commits.map { commit -> commit.id to commit }.toMap()
+        val graph = commits.map { commit -> commit.hash to commit }.toMap()
         log.trace("Graph has {} items: {}", graph.size, graph)
-        val releasedCommits = fromId?.let { fromIdValue ->
-            val exceptionFunction: (commitId: String) -> NotFoundException = { commit ->
-                getCommit(namespace, project, fromIdValue)
+        val releasedCommits = fromHash?.let { fromHashValue ->
+            val exceptionFunction: (hash: String) -> NotFoundException = { commit ->
+                getCommit(namespace, project, fromHashValue)
                 NotFoundException("Can't find commit '$commit' in graph but it exists in the '$namespace:$project'")
             }
-            graph.findReleasedCommits(fromIdValue, exceptionFunction)
+            graph.findReleasedCommits(fromHashValue, exceptionFunction)
         } ?: emptySet()
-        val rootCommit = graph[toIdValue]
-            ?: throw NotFoundException("Commit '$toIdValue' does not exist in repository '$namespace:$project'.")
+        val rootCommit = graph[toHash]
+            ?: throw NotFoundException("Commit '$toHash' does not exist in repository '$namespace:$project'.")
         // Classical dfs to find all commits that should be passed to release
         val stack = Stack<Commit>().also { it.push(rootCommit) }
         val visited = mutableSetOf<Commit>()
@@ -312,7 +318,7 @@ class GitlabService(
             currentCommit.parents.map { graph[it]!! }.filter { it !in visited && it !in releasedCommits }
                 .forEach { stack.add(it) }
         }
-        val filter = fromId?.let { _ ->
+        val filter = fromHash?.let { _ ->
             { true }
         } ?: fromDate?.let { fromDateValue -> { c: Commit -> c.date > fromDateValue } } ?: { true }
         return visited.filter(filter)
@@ -321,12 +327,12 @@ class GitlabService(
     companion object {
         private val log = LoggerFactory.getLogger(GitlabService::class.java)
 
-        private fun String.toShortBranchName() = replace("^refs/heads/".toRegex(), "")
+        private fun String.toShortRefName() = replace("^refs/heads/".toRegex(), "")
 
         private fun Map<String, Commit>.findReleasedCommits(
-            lastReleaseId: String, errorFunction: (commitId: String) -> Exception
+            lastReleaseHash: String, errorFunction: (hash: String) -> Exception
         ): Set<Commit> {
-            val releaseCommit = get(lastReleaseId) ?: throw errorFunction(lastReleaseId)
+            val releaseCommit = get(lastReleaseHash) ?: throw errorFunction(lastReleaseHash)
             val visited = mutableSetOf<Commit>()
             val stack = Stack<Commit>().also { it.push(releaseCommit) }
             while (stack.isNotEmpty()) {
