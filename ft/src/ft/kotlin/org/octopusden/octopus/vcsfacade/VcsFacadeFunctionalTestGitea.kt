@@ -22,7 +22,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             "absent-repo" to "The target couldn't be found.",
             "commitById" to DEFAULT_ID,
             "commitsException_1" to "object does not exist [id: $DEFAULT_ID, rel_path: ]",
-            "commitsException_2" to "Params 'fromId' and 'fromDate' can not be used together",
+            "commitsException_2" to "Params 'fromHashOrRef' and 'fromDate' can not be used together",
             "commitsException_3" to "Cannot find commit '${MESSAGE_3.commitId(REPOSITORY)}' in commit graph for commit '${
                 MESSAGE_1.commitId(
                     REPOSITORY

@@ -60,11 +60,11 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/1/repository/commits")
+            MockMvcRequestBuilders.get("/rest/api/2/repository/commits")
                 .param("sshUrl", sshUrl)
-                .param("to", toId)
-                .param("from", fromId)
+                .param("fromHashOrRef", fromId)
                 .param("fromDate", fromDate?.toVcsFacadeFormat())
+                .param("toHashOrRef", toId)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
@@ -81,9 +81,9 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/1/repository/commit")
+            MockMvcRequestBuilders.get("/rest/api/2/repository/commit")
                 .param("sshUrl", sshUrl)
-                .param("commitId", commitId)
+                .param("hashOrRef", commitId)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
@@ -99,7 +99,7 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/1/repository/tags")
+            MockMvcRequestBuilders.get("/rest/api/2/repository/tags")
                 .param("sshUrl", sshUrl)
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -116,7 +116,7 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
         checkError: CheckError
     ) {
         val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/1/repository/find/$issueKey/commits")
+            MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits")
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
@@ -133,7 +133,7 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
     ) {
         val content = mapper.writeValueAsString(searchRequest)
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/rest/api/1/repository/search-issues-in-ranges")
+            MockMvcRequestBuilders.post("/rest/api/2/repository/search-issues-in-ranges")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)
                 .accept(MediaType.APPLICATION_JSON)
@@ -159,7 +159,7 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
     ) {
         val content = mapper.writeValueAsString(createPullRequest)
         val response = mvc.perform(
-            MockMvcRequestBuilders.post("/rest/api/1/repository/pull-requests", sshUrl)
+            MockMvcRequestBuilders.post("/rest/api/2/repository/pull-requests", sshUrl)
                 .param("sshUrl", sshUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content)

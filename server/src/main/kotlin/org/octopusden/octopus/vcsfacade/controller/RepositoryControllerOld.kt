@@ -219,11 +219,11 @@ class RepositoryControllerOld(
             }
         }
 
-        private fun Commit.toOld() = CommitOld(id, message, date, author.name, parents, repository.sshUrl)
+        private fun Commit.toOld() = CommitOld(hash, message, date, author.name, parents, repository.sshUrl)
 
         data class TagOld(val commitId: String, val name: String)
 
-        private fun Tag.toOld() = TagOld(commitId, name)
+        private fun Tag.toOld() = TagOld(hash, name)
 
         data class PullRequestResponse(val id: Long)
 
@@ -231,7 +231,7 @@ class RepositoryControllerOld(
 
         data class RepositoryRangeOld(val vcsPath: String, val fromCid: String?, val fromDate: Date?, val toCid: String)
 
-        private fun RepositoryRange.toOld() = RepositoryRangeOld(sshUrl, fromCid, fromDate, toCid)
+        private fun RepositoryRange.toOld() = RepositoryRangeOld(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
         private fun RepositoryRangeOld.toNew() = RepositoryRange(vcsPath, fromCid, fromDate, toCid)
 

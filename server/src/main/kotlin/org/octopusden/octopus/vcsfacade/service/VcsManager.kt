@@ -12,8 +12,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
 interface VcsManager {
     fun getTags(sshUrl: String): List<Tag>
-    fun getCommits(sshUrl: String, fromId: String?, fromDate: Date?, toId: String): List<Commit>
-    fun getCommit(sshUrl: String, id: String): Commit
+    fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): List<Commit>
+    fun getCommit(sshUrl: String, hashOrRef: String): Commit
     fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
     fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
     fun findBranches(issueKey: String): List<Branch>

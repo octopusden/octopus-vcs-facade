@@ -74,23 +74,23 @@ class BitbucketService(
         }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromId: String): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromId)
-        return bitbucketClient.getCommits(group, repository, toId, fromId).map { it.toCommit(group, repository) }.also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromId, it)
+    override fun getCommits(group: String, repository: String, fromHashOrRef: String, toHashOrRef: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, fromHashOrRef, toHashOrRef)
+        return bitbucketClient.getCommits(group, repository, toHashOrRef, fromHashOrRef).map { it.toCommit(group, repository) }.also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromHashOrRef, toHashOrRef, it)
         }
     }
 
-    override fun getCommits(group: String, repository: String, toId: String, fromDate: Date?): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toId, fromDate)
-        return bitbucketClient.getCommits(group, repository, toId, fromDate).map { it.toCommit(group, repository) }
-            .also { log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toId, fromDate, it) }
+    override fun getCommits(group: String, repository: String, fromDate: Date?, toHashOrRef: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, fromDate, toHashOrRef)
+        return bitbucketClient.getCommits(group, repository, toHashOrRef, fromDate).map { it.toCommit(group, repository) }
+            .also { log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromDate, toHashOrRef, it) }
     }
 
-    override fun getCommit(group: String, repository: String, id: String): Commit {
-        log.trace("=> getCommit({}, {}, {})", group, repository, id)
-        return bitbucketClient.getCommit(group, repository, id).toCommit(group, repository).also {
-            log.trace("<= getCommit({}, {}, {}): {}", group, repository, id, it)
+    override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
+        log.trace("=> getCommit({}, {}, {})", group, repository, hashOrRef)
+        return bitbucketClient.getCommit(group, repository, hashOrRef).toCommit(group, repository).also {
+            log.trace("<= getCommit({}, {}, {}): {}", group, repository, hashOrRef, it)
         }
     }
 
@@ -117,16 +117,16 @@ class BitbucketService(
         }
     }
 
-    override fun findCommits(group: String, repository: String, ids: Set<String>): List<Commit> {
-        log.trace("=> findCommits({}, {}, {})", group, repository, ids)
-        return ids.mapNotNull {
+    override fun findCommits(group: String, repository: String, hashes: Set<String>): List<Commit> {
+        log.trace("=> findCommits({}, {}, {})", group, repository, hashes)
+        return hashes.mapNotNull {
             try {
                 bitbucketClient.getCommit(group, repository, it).toCommit(group, repository)
             } catch (e: NotFoundException) {
                 null
             }
         }.also {
-            log.trace("<= findCommits({}, {}, {}): {}", group, repository, ids, it)
+            log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it)
         }
     }
 

@@ -11,13 +11,13 @@ import java.util.Objects
     visible = true
 )
 @JsonSubTypes(
-    JsonSubTypes.Type(Tag::class, name = "TAG"),
-    JsonSubTypes.Type(Branch::class, name = "BRANCH")
+    JsonSubTypes.Type(Branch::class, name = "BRANCH"),
+    JsonSubTypes.Type(Tag::class, name = "TAG")
 )
 abstract class Ref(
     val type: RefType,
     val name: String,
-    val commitId: String,
+    val hash: String,
     val link: String,
     val repository: Repository
 ) : Comparable<Ref> {
@@ -28,11 +28,11 @@ abstract class Ref(
         if (other !is Ref) return false
         if (type != other.type) return false
         if (name != other.name) return false
-        if (commitId != other.commitId) return false
+        if (hash != other.hash) return false
         if (link != other.link) return false
         if (repository != other.repository) return false
         return true
     }
 
-    override fun hashCode() = Objects.hash(type, name, commitId, link, repository)
+    override fun hashCode() = Objects.hash(type, name, hash, link, repository)
 }

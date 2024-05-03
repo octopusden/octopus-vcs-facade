@@ -8,10 +8,17 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
+import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
@@ -34,8 +41,9 @@ import org.springframework.web.bind.annotation.RestController
 
 
 @RestController
-@RequestMapping("rest/api/2/repository")
-class RepositoryController(
+@RequestMapping("rest/api/1/repository")
+@Deprecated(message = "Deprecated controller", replaceWith = ReplaceWith("RepositoryController"))
+class RepositoryControllerV1(
     private val jobProperties: JobConfig.JobProperties,
     private val vcsManager: VcsManager,
     @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
@@ -45,45 +53,35 @@ class RepositoryController(
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommits(
         @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
+        @RequestParam("to") to: String,
+        @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
-        @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info(
-            "Get commits ({},{}] in `{}` repository",
-            (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
-            toHashOrRef,
-            sshUrl
-        )
-        RepositoryResponse(vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef))
-    }.data.sorted()
+        log.info("Get commits ({},{}] in `{}` repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
+        RepositoryResponse(vcsManager.getCommits(sshUrl, from, fromDate, to))
+    }.data.sorted().map { it.toV1() }
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getCommit(
-        @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("hashOrRef") hashOrRef: String
-    ): Commit {
-        log.info("Get commit {} in `{}` repository", hashOrRef, sshUrl)
-        return vcsManager.getCommit(sshUrl, hashOrRef)
+    fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String): CommitV1 {
+        log.info("Get commit {} in `{}` repository", commitId, sshUrl)
+        return vcsManager.getCommit(sshUrl, commitId).toV1()
     }
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getIssuesFromCommits(
         @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
+        @RequestParam("to") to: String,
+        @RequestParam("from", required = false) from: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
-        @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
             "Find issue keys in commits ({},{}] in `{}` repository",
-            (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
-            toHashOrRef,
-            sshUrl
+            (from ?: fromDate?.toString()).orEmpty(), to, sshUrl
         )
         RepositoryResponse(
-            vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+            vcsManager.getCommits(sshUrl, from, fromDate, to)
                 .flatMap { IssueKeyParser.findIssueKeys(it.message) }.distinct()
         )
     }.data.sorted()
@@ -96,7 +94,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get tags in `{}` repository", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl))
-    }.data.sorted()
+    }.data.sorted().map { it.toV1() }
 
     @PostMapping(
         "search-issues-in-ranges",
@@ -104,17 +102,16 @@ class RepositoryController(
         produces = [MediaType.APPLICATION_JSON_VALUE]
     )
     fun searchIssuesInRanges(
-        @RequestBody searchRequest: SearchIssuesInRangesRequest,
+        @RequestBody searchRequest: SearchIssuesInRangesRequestV1,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Search issue keys {} in specified commit ranges", searchRequest.issueKeys)
-        vcsManager.searchIssuesInRanges(searchRequest)
+        log.info("Search issue keys {} in specified commit ranges", searchRequest.issues)
+        vcsManager.searchIssuesInRanges(searchRequest.toNew()).toV1()
     }
 
     @PostMapping("pull-requests")
     fun createPullRequest(
-        @RequestParam("sshUrl") sshUrl: String,
-        @RequestBody createPullRequest: CreatePullRequest
+        @RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest
     ): PullRequest {
         log.info(
             "Create pull request ({} -> {}) in `{}` repository",
@@ -141,7 +138,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find branches by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findBranches(issueKey))
-    }.data.sorted()
+    }.data.sorted().map { it.toV1() }
 
     @GetMapping("find/{issueKey}/commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsByIssueKey(
@@ -150,7 +147,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findCommits(issueKey))
-    }.data.sorted()
+    }.data.sorted().map { it.toV1() }
 
     @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findPullRequestsByIssueKey(
@@ -193,6 +190,53 @@ class RepositoryController(
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(RepositoryController::class.java)
+        private val log = LoggerFactory.getLogger(RepositoryControllerV1::class.java)
+
+        abstract class RefV1(
+            val type: RefType,
+            val name: String,
+            val commitId: String,
+            val link: String,
+            val repository: Repository
+        )
+
+        class BranchV1(name: String, commitId: String, link: String, repository: Repository) :
+            RefV1(RefType.BRANCH, name, commitId, link, repository)
+
+        private fun Branch.toV1() = BranchV1(name, hash, link, repository)
+
+        class TagV1(name: String, commitId: String, link: String, repository: Repository) :
+            RefV1(RefType.TAG, name, commitId, link, repository)
+
+        private fun Tag.toV1() = TagV1(name, hash, link, repository)
+
+        data class CommitV1(
+            val id: String,
+            val message: String,
+            val date: Date,
+            val author: User,
+            val parents: List<String>,
+            val link: String,
+            val repository: Repository
+        )
+
+        private fun Commit.toV1() = CommitV1(hash, message, date, author, parents, link, repository)
+
+        data class RepositoryRangeV1(val sshUrl: String, val fromCid: String?, val fromDate: Date?, val toCid: String)
+
+        private fun RepositoryRange.toV1() = RepositoryRangeV1(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+
+        private fun RepositoryRangeV1.toNew() = RepositoryRange(sshUrl, fromCid, fromDate, toCid)
+
+        data class SearchIssuesInRangesRequestV1(val issues: Set<String>, val ranges: Set<RepositoryRangeV1>)
+
+        private fun SearchIssuesInRangesRequestV1.toNew() =
+            SearchIssuesInRangesRequest(issues, ranges.map { range -> range.toNew() }.toSet())
+
+        data class SearchIssueInRangesResponseV1(val issueRanges: Map<String, Set<RepositoryRangeV1>>) :
+            VcsFacadeResponse
+
+        private fun SearchIssueInRangesResponse.toV1() =
+            SearchIssueInRangesResponseV1(issueRanges.mapValues { it.value.map { range -> range.toV1() }.toSet() })
     }
 }
