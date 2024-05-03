@@ -14,23 +14,23 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
 interface VcsFacadeClient {
-    @RequestLine("GET rest/api/2/repository/commits?sshUrl={sshUrl}&toHashOrRef={toHashOrRef}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}")
+    @RequestLine("GET rest/api/2/repository/commits?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}")
     fun getCommits(
         @Param("sshUrl") sshUrl: String,
-        @Param("toHashOrRef") toHashOrRef: String,
         @Param("fromHashOrRef") fromHashOrRef: String?,
-        @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?
+        @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
+        @Param("toHashOrRef") toHashOrRef: String
     ): List<Commit>
 
     @RequestLine("GET rest/api/2/repository/commit?sshUrl={sshUrl}&hashOrRef={hashOrRef}")
     fun getCommit(@Param("sshUrl") sshUrl: String, @Param("hashOrRef") hashOrRef: String): Commit
 
-    @RequestLine("GET rest/api/2/repository/issues?sshUrl={sshUrl}&toHashOrRef={toHashOrRef}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}")
+    @RequestLine("GET rest/api/2/repository/issues?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}")
     fun getIssuesFromCommits(
         @Param("sshUrl") sshUrl: String,
-        @Param("toHashOrRef") toHashOrRef: String,
         @Param("fromHashOrRef") fromHashOrRef: String?,
-        @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?
+        @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
+        @Param("toHashOrRef") toHashOrRef: String
     ): List<String>
 
     @RequestLine("GET rest/api/2/repository/tags?sshUrl={sshUrl}")

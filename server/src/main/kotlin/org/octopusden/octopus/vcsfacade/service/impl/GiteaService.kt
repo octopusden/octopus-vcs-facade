@@ -108,21 +108,21 @@ class GiteaService(
         }
     }
 
-    override fun getCommits(group: String, repository: String, toHashOrRef: String, fromHashOrRef: String): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toHashOrRef, fromHashOrRef)
+    override fun getCommits(group: String, repository: String, fromHashOrRef: String, toHashOrRef: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, fromHashOrRef, toHashOrRef)
         return with(getRepository(group, repository)) {
             client.getCommits(group, repository, toHashOrRef, fromHashOrRef).map { it.toCommit(this) }
         }.also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toHashOrRef, fromHashOrRef, it)
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromHashOrRef, toHashOrRef, it)
         }
     }
 
-    override fun getCommits(group: String, repository: String, toHashOrRef: String, fromDate: Date?): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, toHashOrRef, fromDate)
+    override fun getCommits(group: String, repository: String, fromDate: Date?, toHashOrRef: String): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, fromDate, toHashOrRef)
         return with(getRepository(group, repository)) {
             client.getCommits(group, repository, toHashOrRef, fromDate).map { it.toCommit(this) }
         }.also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, toHashOrRef, fromDate, it)
+            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromDate, toHashOrRef, it)
         }
     }
 

@@ -53,10 +53,10 @@ class VcsManagerImpl(
             if (fromHashOrRef == toHashOrRef) {
                 emptyList()
             } else {
-                vcsService.getCommits(group, repository, toHashOrRef, fromHashOrRef)
+                vcsService.getCommits(group, repository, fromHashOrRef, toHashOrRef)
             }
         } else {
-            vcsService.getCommits(group, repository, toHashOrRef, fromDate)
+            vcsService.getCommits(group, repository, fromDate, toHashOrRef)
         }
         log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, commits)
         return commits

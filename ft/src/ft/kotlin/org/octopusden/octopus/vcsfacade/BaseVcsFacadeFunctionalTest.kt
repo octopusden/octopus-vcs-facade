@@ -40,7 +40,7 @@ abstract class BaseVcsFacadeFunctionalTest(testClient: TestClient, sshUrlFormat:
         checkError: CheckError
     ) {
         try {
-            val commits = client.getCommits(sshUrl, toId, fromId, fromDate)
+            val commits = client.getCommits(sshUrl, fromId, fromDate, toId)
             checkSuccess(commits)
         } catch (e: NotFoundException) {
             checkError(Pair(400, e.message!!))

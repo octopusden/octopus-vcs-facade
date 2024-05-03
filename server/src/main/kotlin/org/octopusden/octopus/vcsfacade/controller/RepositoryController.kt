@@ -45,9 +45,9 @@ class RepositoryController(
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommits(
         @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
+        @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
@@ -71,9 +71,9 @@ class RepositoryController(
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getIssuesFromCommits(
         @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
+        @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(

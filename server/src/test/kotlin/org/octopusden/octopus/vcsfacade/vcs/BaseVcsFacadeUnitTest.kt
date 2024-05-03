@@ -62,9 +62,9 @@ abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: Strin
         val response = mvc.perform(
             MockMvcRequestBuilders.get("/rest/api/2/repository/commits")
                 .param("sshUrl", sshUrl)
-                .param("toHashOrRef", toId)
                 .param("fromHashOrRef", fromId)
                 .param("fromDate", fromDate?.toVcsFacadeFormat())
+                .param("toHashOrRef", toId)
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(MockMvcResultMatchers.status().`is`(status))
