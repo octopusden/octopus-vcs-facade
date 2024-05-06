@@ -32,6 +32,7 @@ interface OpenSearchService {
     fun saveCommits(commits: List<CommitDocument>)
     fun deleteCommitsByIds(commitsIds: List<String>)
     fun deleteCommitsByRepositoryId(repositoryId: String)
+    fun findPullRequestById(pullRequestId: String): PullRequestDocument?
     fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument>
     fun savePullRequests(pullRequests: List<PullRequestDocument>)
     fun deletePullRequestsByIds(pullRequestsIds: List<String>)

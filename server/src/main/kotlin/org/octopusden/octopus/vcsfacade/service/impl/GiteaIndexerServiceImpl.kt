@@ -6,6 +6,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaShortCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
@@ -80,18 +81,24 @@ class GiteaIndexerServiceImpl(
     override fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent) {
         log.trace("=> registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
         val indexPullRequest = giteaPullRequestEvent.toPullRequestDocument()
+        val removeOrphanedCommits = if (indexPullRequest.status == PullRequestStatus.MERGED)
+            openSearchService.findPullRequestById(indexPullRequest.id)?.status != PullRequestStatus.MERGED
+        else false
         openSearchService.savePullRequests(listOf(indexPullRequest))
-        val indexCommitsIds = openSearchService.findCommitsByRepositoryId(indexPullRequest.repository.id).map { it.id }
-        val commitsIds = giteaService.getBranchesCommitGraph(
-            indexPullRequest.repository.group,
-            indexPullRequest.repository.name
-        ).map { it.toDocument(indexPullRequest.repository).id }.toSet()
-        val orphanedCommitsIds = indexCommitsIds - commitsIds
-        logIndexActionMessage(
-            "Remove ${orphanedCommitsIds.size} commit(s) from index for `${indexPullRequest.repository.fullName}` $GITEA repository",
-            orphanedCommitsIds
-        )
-        openSearchService.deleteCommitsByIds(orphanedCommitsIds)
+        if (removeOrphanedCommits) {
+            val indexCommitsIds =
+                openSearchService.findCommitsByRepositoryId(indexPullRequest.repository.id).map { it.id }
+            val commitsIds = giteaService.getBranchesCommitGraph(
+                indexPullRequest.repository.group,
+                indexPullRequest.repository.name
+            ).map { it.toDocument(indexPullRequest.repository).id }.toSet()
+            val orphanedCommitsIds = indexCommitsIds - commitsIds
+            logIndexActionMessage(
+                "Remove ${orphanedCommitsIds.size} commit(s) from index for `${indexPullRequest.repository.fullName}` $GITEA repository",
+                orphanedCommitsIds
+            )
+            openSearchService.deleteCommitsByIds(orphanedCommitsIds)
+        }
         log.trace("<= registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
     }
 

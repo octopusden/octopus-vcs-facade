@@ -115,6 +115,13 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteCommitsByRepositoryId({})", repositoryId)
     }
 
+    override fun findPullRequestById(pullRequestId: String): PullRequestDocument? {
+        log.trace("=> findPullRequestById({})", pullRequestId)
+        return pullRequestRepository.findById(pullRequestId).getOrNull().also {
+            log.trace("<= findPullRequestById({}): {}", pullRequestId, it)
+        }
+    }
+
     override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
         return fetchAll { id ->
