@@ -79,7 +79,19 @@ class GiteaIndexerServiceImpl(
 
     override fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent) {
         log.trace("=> registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
-        openSearchService.savePullRequests(listOf(giteaPullRequestEvent.toPullRequestDocument()))
+        val indexPullRequest = giteaPullRequestEvent.toPullRequestDocument()
+        openSearchService.savePullRequests(listOf(indexPullRequest))
+        val indexCommitsIds = openSearchService.findCommitsByRepositoryId(indexPullRequest.repository.id).map { it.id }
+        val commitsIds = giteaService.getBranchesCommitGraph(
+            indexPullRequest.repository.group,
+            indexPullRequest.repository.name
+        ).map { it.toDocument(indexPullRequest.repository).id }.toSet()
+        val orphanedCommitsIds = indexCommitsIds - commitsIds
+        logIndexActionMessage(
+            "Remove ${orphanedCommitsIds.size} commit(s) from index for `${indexPullRequest.repository.fullName}` $GITEA repository",
+            orphanedCommitsIds
+        )
+        openSearchService.deleteCommitsByIds(orphanedCommitsIds)
         log.trace("<= registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
     }
 
@@ -101,52 +113,46 @@ class GiteaIndexerServiceImpl(
             try {
                 if (giteaService.isRepositoryExist(repositoryDocument.group, repositoryDocument.name)) {
                     with(openSearchService.saveRepository(repositoryDocument.apply { lastScanAt = Date() })) {
+                        val indexRefsIds = openSearchService.findRefsByRepositoryId(id).map { it.id }
                         val refs = giteaService.getBranches(group, name).map { it.toDocument(this) } +
                                 giteaService.getTags(group, name).map { it.toDocument(this) }
-                        val indexRefs = openSearchService.findRefsByRepositoryId(id)
-                        val orphanedRefsIds = refs.toSet().let { refsSet ->
-                            indexRefs.mapNotNull { if (refsSet.contains(it)) null else it.id }
-                        }
-                        logRepositoryScanMessage(
+                        val orphanedRefsIds = indexRefsIds - refs.map { it.id }.toSet()
+                        logIndexActionMessage(
                             "Remove ${orphanedRefsIds.size} ref(s) from index for `$fullName` $GITEA repository",
                             orphanedRefsIds
                         )
                         openSearchService.deleteRefsByIds(orphanedRefsIds)
-                        logRepositoryScanMessage(
+                        logIndexActionMessage(
                             "Save ${refs.size} ref(s) in index for `$fullName` $GITEA repository ",
                             refs
                         )
                         openSearchService.saveRefs(refs)
+                        val indexCommitsIds = openSearchService.findCommitsByRepositoryId(id).map { it.id }
                         val commits = giteaService.getBranchesCommitGraph(group, name).map { it.toDocument(this) }
-                        val indexCommits = openSearchService.findCommitsByRepositoryId(id)
-                        val orphanedCommitsIds = commits.toSet().let { commitsSet ->
-                            indexCommits.mapNotNull { if (commitsSet.contains(it)) null else it.id }
-                        }
-                        logRepositoryScanMessage(
+                        val orphanedCommitsIds = indexCommitsIds - commits.map { it.id }.toSet()
+                        logIndexActionMessage(
                             "Remove ${orphanedCommitsIds.size} commit(s) from index for `$fullName` $GITEA repository",
                             orphanedCommitsIds
                         )
                         openSearchService.deleteCommitsByIds(orphanedCommitsIds)
-                        logRepositoryScanMessage(
+                        logIndexActionMessage(
                             "Save ${commits.size} commits(s) in index for `$fullName` $GITEA repository ",
                             commits
                         )
                         openSearchService.saveCommits(commits)
+                        val indexPullRequestsIds = openSearchService.findPullRequestsByRepositoryId(id).map { it.id }
                         val pullRequests = try {
                             giteaService.getPullRequests(group, name)
                         } catch (e: NotFoundException) {
                             emptyList() //for some reason Gitea returns 404 in case of empty repository
                         }.map { it.toDocument(this) }
-                        val indexPullRequests = openSearchService.findPullRequestsByRepositoryId(id)
-                        val orphanedPullRequestsIds = pullRequests.toSet().let { pullRequestsSet ->
-                            indexPullRequests.mapNotNull { if (pullRequestsSet.contains(it)) null else it.id }
-                        }
-                        logRepositoryScanMessage(
+                        val orphanedPullRequestsIds = indexPullRequestsIds - pullRequests.map { it.id }.toSet()
+                        logIndexActionMessage(
                             "Remove ${orphanedPullRequestsIds.size} pull request(s) from index for `$fullName` $GITEA repository",
                             orphanedPullRequestsIds
                         )
                         openSearchService.deletePullRequestsByIds(orphanedPullRequestsIds)
-                        logRepositoryScanMessage(
+                        logIndexActionMessage(
                             "Save ${pullRequests.size} pull request(s) in index for `$fullName` $GITEA repository ",
                             pullRequests
                         )
@@ -226,7 +232,7 @@ class GiteaIndexerServiceImpl(
     companion object {
         private val log = LoggerFactory.getLogger(GiteaIndexerServiceImpl::class.java)
 
-        private fun logRepositoryScanMessage(message: String, documents: Collection<Any>) {
+        private fun logIndexActionMessage(message: String, documents: Collection<Any>) {
             if (log.isTraceEnabled) {
                 log.trace("$message: $documents")
             } else if (log.isDebugEnabled) {
