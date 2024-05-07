@@ -15,15 +15,16 @@ import org.octopusden.octopus.vcsfacade.document.PullRequestDocument
 import org.octopusden.octopus.vcsfacade.document.PullRequestReviewerDocument
 import org.octopusden.octopus.vcsfacade.document.RefDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
+import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
 import org.octopusden.octopus.vcsfacade.document.UserDocument
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 
 
 interface OpenSearchService {
-    fun getRepositories(type: VcsServiceType): Set<RepositoryDocument>
-    fun findRepositoryById(repositoryId: String): RepositoryDocument?
-    fun saveRepository(repository: RepositoryDocument): RepositoryDocument
-    fun deleteRepository(repository: RepositoryDocument)
+    fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument>
+    fun findRepositoryInfoByRepositoryId(repositoryId: String): RepositoryInfoDocument?
+    fun saveRepositoriesInfo(repositoriesInfo: List<RepositoryInfoDocument>)
+    fun deleteRepositoryInfo(repositoryInfo: RepositoryInfoDocument)
     fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument>
     fun saveRefs(refs: List<RefDocument>)
     fun deleteRefsByIds(refsIds: List<String>)
@@ -32,7 +33,6 @@ interface OpenSearchService {
     fun saveCommits(commits: List<CommitDocument>)
     fun deleteCommitsByIds(commitsIds: List<String>)
     fun deleteCommitsByRepositoryId(repositoryId: String)
-    fun findPullRequestById(pullRequestId: String): PullRequestDocument?
     fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument>
     fun savePullRequests(pullRequests: List<PullRequestDocument>)
     fun deletePullRequestsByIds(pullRequestsIds: List<String>)
