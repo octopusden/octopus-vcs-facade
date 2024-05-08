@@ -40,9 +40,9 @@ class OpenSearchServiceImpl(
             .also { log.trace("<= findRepositoriesInfoByRepositoryType({}): {}", type, it) }
     }
 
-    override fun findRepositoryInfoByRepositoryId(repositoryId: String): RepositoryInfoDocument? {
+    override fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument? {
         log.trace("=> findRepositoryInfoByRepositoryId({})", repositoryId)
-        return repositoryInfoRepository.findByRepositoryId(repositoryId).also {
+        return repositoryInfoRepository.findById(repositoryId).getOrNull().also {
             log.trace("<= findRepositoryInfoByRepositoryId({}): {}", repositoryId, it)
         }
     }
@@ -53,10 +53,10 @@ class OpenSearchServiceImpl(
         log.trace("<= saveRepositoriesInfo({})", repositoriesInfo)
     }
 
-    override fun deleteRepositoryInfo(repositoryInfo: RepositoryInfoDocument) {
-        log.trace("=> deleteRepositoryInfo({})", repositoryInfo)
-        repositoryInfoRepository.delete(repositoryInfo)
-        log.trace("<= deleteRepositoryInfo({})", repositoryInfo)
+    override fun deleteRepositoryInfoById(repositoryId: String) {
+        log.trace("=> deleteRepositoryInfo({})", repositoryId)
+        repositoryInfoRepository.deleteById(repositoryId)
+        log.trace("<= deleteRepositoryInfo({})", repositoryId)
     }
 
     override fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument> {

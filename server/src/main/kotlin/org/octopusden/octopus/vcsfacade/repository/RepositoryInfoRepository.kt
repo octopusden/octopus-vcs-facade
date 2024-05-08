@@ -10,5 +10,4 @@ import org.springframework.data.repository.CrudRepository
 )
 interface RepositoryInfoRepository : CrudRepository<RepositoryInfoDocument, String> {
     fun searchFirst1000ByRepositoryTypeAndIdAfterOrderByIdAsc(type: VcsServiceType, id: String): List<RepositoryInfoDocument>
-    fun findByRepositoryId(repositoryId: String): RepositoryInfoDocument?
 }

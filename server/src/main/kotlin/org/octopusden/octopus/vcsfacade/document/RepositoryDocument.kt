@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade.document
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.springframework.data.elasticsearch.annotations.Field
 import org.springframework.data.elasticsearch.annotations.FieldType
@@ -13,6 +14,7 @@ class RepositoryDocument(
     @Field(type = FieldType.Keyword) val link: String,
     @Field(type = FieldType.Keyword) val avatar: String?
 ) : BaseDocument(id(type, group, name)) {
+    @JsonIgnore //do not store in index
     val fullName = "$group/$name"
 
     override fun toString() =

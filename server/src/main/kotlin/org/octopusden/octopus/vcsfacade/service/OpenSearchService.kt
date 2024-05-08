@@ -22,9 +22,9 @@ import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 
 interface OpenSearchService {
     fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument>
-    fun findRepositoryInfoByRepositoryId(repositoryId: String): RepositoryInfoDocument?
+    fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument?
     fun saveRepositoriesInfo(repositoriesInfo: List<RepositoryInfoDocument>)
-    fun deleteRepositoryInfo(repositoryInfo: RepositoryInfoDocument)
+    fun deleteRepositoryInfoById(repositoryId: String)
     fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument>
     fun saveRefs(refs: List<RefDocument>)
     fun deleteRefsByIds(refsIds: List<String>)

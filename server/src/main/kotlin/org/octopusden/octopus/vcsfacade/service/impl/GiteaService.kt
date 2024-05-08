@@ -62,8 +62,6 @@ class GiteaService(
 
     override val sshUrlRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
 
-    override fun getSshUrl(group: String, repository: String) = "ssh://git@$host/$group/$repository.git"
-
     fun getRepositories(): List<Repository> {
         log.trace("=> getRepositories()")
         return client.getOrganizations().flatMap { client.getRepositories(it.name) }.map { toRepository(it) }.also {
@@ -71,15 +69,14 @@ class GiteaService(
         }
     }
 
-    fun isRepositoryExist(group: String, repository: String): Boolean {
-        log.trace("=> isRepositoryExist({}, {})", group, repository)
+    fun findRepository(group: String, repository: String): Repository? {
+        log.trace("=> findRepository({}, {})", group, repository)
         return try {
-            client.getRepository(group, repository)
-            true
+            toRepository(client.getRepository(group, repository))
         } catch (e: NotFoundException) {
-            false
+            null
         }.also {
-            log.trace("<= isRepositoryExist({}, {}): {}", group, repository, it)
+            log.trace("<= findRepository({}, {}): {}", group, repository, it)
         }
     }
 
@@ -238,19 +235,15 @@ class GiteaService(
     }
 
     fun toRepository(giteaRepository: GiteaRepository): Repository {
-        val (organization, repository) = giteaRepository.toOrganizationAndRepository()
-        return Repository(getSshUrl(organization, repository),
+        val repository = giteaRepository.name.lowercase()
+        val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
+        return Repository("ssh://git@$host/$organization/$repository.git",
             "$httpUrl/$organization/$repository",
             giteaRepository.avatarUrl.ifBlank { null })
     }
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)
-
-        fun GiteaRepository.toOrganizationAndRepository(): Pair<String, String> {
-            val repositoryFullNameParts = fullName.lowercase().split("/")
-            return repositoryFullNameParts[0] to repositoryFullNameParts[1]
-        }
 
         fun GiteaBranch.toBranch(repository: Repository) = Branch(
             name, commit.id, "${repository.link}/src/branch/$name", repository
