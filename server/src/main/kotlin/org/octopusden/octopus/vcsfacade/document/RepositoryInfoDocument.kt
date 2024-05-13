@@ -7,20 +7,16 @@ import org.springframework.data.elasticsearch.annotations.Field
 import org.springframework.data.elasticsearch.annotations.FieldType
 import org.springframework.data.elasticsearch.annotations.Setting
 
-@Document(indexName = "#{ 'vcs-facade-commits-' + @opensearchIndexSuffix }")
+@Document(indexName = "#{ 'vcs-facade-repositories-' + @opensearchIndexSuffix }")
 @Setting(settingPath = "opensearch-index-settings.json")
 @ConditionalOnProperty(
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
-class CommitDocument(
+class RepositoryInfoDocument(
     @Field(type = FieldType.Object) val repository: RepositoryDocument,
-    @Field(type = FieldType.Keyword) val hash: String,
-    @Field(type = FieldType.Text, analyzer = "classic") val message: String,
-    @Field(type = FieldType.Date) val date: Date,
-    @Field(type = FieldType.Object) val author: UserDocument,
-    @Field(type = FieldType.Keyword) val parents: List<String>,
-    @Field(type = FieldType.Keyword) val link: String
-) : BaseDocument(id(repository.id, hash)) {
+    @Field(type = FieldType.Boolean) var scanRequired: Boolean = true,
+    @Field(type = FieldType.Date) var lastScanAt: Date? = null
+) : BaseDocument(id(repository.id)) {
     override fun toString() =
-        "CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"
+        "RepositoryInfoDocument(id=$id, repository=$repository, scanRequired=$scanRequired lastScanAt=$lastScanAt)"
 }

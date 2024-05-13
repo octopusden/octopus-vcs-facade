@@ -21,6 +21,7 @@ vcs-facade:
       index:
         scan:
           cron: "-"
+          delay: 60000
           executor:
             core-pool-size: 1
             max-pool-size: 1

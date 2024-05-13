@@ -15,15 +15,16 @@ import org.octopusden.octopus.vcsfacade.document.PullRequestDocument
 import org.octopusden.octopus.vcsfacade.document.PullRequestReviewerDocument
 import org.octopusden.octopus.vcsfacade.document.RefDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
+import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
 import org.octopusden.octopus.vcsfacade.document.UserDocument
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 
 
 interface OpenSearchService {
-    fun getRepositories(type: VcsServiceType): Set<RepositoryDocument>
-    fun findRepositoryById(repositoryId: String): RepositoryDocument?
-    fun saveRepository(repository: RepositoryDocument): RepositoryDocument
-    fun deleteRepository(repository: RepositoryDocument)
+    fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument>
+    fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument?
+    fun saveRepositoriesInfo(repositoriesInfo: List<RepositoryInfoDocument>)
+    fun deleteRepositoryInfoById(repositoryId: String)
     fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument>
     fun saveRefs(refs: List<RefDocument>)
     fun deleteRefsByIds(refsIds: List<String>)

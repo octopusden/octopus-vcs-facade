@@ -99,11 +99,9 @@ class GiteaIndexerController(
     }
 
     @PostMapping("scan")
-    fun scanRepository(
-        @RequestParam("sshUrl") sshUrl: String
-    ) {
-        log.info("Submit scan of {}", sshUrl)
-        giteaIndexerService.submitRepositoryScan(sshUrl)
+    fun scanRepository(@RequestParam("sshUrl") sshUrl: String) {
+        log.info("Schedule scan of {}", sshUrl)
+        giteaIndexerService.scheduleRepositoryScan(sshUrl)
     }
 
     @GetMapping("report")

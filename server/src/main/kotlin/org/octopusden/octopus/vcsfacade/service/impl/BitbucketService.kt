@@ -58,8 +58,6 @@ class BitbucketService(
 
     override val sshUrlRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
 
-    override fun getSshUrl(group: String, repository: String) = "ssh://git@$host/$group/$repository.git"
-
     override fun getBranches(group: String, repository: String): List<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
         return bitbucketClient.getBranches(group, repository).map { it.toBranch(group, repository) }.also {
@@ -163,7 +161,7 @@ class BitbucketService(
     }
 
     private fun getRepository(project: String, repository: String) = Repository(
-        getSshUrl(project, repository),
+        "ssh://git@$host/$project/$repository.git",
         "$httpUrl/projects/$project/repos/$repository/browse",
         "$httpUrl/projects/$project/avatar.png?s=48"
     )

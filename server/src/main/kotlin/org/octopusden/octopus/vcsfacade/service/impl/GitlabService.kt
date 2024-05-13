@@ -55,8 +55,6 @@ class GitlabService(
 
     override val sshUrlRegex = "(?:ssh://)?git@$host:((?:[^/]+/)+)([^/]+).git".toRegex()
 
-    override fun getSshUrl(group: String, repository: String) = "ssh://git@$host:$group/$repository.git"
-
     override fun getBranches(group: String, repository: String): List<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
         return retryableExecution {
@@ -205,7 +203,7 @@ class GitlabService(
     }
 
     private fun getRepository(namespace: String, project: String) = Repository(
-        getSshUrl(namespace, project), "$httpUrl/$namespace/$project"
+        "ssh://git@$host:$namespace/$project.git", "$httpUrl/$namespace/$project"
     )
 
     private fun GitlabBranch.toBranch(namespace: String, project: String) = Branch(

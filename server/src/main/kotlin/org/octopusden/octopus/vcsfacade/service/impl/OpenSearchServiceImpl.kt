@@ -11,13 +11,13 @@ import org.octopusden.octopus.vcsfacade.document.BaseDocument
 import org.octopusden.octopus.vcsfacade.document.CommitDocument
 import org.octopusden.octopus.vcsfacade.document.PullRequestDocument
 import org.octopusden.octopus.vcsfacade.document.RefDocument
-import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
+import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.repository.CommitRepository
 import org.octopusden.octopus.vcsfacade.repository.PullRequestRepository
 import org.octopusden.octopus.vcsfacade.repository.RefRepository
-import org.octopusden.octopus.vcsfacade.repository.RepositoryRepository
+import org.octopusden.octopus.vcsfacade.repository.RepositoryInfoRepository
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.slf4j.LoggerFactory
@@ -29,45 +29,40 @@ import org.springframework.stereotype.Service
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 class OpenSearchServiceImpl(
-    private val repositoryRepository: RepositoryRepository,
+    private val repositoryInfoRepository: RepositoryInfoRepository,
     private val refRepository: RefRepository,
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
 ) : OpenSearchService {
-    override fun getRepositories(type: VcsServiceType): Set<RepositoryDocument> {
-        log.trace("=> getRepositories({})", type)
-        return fetchAll { repositoryRepository.searchFirst1000ByTypeAndIdAfterOrderByIdAsc(type, it) }.also {
-            log.trace("<= getRepositories({}): {}", type, it)
+    override fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument> {
+        log.trace("=> findRepositoriesInfoByRepositoryType({})", type)
+        return fetchAll { repositoryInfoRepository.searchFirst1000ByRepositoryTypeAndIdAfterOrderByIdAsc(type, it) }
+            .also { log.trace("<= findRepositoriesInfoByRepositoryType({}): {}", type, it) }
+    }
+
+    override fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument? {
+        log.trace("=> findRepositoryInfoByRepositoryId({})", repositoryId)
+        return repositoryInfoRepository.findById(repositoryId).getOrNull().also {
+            log.trace("<= findRepositoryInfoByRepositoryId({}): {}", repositoryId, it)
         }
     }
 
-    override fun findRepositoryById(repositoryId: String): RepositoryDocument? {
-        log.trace("=> findRepositoryById({})", repositoryId)
-        return repositoryRepository.findById(repositoryId).getOrNull().also {
-            log.trace("<= findRepositoryById({}): {}", repositoryId, it)
-        }
+    override fun saveRepositoriesInfo(repositoriesInfo: List<RepositoryInfoDocument>) {
+        log.trace("=> saveRepositoriesInfo({})", repositoriesInfo)
+        saveAll(repositoriesInfo) { batch -> repositoryInfoRepository.saveAll(batch) }
+        log.trace("<= saveRepositoriesInfo({})", repositoriesInfo)
     }
 
-    override fun saveRepository(repository: RepositoryDocument): RepositoryDocument {
-        log.trace("=> saveRepository({})", repository)
-        return repositoryRepository.save(repository).also {
-            log.trace("<= saveRepository({}): {}", repository, it)
-        }
-    }
-
-    override fun deleteRepository(repository: RepositoryDocument) {
-        log.trace("=> deleteRepository({})", repository)
-        repositoryRepository.delete(repository)
-        log.trace("<= deleteRepository({})", repository)
+    override fun deleteRepositoryInfoById(repositoryId: String) {
+        log.trace("=> deleteRepositoryInfo({})", repositoryId)
+        repositoryInfoRepository.deleteById(repositoryId)
+        log.trace("<= deleteRepositoryInfo({})", repositoryId)
     }
 
     override fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
-        return fetchAll { id ->
-            refRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
-        }.also {
-            log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it)
-        }
+        return fetchAll { refRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+            .also { log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it) }
     }
 
     override fun saveRefs(refs: List<RefDocument>) {
@@ -90,11 +85,8 @@ class OpenSearchServiceImpl(
 
     override fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
-        return fetchAll { id ->
-            commitRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
-        }.also {
-            log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it)
-        }
+        return fetchAll { commitRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+            .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
     override fun saveCommits(commits: List<CommitDocument>) {
@@ -117,11 +109,8 @@ class OpenSearchServiceImpl(
 
     override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        return fetchAll { id ->
-            pullRequestRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, id)
-        }.also {
-            log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it)
-        }
+        return fetchAll { pullRequestRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+            .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
     override fun savePullRequests(pullRequests: List<PullRequestDocument>) {
