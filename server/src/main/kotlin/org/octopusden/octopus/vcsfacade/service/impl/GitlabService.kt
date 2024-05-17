@@ -12,6 +12,7 @@ import org.gitlab4j.api.models.MergeRequest
 import org.gitlab4j.api.models.Project
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
@@ -21,6 +22,9 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
+import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.DateValue
+import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -73,34 +77,46 @@ class GitlabService(
         }
     }
 
-    override fun getCommits(group: String, repository: String, fromHashOrRef: String, toHashOrRef: String): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, fromHashOrRef, toHashOrRef)
+    override fun getCommits(
+        group: String,
+        repository: String,
+        from: HashOrRefOrDate<String, Date>?,
+        toHashOrRef: String
+    ): List<Commit> {
+        log.trace("=> getCommits({}, {}, {}, {})", group, repository, from, toHashOrRef)
         val project = getProject(group, repository)
-        val fromHash = getCommitByHashOrRef(project, fromHashOrRef).id
         val toHash = getCommitByHashOrRef(project, toHashOrRef).id
-        if (toHash == fromHash) {
-            return emptyList()
+        val commits = lazy {
+            retryableExecution {
+                client.commitsApi.getCommits(project.id, toHash, null, null, 100).asSequence().flatten()
+                    .map { it.toCommit(group, repository) }.toList()
+            }
         }
-        val commits = retryableExecution {
-            client.commitsApi.getCommits(project.id, toHash, null, null, 100).asSequence().flatten()
-                .map { it.toCommit(group, repository) }.toList()
-        }
-        return filterCommitGraph(group, repository, commits, fromHash, null, toHash).also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromHashOrRef, toHashOrRef, it)
+        return if (from is HashOrRefValue) {
+            val fromHash = getCommitByHashOrRef(project, from.value).id
+            if (toHash == fromHash) {
+                emptyList()
+            } else {
+                filterCommitGraph(group, repository, commits.value, fromHash, null, toHash).also {
+                    log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it)
+                }
+            }
+        } else {
+            val fromDate = (from as? DateValue)?.value
+            filterCommitGraph(group, repository, commits.value, null, fromDate, toHash).also {
+                log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromDate, toHashOrRef, it)
+            }
         }
     }
 
-    override fun getCommits(group: String, repository: String, fromDate: Date?, toHashOrRef: String): List<Commit> {
-        log.trace("=> getCommits({}, {}, {}, {})", group, repository, fromDate, toHashOrRef)
-        val project = getProject(group, repository)
-        val toHash = getCommitByHashOrRef(project, toHashOrRef).id
-        val commits = retryableExecution {
-            client.commitsApi.getCommits(project.id, toHash, null, null, 100).asSequence().flatten()
-                .map { it.toCommit(group, repository) }.toList()
-        }
-        return filterCommitGraph(group, repository, commits, null, fromDate, toHash).also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromDate, toHashOrRef, it)
-        }
+    override fun getCommitsWithFiles(
+        group: String,
+        repository: String,
+        from: HashOrRefOrDate<String, Date>?,
+        toHashOrRef: String
+    ): List<CommitWithFiles> {
+        log.warn("There is no native implementation of getCommitsWithFiles")
+        return getCommits(group, repository, from, toHashOrRef).map { CommitWithFiles(it, emptyList()) }
     }
 
     override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
@@ -110,6 +126,10 @@ class GitlabService(
         }
     }
 
+    override fun getCommitWithFiles(group: String, repository: String, hashOrRef: String): CommitWithFiles {
+        log.warn("There is no native implementation of getCommitWithFiles")
+        return CommitWithFiles(getCommit(group, repository, hashOrRef), emptyList())
+    }
 
     override fun createPullRequest(
         group: String, repository: String, createPullRequest: CreatePullRequest
@@ -178,6 +198,11 @@ class GitlabService(
         return emptyList()
     }
 
+    override fun findCommitsWithFiles(issueKey: String): List<CommitWithFiles> {
+        log.warn("There is no native implementation of findCommitsWithFiles")
+        return emptyList()
+    }
+
     override fun findPullRequests(issueKey: String): List<PullRequest> {
         log.warn("There is no native implementation of findPullRequests")
         return emptyList()
@@ -186,7 +211,8 @@ class GitlabService(
     private fun getCommitByHashOrRef(project: Project, hashOrRef: String): GitlabCommit {
         val shortRefName = hashOrRef.toShortRefName()
         val hash = retryableExecution {
-            client.repositoryApi.getBranches(project, shortRefName).firstOrNull { b -> b.name == shortRefName }?.commit?.id
+            client.repositoryApi.getBranches(project, shortRefName)
+                .firstOrNull { b -> b.name == shortRefName }?.commit?.id
         } ?: retryableExecution {
             client.tagsApi.getTags(project.id).firstOrNull { t -> t.name == shortRefName }?.commit?.id
         } ?: hashOrRef

@@ -2,6 +2,8 @@ package org.octopusden.octopus.vcsfacade.service
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
+import org.octopusden.octopus.vcsfacade.client.common.dto.FileChange
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.Ref
@@ -11,6 +13,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.document.CommitDocument
+import org.octopusden.octopus.vcsfacade.document.FileChangeDocument
 import org.octopusden.octopus.vcsfacade.document.PullRequestDocument
 import org.octopusden.octopus.vcsfacade.document.PullRequestReviewerDocument
 import org.octopusden.octopus.vcsfacade.document.RefDocument
@@ -37,9 +40,9 @@ interface OpenSearchService {
     fun savePullRequests(pullRequests: List<PullRequestDocument>)
     fun deletePullRequestsByIds(pullRequestsIds: List<String>)
     fun deletePullRequestsByRepositoryId(repositoryId: String)
-    fun findBranchesByIssueKey(issueKey: String): List<Branch>
-    fun findCommitsByIssueKey(issueKey: String): List<Commit>
-    fun findPullRequestsByIssueKey(issueKey: String): List<PullRequest>
+    fun findBranchesByIssueKey(issueKey: String): List<RefDocument>
+    fun findCommitsByIssueKey(issueKey: String): List<CommitDocument>
+    fun findPullRequestsByIssueKey(issueKey: String): List<PullRequestDocument>
     fun findByIssueKey(issueKey: String): SearchSummary
 
     companion object {
@@ -51,12 +54,21 @@ interface OpenSearchService {
             RefType.TAG -> Tag(name, hash, link, repository.toDto())
         }
 
-        fun Commit.toDocument(repositoryDocument: RepositoryDocument) = CommitDocument(
-            repositoryDocument, hash, message, date, author.toDocument(), parents, link
+        fun CommitWithFiles.toDocument(repositoryDocument: RepositoryDocument) = CommitDocument(
+            repositoryDocument,
+            commit.hash,
+            commit.message,
+            commit.date,
+            commit.author.toDocument(),
+            commit.parents,
+            commit.link,
+            files.map { it.toDocument() }
         )
 
-        fun CommitDocument.toDto() =
-            Commit(hash, message, date, author.toDto(), parents, link, repository.toDto())
+        fun CommitDocument.toDto() = CommitWithFiles(
+            Commit(hash, message, date, author.toDto(), parents, link, repository.toDto()),
+            files.map { it.toDto() }
+        )
 
         fun PullRequest.toDocument(repositoryDocument: RepositoryDocument) = PullRequestDocument(
             repositoryDocument,
@@ -97,6 +109,10 @@ interface OpenSearchService {
         private fun User.toDocument() = UserDocument(name, avatar)
 
         private fun UserDocument.toDto() = User(name, avatar)
+
+        private fun FileChange.toDocument() = FileChangeDocument(type, path, link)
+
+        private fun FileChangeDocument.toDto() = FileChange(type, path, link)
 
         fun RepositoryDocument.toDto() = Repository(sshUrl, link, avatar)
     }

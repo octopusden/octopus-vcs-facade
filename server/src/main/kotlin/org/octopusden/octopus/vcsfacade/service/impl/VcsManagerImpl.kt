@@ -4,6 +4,7 @@ import java.util.Date
 import java.util.stream.Collectors
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
@@ -12,8 +13,10 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
 import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
+import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
@@ -44,22 +47,27 @@ class VcsManagerImpl(
         toHashOrRef: String
     ): List<Commit> {
         log.trace("=> getCommits({}, {}, {}, {})", sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-        val vcsService = getVcsService(sshUrl)
-        val (group, repository) = vcsService.parse(sshUrl)
-        val commits = if (fromHashOrRef != null) {
-            if (fromDate != null) {
-                throw ArgumentsNotCompatibleException("Params 'fromHashOrRef' and 'fromDate' can not be used together")
-            }
-            if (fromHashOrRef == toHashOrRef) {
-                emptyList()
-            } else {
-                vcsService.getCommits(group, repository, fromHashOrRef, toHashOrRef)
-            }
-        } else {
-            vcsService.getCommits(group, repository, fromDate, toHashOrRef)
+        return getVcsService(sshUrl).run {
+            val (group, repository) = parse(sshUrl)
+            getCommits(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
+        }.also {
+            log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it)
         }
-        log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, commits)
-        return commits
+    }
+
+    override fun getCommitsWithFiles(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String
+    ): List<CommitWithFiles> {
+        log.trace("=> getCommitsWithFiles({}, {}, {}, {})", sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+        return getVcsService(sshUrl).run {
+            val (group, repository) = parse(sshUrl)
+            getCommitsWithFiles(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
+        }.also {
+            log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it)
+        }
     }
 
     override fun getCommit(sshUrl: String, hashOrRef: String): Commit {
@@ -69,6 +77,16 @@ class VcsManagerImpl(
             getCommit(group, repository, hashOrRef)
         }.also {
             log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it)
+        }
+    }
+
+    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles {
+        log.trace("=> getCommitWithFiles({}, {})", sshUrl, hashOrRef)
+        return getVcsService(sshUrl).run {
+            val (group, repository) = parse(sshUrl)
+            getCommitWithFiles(group, repository, hashOrRef)
+        }.also {
+            log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it)
         }
     }
 
@@ -106,7 +124,7 @@ class VcsManagerImpl(
 
     override fun findBranches(issueKey: String): List<Branch> {
         log.trace("=> findBranches({})", issueKey)
-        val branches = openSearchService?.findBranchesByIssueKey(issueKey)
+        val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.map { it.toDto() as Branch }
             ?: vcsServices.flatMap { it.findBranches(issueKey) }
         log.trace("<= findBranches({}): {}", issueKey, branches)
         return branches
@@ -114,15 +132,23 @@ class VcsManagerImpl(
 
     override fun findCommits(issueKey: String): List<Commit> {
         log.trace("=> findCommits({})", issueKey)
-        val commits = openSearchService?.findCommitsByIssueKey(issueKey)
+        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto().commit }
             ?: vcsServices.flatMap { it.findCommits(issueKey) }
         log.trace("<= findCommits({}): {}", issueKey, commits)
         return commits
     }
 
+    override fun findCommitsWithFiles(issueKey: String): List<CommitWithFiles> {
+        log.trace("=> findCommitsWithFiles({})", issueKey)
+        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto() }
+            ?: vcsServices.flatMap { it.findCommitsWithFiles(issueKey) }
+        log.trace("<= findCommitsWithFiles({}): {}", issueKey, commits)
+        return commits
+    }
+
     override fun findPullRequests(issueKey: String): List<PullRequest> {
         log.trace("=> findPullRequests({})", issueKey)
-        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)
+        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.map { it.toDto() }
             ?: vcsServices.flatMap { it.findPullRequests(issueKey) }
         log.trace("<= findPullRequests({}): {}", issueKey, pullRequests)
         return pullRequests
