@@ -83,7 +83,7 @@ class GiteaIndexerServiceImpl(
         checkInRepository(repositoryDocument)
         openSearchService.saveCommits(giteaPushEvent.commits.map {
             //IMPORTANT: commits in push event does not contain all demanded data, so it is required to get it from gitea directly
-            giteaService.getCommit(repositoryDocument.group, repositoryDocument.name, it.id)
+            giteaService.getCommitWithFiles(repositoryDocument.group, repositoryDocument.name, it.id)
                 .toDocument(repositoryDocument)
         })
         log.trace("<= registerGiteaPushEvent({})", giteaPushEvent)
@@ -200,7 +200,8 @@ class GiteaIndexerServiceImpl(
                 )
                 openSearchService.deleteCommitsByIds(orphanedCommitsIds)
                 logIndexActionMessage(
-                    "Save ${commits.size} commits(s) in index for `${repository.fullName()}` $GITEA repository ", commits
+                    "Save ${commits.size} commits(s) in index for `${repository.fullName()}` $GITEA repository ",
+                    commits
                 )
                 openSearchService.saveCommits(commits)
                 val indexPullRequestsIds = openSearchService.findPullRequestsByRepositoryId(repository.id).map { it.id }

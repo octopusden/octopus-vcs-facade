@@ -131,34 +131,31 @@ class OpenSearchServiceImpl(
         log.trace("<= deletePullRequestsByRepositoryId({})", repositoryId)
     }
 
-    override fun findBranchesByIssueKey(issueKey: String): List<Branch> {
+    override fun findBranchesByIssueKey(issueKey: String): List<RefDocument> {
         log.trace("=> findBranchesByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
                 .filter { containsMatchIn(it.name) }
-                .map { it.toDto() as Branch }
         }.also {
             log.trace("<= findBranchesByIssueKey({}): {}", issueKey, it)
         }
     }
 
-    override fun findCommitsByIssueKey(issueKey: String): List<Commit> {
+    override fun findCommitsByIssueKey(issueKey: String): List<CommitDocument> {
         log.trace("=> findCommitsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             commitRepository.searchByMessageContaining(issueKey)
                 .filter { containsMatchIn(it.message) }
-                .map { it.toDto() }
         }.also {
             log.trace("<= findCommitsByIssueKey({}): {}", issueKey, it)
         }
     }
 
-    override fun findPullRequestsByIssueKey(issueKey: String): List<PullRequest> {
+    override fun findPullRequestsByIssueKey(issueKey: String): List<PullRequestDocument> {
         log.trace("=> findPullRequestsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
                 .filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
-                .map { it.toDto() }
         }.also {
             log.trace("<= findPullRequestsByIssueKey({}): {}", issueKey, it)
         }

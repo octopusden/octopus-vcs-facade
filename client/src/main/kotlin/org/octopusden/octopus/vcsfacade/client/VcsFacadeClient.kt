@@ -6,6 +6,7 @@ import feign.RequestLine
 import java.util.Date
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
@@ -22,8 +23,19 @@ interface VcsFacadeClient {
         @Param("toHashOrRef") toHashOrRef: String
     ): List<Commit>
 
+    @RequestLine("GET rest/api/2/repository/commits/files?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}")
+    fun getCommitsWithFiles(
+        @Param("sshUrl") sshUrl: String,
+        @Param("fromHashOrRef") fromHashOrRef: String?,
+        @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
+        @Param("toHashOrRef") toHashOrRef: String
+    ): List<CommitWithFiles>
+
     @RequestLine("GET rest/api/2/repository/commit?sshUrl={sshUrl}&hashOrRef={hashOrRef}")
     fun getCommit(@Param("sshUrl") sshUrl: String, @Param("hashOrRef") hashOrRef: String): Commit
+
+    @RequestLine("GET rest/api/2/repository/commit/files?sshUrl={sshUrl}&hashOrRef={hashOrRef}")
+    fun getCommitWithFiles(@Param("sshUrl") sshUrl: String, @Param("hashOrRef") hashOrRef: String): CommitWithFiles
 
     @RequestLine("GET rest/api/2/repository/issues?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}")
     fun getIssuesFromCommits(
@@ -52,6 +64,9 @@ interface VcsFacadeClient {
 
     @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits")
     fun findCommitsByIssueKey(@Param("issueKey") issueKey: String): List<Commit>
+
+    @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits/files")
+    fun findCommitsWithFilesByIssueKey(@Param("issueKey") issueKey: String): List<CommitWithFiles>
 
     @RequestLine("GET rest/api/2/repository/find/{issueKey}/pull-requests")
     fun findPullRequestsByIssueKey(@Param("issueKey") issueKey: String): List<PullRequest>

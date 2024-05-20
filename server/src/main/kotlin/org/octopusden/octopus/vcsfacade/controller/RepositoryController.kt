@@ -9,6 +9,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -59,13 +60,41 @@ class RepositoryController(
         RepositoryResponse(vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef))
     }.data.sorted()
 
+    @GetMapping("commits/files", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommitsWithFiles(
+        @RequestParam("sshUrl") sshUrl: String,
+        @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
+        @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
+        @RequestParam("toHashOrRef") toHashOrRef: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info(
+            "Get commits ({},{}] with files in `{}` repository",
+            (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
+            toHashOrRef,
+            sshUrl
+        )
+        RepositoryResponse(vcsManager.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef))
+    }.data.sorted()
+
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommit(
         @RequestParam("sshUrl") sshUrl: String,
-        @RequestParam("hashOrRef") hashOrRef: String
-    ): Commit {
+        @RequestParam("hashOrRef") hashOrRef: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get commit {} in `{}` repository", hashOrRef, sshUrl)
-        return vcsManager.getCommit(sshUrl, hashOrRef)
+        vcsManager.getCommit(sshUrl, hashOrRef)
+    }
+
+    @GetMapping("commit/files", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getCommitWithFiles(
+        @RequestParam("sshUrl") sshUrl: String,
+        @RequestParam("hashOrRef") hashOrRef: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get commit {} in `{}` repository", hashOrRef, sshUrl)
+        vcsManager.getCommitWithFiles(sshUrl, hashOrRef)
     }
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -150,6 +179,15 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findCommits(issueKey))
+    }.data.sorted()
+
+    @GetMapping("find/{issueKey}/commits/files", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun findCommitsWithFilesByIssueKey(
+        @PathVariable("issueKey") issueKey: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find commits with files by issue key {}", issueKey)
+        RepositoryResponse(vcsManager.findCommitsWithFiles(issueKey))
     }.data.sorted()
 
     @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])

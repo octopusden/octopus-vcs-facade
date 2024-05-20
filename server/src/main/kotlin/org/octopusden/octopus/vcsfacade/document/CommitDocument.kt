@@ -19,7 +19,8 @@ class CommitDocument(
     @Field(type = FieldType.Date) val date: Date,
     @Field(type = FieldType.Object) val author: UserDocument,
     @Field(type = FieldType.Keyword) val parents: List<String>,
-    @Field(type = FieldType.Keyword) val link: String
+    @Field(type = FieldType.Keyword) val link: String,
+    @Field(type = FieldType.Object) val files: List<FileChangeDocument>
 ) : BaseDocument(id(repository.id, hash)) {
     override fun toString() =
         "CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"
