@@ -2,9 +2,6 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.min
-import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
-import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.document.BaseDocument
@@ -19,9 +16,9 @@ import org.octopusden.octopus.vcsfacade.repository.PullRequestRepository
 import org.octopusden.octopus.vcsfacade.repository.RefRepository
 import org.octopusden.octopus.vcsfacade.repository.RepositoryInfoRepository
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
-import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.data.elasticsearch.UncategorizedElasticsearchException
 import org.springframework.stereotype.Service
 
 @Service
@@ -36,7 +33,7 @@ class OpenSearchServiceImpl(
 ) : OpenSearchService {
     override fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument> {
         log.trace("=> findRepositoriesInfoByRepositoryType({})", type)
-        return fetchAll { repositoryInfoRepository.searchFirst1000ByRepositoryTypeAndIdAfterOrderByIdAsc(type, it) }
+        return fetchAll { repositoryInfoRepository.searchFirst100ByRepositoryTypeAndIdAfterOrderByIdAsc(type, it) }
             .also { log.trace("<= findRepositoriesInfoByRepositoryType({}): {}", type, it) }
     }
 
@@ -61,7 +58,7 @@ class OpenSearchServiceImpl(
 
     override fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
-        return fetchAll { refRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAll { refRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -85,7 +82,7 @@ class OpenSearchServiceImpl(
 
     override fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
-        return fetchAll { commitRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAll { commitRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -109,7 +106,7 @@ class OpenSearchServiceImpl(
 
     override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        return fetchAll { pullRequestRepository.searchFirst1000ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAll { pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -193,7 +190,7 @@ class OpenSearchServiceImpl(
     companion object {
         private val log = LoggerFactory.getLogger(OpenSearchServiceImpl::class.java)
 
-        private const val BATCH_SIZE = 1000 //must be equal to search limit in repositories
+        private const val BATCH_SIZE = 100 //must be equal to search limit in repositories
 
         /* IMPORTANT: use raw `search_after` approach because:
          * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API)
@@ -216,7 +213,12 @@ class OpenSearchServiceImpl(
             if (documents.isNotEmpty()) {
                 var page = 0
                 do {
-                    saveBatch.invoke(documents.subList(page * BATCH_SIZE, min(++page * BATCH_SIZE, documents.size)))
+                    val documentsBatch = documents.subList(page * BATCH_SIZE, min(++page * BATCH_SIZE, documents.size))
+                    try {
+                        saveBatch.invoke(documentsBatch)
+                    } catch (e: UncategorizedElasticsearchException) { //fallback if batch size is still too large (because of non-average size of some documents)
+                        documentsBatch.forEach { saveBatch(listOf(it)) }
+                    }
                 } while (page * BATCH_SIZE < documents.size)
             }
         }

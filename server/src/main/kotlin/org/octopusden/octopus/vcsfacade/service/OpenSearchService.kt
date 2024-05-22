@@ -67,6 +67,7 @@ interface OpenSearchService {
 
         fun CommitDocument.toDto() = CommitWithFiles(
             Commit(hash, message, date, author.toDto(), parents, link, repository.toDto()),
+            files.size,
             files.map { it.toDto() }
         )
 

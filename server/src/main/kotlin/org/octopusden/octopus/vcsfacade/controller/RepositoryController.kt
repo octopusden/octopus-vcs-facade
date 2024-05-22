@@ -8,7 +8,6 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
-import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
@@ -66,15 +65,20 @@ class RepositoryController(
         @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestParam("toHashOrRef") toHashOrRef: String,
+        @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
-            "Get commits ({},{}] with files in `{}` repository",
+            "Get commits ({},{}] with files (limit {}) in `{}` repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
+            commitFilesLimit,
             sshUrl
         )
-        RepositoryResponse(vcsManager.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef))
+        RepositoryResponse(
+            vcsManager.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+                .map { it.applyCommitFilesLimit(commitFilesLimit) }
+        )
     }.data.sorted()
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -91,10 +95,11 @@ class RepositoryController(
     fun getCommitWithFiles(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("hashOrRef") hashOrRef: String,
+        @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get commit {} in `{}` repository", hashOrRef, sshUrl)
-        vcsManager.getCommitWithFiles(sshUrl, hashOrRef)
+        log.info("Get commit {} with files (limit {}) in `{}` repository", hashOrRef, commitFilesLimit, sshUrl)
+        vcsManager.getCommitWithFiles(sshUrl, hashOrRef).applyCommitFilesLimit(commitFilesLimit)
     }
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -184,10 +189,13 @@ class RepositoryController(
     @GetMapping("find/{issueKey}/commits/files", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsWithFilesByIssueKey(
         @PathVariable("issueKey") issueKey: String,
+        @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find commits with files by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findCommitsWithFiles(issueKey))
+        log.info("Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
+        RepositoryResponse(
+            vcsManager.findCommitsWithFiles(issueKey).map { it.applyCommitFilesLimit(commitFilesLimit) }
+        )
     }.data.sorted()
 
     @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -232,5 +240,9 @@ class RepositoryController(
 
     companion object {
         private val log = LoggerFactory.getLogger(RepositoryController::class.java)
+
+        private fun CommitWithFiles.applyCommitFilesLimit(commitFilesLimit: Int) = if (commitFilesLimit > 0)
+            CommitWithFiles(commit, totalFiles, files.take(commitFilesLimit))
+        else this
     }
 }

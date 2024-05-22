@@ -103,7 +103,8 @@ class BitbucketService(
     ): List<CommitWithFiles> {
         log.trace("=> getCommitsWithFiles({}, {}, {}, {})", group, repository, from, toHashOrRef)
         return getCommits(group, repository, from, toHashOrRef).map {
-            CommitWithFiles(it, getCommitChanges(group, repository, it))
+            val fileChanges = getCommitChanges(group, repository, it)
+            CommitWithFiles(it, fileChanges.size, fileChanges)
         }.also { log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
     }
 
@@ -117,7 +118,8 @@ class BitbucketService(
     override fun getCommitWithFiles(group: String, repository: String, hashOrRef: String): CommitWithFiles {
         log.trace("=> getCommitWithFiles({}, {}, {})", group, repository, hashOrRef)
         return with(getCommit(group, repository, hashOrRef)) {
-            CommitWithFiles(this, getCommitChanges(group, repository, this))
+            val fileChanges = getCommitChanges(group, repository, this)
+            CommitWithFiles(this, fileChanges.size, fileChanges)
         }.also { log.trace("<= getCommitWithFiles({}, {}, {}): {}", group, repository, hashOrRef, it) }
     }
 
@@ -190,7 +192,8 @@ class BitbucketService(
             val group = it.repository.project.key.lowercase()
             val repository = it.repository.slug.lowercase()
             val commit = it.toCommit.toCommit(group, repository)
-            CommitWithFiles(commit, getCommitChanges(group, repository, commit))
+            val fileChanges = getCommitChanges(group, repository, commit)
+            CommitWithFiles(commit, fileChanges.size, fileChanges)
         }.also { log.trace("<= findCommitsWithFiles({}): {}", issueKey, it) }
     }
 
