@@ -23,19 +23,24 @@ interface VcsFacadeClient {
         @Param("toHashOrRef") toHashOrRef: String
     ): List<Commit>
 
-    @RequestLine("GET rest/api/2/repository/commits/files?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}")
+    @RequestLine("GET rest/api/2/repository/commits/files?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}&commitFilesLimit={commitFilesLimit}")
     fun getCommitsWithFiles(
         @Param("sshUrl") sshUrl: String,
         @Param("fromHashOrRef") fromHashOrRef: String?,
         @Param("fromDate", expander = DateToISOExpander::class) fromDate: Date?,
-        @Param("toHashOrRef") toHashOrRef: String
+        @Param("toHashOrRef") toHashOrRef: String,
+        @Param("commitFilesLimit") commitFilesLimit: Int?
     ): List<CommitWithFiles>
 
     @RequestLine("GET rest/api/2/repository/commit?sshUrl={sshUrl}&hashOrRef={hashOrRef}")
     fun getCommit(@Param("sshUrl") sshUrl: String, @Param("hashOrRef") hashOrRef: String): Commit
 
-    @RequestLine("GET rest/api/2/repository/commit/files?sshUrl={sshUrl}&hashOrRef={hashOrRef}")
-    fun getCommitWithFiles(@Param("sshUrl") sshUrl: String, @Param("hashOrRef") hashOrRef: String): CommitWithFiles
+    @RequestLine("GET rest/api/2/repository/commit/files?sshUrl={sshUrl}&hashOrRef={hashOrRef}&commitFilesLimit={commitFilesLimit}")
+    fun getCommitWithFiles(
+        @Param("sshUrl") sshUrl: String,
+        @Param("hashOrRef") hashOrRef: String,
+        @Param("commitFilesLimit") commitFilesLimit: Int?
+    ): CommitWithFiles
 
     @RequestLine("GET rest/api/2/repository/issues?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}")
     fun getIssuesFromCommits(
@@ -65,8 +70,11 @@ interface VcsFacadeClient {
     @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits")
     fun findCommitsByIssueKey(@Param("issueKey") issueKey: String): List<Commit>
 
-    @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits/files")
-    fun findCommitsWithFilesByIssueKey(@Param("issueKey") issueKey: String): List<CommitWithFiles>
+    @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits/files?commitFilesLimit={commitFilesLimit}")
+    fun findCommitsWithFilesByIssueKey(
+        @Param("issueKey") issueKey: String,
+        @Param("commitFilesLimit") commitFilesLimit: Int?
+    ): List<CommitWithFiles>
 
     @RequestLine("GET rest/api/2/repository/find/{issueKey}/pull-requests")
     fun findPullRequestsByIssueKey(@Param("issueKey") issueKey: String): List<PullRequest>

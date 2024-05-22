@@ -9,5 +9,5 @@ import org.springframework.data.repository.CrudRepository
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 interface RepositoryInfoRepository : CrudRepository<RepositoryInfoDocument, String> {
-    fun searchFirst1000ByRepositoryTypeAndIdAfterOrderByIdAsc(type: VcsServiceType, id: String): List<RepositoryInfoDocument>
+    fun searchFirst100ByRepositoryTypeAndIdAfterOrderByIdAsc(type: VcsServiceType, id: String): List<RepositoryInfoDocument>
 }

@@ -278,7 +278,7 @@ class GiteaService(
             BigInteger(1, MessageDigest.getInstance("SHA-1").digest(toByteArray())).toString(16).padStart(32, '0')
 
         private fun GiteaCommit.toCommitWithFiles(repository: Repository) = with(toCommit(repository)) {
-            CommitWithFiles(this, files!!.map {
+            val fileChanges = files!!.map {
                 FileChange(
                     when (it.status) {
                         GiteaCommit.GiteaCommitAffectedFileStatus.ADDED -> FileChangeType.ADD
@@ -286,7 +286,8 @@ class GiteaService(
                         GiteaCommit.GiteaCommitAffectedFileStatus.REMOVED -> FileChangeType.DELETE
                     }, it.filename, "${this.link}#diff-${it.filename.sha1()}"
                 )
-            })
+            }
+            CommitWithFiles(this, fileChanges.size, fileChanges)
         }
 
         fun GiteaPullRequest.toPullRequest(

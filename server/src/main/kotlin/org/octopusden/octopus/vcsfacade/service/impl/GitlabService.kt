@@ -116,7 +116,7 @@ class GitlabService(
         toHashOrRef: String
     ): List<CommitWithFiles> {
         log.warn("There is no native implementation of getCommitsWithFiles")
-        return getCommits(group, repository, from, toHashOrRef).map { CommitWithFiles(it, emptyList()) }
+        return getCommits(group, repository, from, toHashOrRef).map { CommitWithFiles(it, 0, emptyList()) }
     }
 
     override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
@@ -128,7 +128,7 @@ class GitlabService(
 
     override fun getCommitWithFiles(group: String, repository: String, hashOrRef: String): CommitWithFiles {
         log.warn("There is no native implementation of getCommitWithFiles")
-        return CommitWithFiles(getCommit(group, repository, hashOrRef), emptyList())
+        return CommitWithFiles(getCommit(group, repository, hashOrRef), 0, emptyList())
     }
 
     override fun createPullRequest(

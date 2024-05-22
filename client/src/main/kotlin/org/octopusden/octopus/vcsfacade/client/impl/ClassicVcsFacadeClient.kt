@@ -32,12 +32,18 @@ class ClassicVcsFacadeClient(
     override fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String) =
         client.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
-    override fun getCommitsWithFiles(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String) =
-        client.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+    override fun getCommitsWithFiles(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        commitFilesLimit: Int?
+    ) = client.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef, commitFilesLimit)
 
     override fun getCommit(sshUrl: String, hashOrRef: String) = client.getCommit(sshUrl, hashOrRef)
 
-    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String) = client.getCommitWithFiles(sshUrl, hashOrRef)
+    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String, commitFilesLimit: Int?) =
+        client.getCommitWithFiles(sshUrl, hashOrRef, commitFilesLimit)
 
     override fun getIssuesFromCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String) =
         client.getIssuesFromCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
@@ -56,7 +62,8 @@ class ClassicVcsFacadeClient(
 
     override fun findCommitsByIssueKey(issueKey: String) = client.findCommitsByIssueKey(issueKey)
 
-    override fun findCommitsWithFilesByIssueKey(issueKey: String) = client.findCommitsWithFilesByIssueKey(issueKey)
+    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) =
+        client.findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
 
     override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
 
