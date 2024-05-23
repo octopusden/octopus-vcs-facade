@@ -55,9 +55,9 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRepositoryInfo({})", repositoryId)
     }
 
-    override fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument> {
+    override fun findRefsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
-        return fetchAll { refRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds { refRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -79,9 +79,9 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRefsByRepositoryId({})", repositoryId)
     }
 
-    override fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument> {
+    override fun findCommitsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
-        return fetchAll { commitRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds { commitRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -103,9 +103,9 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteCommitsByRepositoryId({})", repositoryId)
     }
 
-    override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument> {
+    override fun findPullRequestsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        return fetchAll { pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds { pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -206,6 +206,18 @@ class OpenSearchServiceImpl(
                 lastId = batch.last().id
             } while (batch.size == BATCH_SIZE)
             return documents
+        }
+
+        private fun <T : BaseDocument> fetchAllIds(fetchBatchAfterId: (id: String) -> List<T>): Set<String> {
+            val documentsIds = mutableSetOf<String>()
+            var lastId = ""
+            do {
+                val batch = fetchBatchAfterId.invoke(lastId).map { it.id }
+                if (batch.isEmpty()) break
+                documentsIds.addAll(batch)
+                lastId = batch.last()
+            } while (batch.size == BATCH_SIZE)
+            return documentsIds
         }
 
         private fun <T> processAll(documents: Sequence<T>, batchOperation: (batch: List<T>) -> Unit) {

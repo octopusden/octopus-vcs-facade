@@ -28,15 +28,15 @@ interface OpenSearchService {
     fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument?
     fun saveRepositoriesInfo(repositoriesInfo: Sequence<RepositoryInfoDocument>)
     fun deleteRepositoryInfoById(repositoryId: String)
-    fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument>
+    fun findRefsIdsByRepositoryId(repositoryId: String): Set<String>
     fun saveRefs(refs: Sequence<RefDocument>)
     fun deleteRefsByIds(refsIds: Sequence<String>)
     fun deleteRefsByRepositoryId(repositoryId: String)
-    fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument>
+    fun findCommitsIdsByRepositoryId(repositoryId: String): Set<String>
     fun saveCommits(commits: Sequence<CommitDocument>)
     fun deleteCommitsByIds(commitsIds: Sequence<String>)
     fun deleteCommitsByRepositoryId(repositoryId: String)
-    fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument>
+    fun findPullRequestsIdsByRepositoryId(repositoryId: String): Set<String>
     fun savePullRequests(pullRequests: Sequence<PullRequestDocument>)
     fun deletePullRequestsByIds(pullRequestsIds: Sequence<String>)
     fun deletePullRequestsByRepositoryId(repositoryId: String)

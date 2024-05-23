@@ -187,14 +187,13 @@ class GiteaIndexerServiceImpl(
                 val tags = giteaService.getTags(repository.group, repository.name).map {
                     it.toDocument(repository)
                 }
-                val orphanedRefsIds = (openSearchService.findRefsByRepositoryId(repository.id).map { it.id } - (
-                        branches.map { it.id }.toSet() + tags.map { it.id })).asSequence()
+                val orphanedRefsIds = (openSearchService.findRefsIdsByRepositoryId(repository.id) -
+                        (branches.map { it.id } + tags.map { it.id }).toSet()).asSequence()
                 logIndexActionMessage(
                     "Remove orphaned refs from index for `${repository.fullName()}` $GITEA repository",
                     orphanedRefsIds
                 )
                 openSearchService.deleteRefsByIds(orphanedRefsIds)
-                log.debug("Save repository refs in index for `{}` {} repository", repository.fullName(), GITEA)
                 logIndexActionMessage(
                     "Save branches in index for `${repository.fullName()}` $GITEA repository", branches
                 )
@@ -206,8 +205,8 @@ class GiteaIndexerServiceImpl(
                 val commits = giteaService.getBranchesCommitGraph(repository.group, repository.name).map {
                     it.toDocument(repository)
                 }
-                val orphanedCommitsIds = (openSearchService.findCommitsByRepositoryId(repository.id)
-                    .map { it.id } - commits.map { it.id }.toSet()).asSequence()
+                val orphanedCommitsIds = (openSearchService.findCommitsIdsByRepositoryId(repository.id) -
+                        commits.map { it.id }.toSet()).asSequence()
                 logIndexActionMessage(
                     "Remove orphaned commits from index for `${repository.fullName()}` $GITEA repository",
                     orphanedCommitsIds
@@ -222,8 +221,8 @@ class GiteaIndexerServiceImpl(
                 } catch (e: NotFoundException) {
                     emptySequence() //for some reason Gitea returns 404 in case of empty repository
                 }.map { it.toDocument(repository) }
-                val orphanedPullRequestsIds = (openSearchService.findPullRequestsByRepositoryId(repository.id)
-                    .map { it.id } - pullRequests.map { it.id }.toSet()).asSequence()
+                val orphanedPullRequestsIds = (openSearchService.findPullRequestsIdsByRepositoryId(repository.id) -
+                        pullRequests.map { it.id }.toSet()).asSequence()
                 logIndexActionMessage(
                     "Remove orphaned pull requests from index for `${repository.fullName()}` $GITEA repository",
                     orphanedPullRequestsIds
