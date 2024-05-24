@@ -51,7 +51,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
-            "Get commits ({},{}] in `{}` repository",
+            "Get commits ({},{}] in {} repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
             sshUrl
@@ -69,7 +69,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
-            "Get commits ({},{}] with files (limit {}) in `{}` repository",
+            "Get commits ({},{}] with files (limit {}) in {} repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
             commitFilesLimit,
@@ -87,7 +87,7 @@ class RepositoryController(
         @RequestParam("hashOrRef") hashOrRef: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get commit {} in `{}` repository", hashOrRef, sshUrl)
+        log.info("Get commit {} in {} repository", hashOrRef, sshUrl)
         vcsManager.getCommit(sshUrl, hashOrRef)
     }
 
@@ -98,7 +98,7 @@ class RepositoryController(
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get commit {} with files (limit {}) in `{}` repository", hashOrRef, commitFilesLimit, sshUrl)
+        log.info("Get commit {} with files (limit {}) in {} repository", hashOrRef, commitFilesLimit, sshUrl)
         vcsManager.getCommitWithFiles(sshUrl, hashOrRef).applyCommitFilesLimit(commitFilesLimit)
     }
 
@@ -111,7 +111,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
-            "Find issue keys in commits ({},{}] in `{}` repository",
+            "Find issue keys in commits ({},{}] in {} repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
             sshUrl
@@ -128,7 +128,7 @@ class RepositoryController(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get tags in `{}` repository", sshUrl)
+        log.info("Get tags in {} repository", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl))
     }.data.sorted()
 
@@ -151,7 +151,7 @@ class RepositoryController(
         @RequestBody createPullRequest: CreatePullRequest
     ): PullRequest {
         log.info(
-            "Create pull request ({} -> {}) in `{}` repository",
+            "Create pull request ({} -> {}) in {} repository",
             sshUrl,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch

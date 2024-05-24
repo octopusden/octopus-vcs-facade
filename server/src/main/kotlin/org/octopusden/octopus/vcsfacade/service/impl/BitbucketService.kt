@@ -64,18 +64,18 @@ class BitbucketService(
 
     override val sshUrlRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
 
-    override fun getBranches(group: String, repository: String): List<Branch> {
+    override fun getBranches(group: String, repository: String): Sequence<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
-        return client.getBranches(group, repository).map { it.toBranch(group, repository) }.also {
-            log.trace("<= getBranches({}, {}): {}", group, repository, it)
-        }
+        return client.getBranches(group, repository).asSequence().map {
+            it.toBranch(group, repository)
+        }.also { log.trace("<= getBranches({}, {}): {}", group, repository, it) }
     }
 
-    override fun getTags(group: String, repository: String): List<Tag> {
+    override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
-        return client.getTags(group, repository).map { it.toTag(group, repository) }.also {
-            log.trace("<= getTags({}, {}): {}", group, repository, it)
-        }
+        return client.getTags(group, repository).asSequence().map {
+            it.toTag(group, repository)
+        }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
     }
 
     override fun getCommits(
@@ -83,14 +83,14 @@ class BitbucketService(
         repository: String,
         from: HashOrRefOrDate<String, Date>?,
         toHashOrRef: String
-    ): List<Commit> {
+    ): Sequence<Commit> {
         log.trace("=> getCommits({}, {}, {}, {})", group, repository, from, toHashOrRef)
         val commits = if (from is HashOrRefOrDate.HashOrRefValue) {
             client.getCommits(group, repository, toHashOrRef, from.value)
         } else {
             client.getCommits(group, repository, toHashOrRef, (from as? HashOrRefOrDate.DateValue)?.value)
         }
-        return commits.map { it.toCommit(group, repository) }.also {
+        return commits.asSequence().map { it.toCommit(group, repository) }.also {
             log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it)
         }
     }
@@ -100,7 +100,7 @@ class BitbucketService(
         repository: String,
         from: HashOrRefOrDate<String, Date>?,
         toHashOrRef: String
-    ): List<CommitWithFiles> {
+    ): Sequence<CommitWithFiles> {
         log.trace("=> getCommitsWithFiles({}, {}, {}, {})", group, repository, from, toHashOrRef)
         return getCommits(group, repository, from, toHashOrRef).map {
             val fileChanges = getCommitChanges(group, repository, it)
@@ -146,7 +146,7 @@ class BitbucketService(
         }
     }
 
-    override fun findCommits(group: String, repository: String, hashes: Set<String>): List<Commit> {
+    override fun findCommits(group: String, repository: String, hashes: Set<String>): Sequence<Commit> {
         log.trace("=> findCommits({}, {}, {})", group, repository, hashes)
         return hashes.mapNotNull {
             try {
@@ -154,12 +154,12 @@ class BitbucketService(
             } catch (e: NotFoundException) {
                 null
             }
-        }.also {
+        }.asSequence().also {
             log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it)
         }
     }
 
-    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): List<PullRequest> {
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): Sequence<PullRequest> {
         log.trace("=> findPullRequests({}, {}, {})", group, repository, indexes)
         return indexes.mapNotNull {
             try {
@@ -167,28 +167,26 @@ class BitbucketService(
             } catch (e: NotFoundException) {
                 null
             }
-        }.also {
+        }.asSequence().also {
             log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it)
         }
     }
 
-    override fun findBranches(issueKey: String): List<Branch> {
+    override fun findBranches(issueKey: String): Sequence<Branch> {
         log.warn("There is no native implementation of findBranches")
-        return emptyList()
+        return emptySequence()
     }
 
-    override fun findCommits(issueKey: String): List<Commit> {
+    override fun findCommits(issueKey: String): Sequence<Commit> {
         log.trace("=> findCommits({})", issueKey)
-        return client.getCommits(issueKey).map {
+        return client.getCommits(issueKey).asSequence().map {
             it.toCommit.toCommit(it.repository.project.key.lowercase(), it.repository.slug.lowercase())
-        }.also {
-            log.trace("<= findCommits({}): {}", issueKey, it)
-        }
+        }.also { log.trace("<= findCommits({}): {}", issueKey, it) }
     }
 
-    override fun findCommitsWithFiles(issueKey: String): List<CommitWithFiles> {
+    override fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles> {
         log.trace("=> findCommitsWithFiles({})", issueKey)
-        return client.getCommits(issueKey).map {
+        return client.getCommits(issueKey).asSequence().map {
             val group = it.repository.project.key.lowercase()
             val repository = it.repository.slug.lowercase()
             val commit = it.toCommit.toCommit(group, repository)
@@ -197,9 +195,9 @@ class BitbucketService(
         }.also { log.trace("<= findCommitsWithFiles({}): {}", issueKey, it) }
     }
 
-    override fun findPullRequests(issueKey: String): List<PullRequest> {
+    override fun findPullRequests(issueKey: String): Sequence<PullRequest> {
         log.warn("There is no native implementation of findPullRequests")
-        return emptyList()
+        return emptySequence()
     }
 
     private fun getCommitChanges(group: String, repository: String, commit: Commit): List<FileChange> {

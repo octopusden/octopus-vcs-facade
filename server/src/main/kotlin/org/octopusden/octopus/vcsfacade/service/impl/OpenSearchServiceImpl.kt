@@ -1,7 +1,6 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import kotlin.jvm.optionals.getOrNull
-import kotlin.math.min
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.document.BaseDocument
@@ -18,7 +17,6 @@ import org.octopusden.octopus.vcsfacade.repository.RepositoryInfoRepository
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.data.elasticsearch.UncategorizedElasticsearchException
 import org.springframework.stereotype.Service
 
 @Service
@@ -44,9 +42,9 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun saveRepositoriesInfo(repositoriesInfo: List<RepositoryInfoDocument>) {
+    override fun saveRepositoriesInfo(repositoriesInfo: Sequence<RepositoryInfoDocument>) {
         log.trace("=> saveRepositoriesInfo({})", repositoriesInfo)
-        saveAll(repositoriesInfo) { batch -> repositoryInfoRepository.saveAll(batch) }
+        processAll(repositoriesInfo) { repositoryInfoRepository.saveAll(it) }
         log.trace("<= saveRepositoriesInfo({})", repositoriesInfo)
     }
 
@@ -56,21 +54,21 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRepositoryInfo({})", repositoryId)
     }
 
-    override fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument> {
+    override fun findRefsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findRefsByRepositoryId({})", repositoryId)
-        return fetchAll { refRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds { refRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it) }
     }
 
-    override fun saveRefs(refs: List<RefDocument>) {
+    override fun saveRefs(refs: Sequence<RefDocument>) {
         log.trace("=> saveRef({})", refs)
-        saveAll(refs) { batch -> refRepository.saveAll(batch) }
+        processAll(refs) { refRepository.saveAll(it) }
         log.trace("<= saveRef({})", refs)
     }
 
-    override fun deleteRefsByIds(refsIds: List<String>) {
+    override fun deleteRefsByIds(refsIds: Sequence<String>) {
         log.trace("=> deleteRefsByIds({})", refsIds)
-        deleteAll(refsIds) { batch -> refRepository.deleteAllById(batch) }
+        processAll(refsIds) { refRepository.deleteAllById(it) }
         log.trace("<= deleteRefsByIds({})", refsIds)
     }
 
@@ -80,21 +78,21 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteRefsByRepositoryId({})", repositoryId)
     }
 
-    override fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument> {
+    override fun findCommitsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findCommitsByRepositoryId({})", repositoryId)
-        return fetchAll { commitRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds { commitRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
-    override fun saveCommits(commits: List<CommitDocument>) {
+    override fun saveCommits(commits: Sequence<CommitDocument>) {
         log.trace("=> saveCommits({})", commits)
-        saveAll(commits) { batch -> commitRepository.saveAll(batch) }
+        processAll(commits, 1000, { 1 + it.files.size }) { commitRepository.saveAll(it) }
         log.trace("<= saveCommits({})", commits)
     }
 
-    override fun deleteCommitsByIds(commitsIds: List<String>) {
+    override fun deleteCommitsByIds(commitsIds: Sequence<String>) {
         log.trace("=> deleteCommitsByIds({})", commitsIds)
-        deleteAll(commitsIds) { batch -> commitRepository.deleteAllById(batch) }
+        processAll(commitsIds) { commitRepository.deleteAllById(it) }
         log.trace("<= deleteCommitsByIds({})", commitsIds)
     }
 
@@ -104,21 +102,21 @@ class OpenSearchServiceImpl(
         log.trace("<= deleteCommitsByRepositoryId({})", repositoryId)
     }
 
-    override fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument> {
+    override fun findPullRequestsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        return fetchAll { pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds { pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
-    override fun savePullRequests(pullRequests: List<PullRequestDocument>) {
+    override fun savePullRequests(pullRequests: Sequence<PullRequestDocument>) {
         log.trace("=> savePullRequests({})", pullRequests)
-        saveAll(pullRequests) { batch -> pullRequestRepository.saveAll(batch) }
+        processAll(pullRequests) { pullRequestRepository.saveAll(it) }
         log.trace("<= savePullRequests({})", pullRequests)
     }
 
-    override fun deletePullRequestsByIds(pullRequestsIds: List<String>) {
+    override fun deletePullRequestsByIds(pullRequestsIds: Sequence<String>) {
         log.trace("=> deletePullRequestsByIds({})", pullRequestsIds)
-        deleteAll(pullRequestsIds) { batch -> pullRequestRepository.deleteAllById(batch) }
+        processAll(pullRequestsIds) { pullRequestRepository.deleteAllById(it) }
         log.trace("<= deletePullRequestsByIds({})", pullRequestsIds)
     }
 
@@ -128,31 +126,31 @@ class OpenSearchServiceImpl(
         log.trace("<= deletePullRequestsByRepositoryId({})", repositoryId)
     }
 
-    override fun findBranchesByIssueKey(issueKey: String): List<RefDocument> {
+    override fun findBranchesByIssueKey(issueKey: String): Sequence<RefDocument> {
         log.trace("=> findBranchesByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
-                .filter { containsMatchIn(it.name) }
+                .asSequence().filter { containsMatchIn(it.name) }
         }.also {
             log.trace("<= findBranchesByIssueKey({}): {}", issueKey, it)
         }
     }
 
-    override fun findCommitsByIssueKey(issueKey: String): List<CommitDocument> {
+    override fun findCommitsByIssueKey(issueKey: String): Sequence<CommitDocument> {
         log.trace("=> findCommitsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             commitRepository.searchByMessageContaining(issueKey)
-                .filter { containsMatchIn(it.message) }
+                .asSequence().filter { containsMatchIn(it.message) }
         }.also {
             log.trace("<= findCommitsByIssueKey({}): {}", issueKey, it)
         }
     }
 
-    override fun findPullRequestsByIssueKey(issueKey: String): List<PullRequestDocument> {
+    override fun findPullRequestsByIssueKey(issueKey: String): Sequence<PullRequestDocument> {
         log.trace("=> findPullRequestsByIssueKey({})", issueKey)
         return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
             pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
-                .filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
+                .asSequence().filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
         }.also {
             log.trace("<= findPullRequestsByIssueKey({}): {}", issueKey, it)
         }
@@ -209,26 +207,35 @@ class OpenSearchServiceImpl(
             return documents
         }
 
-        private fun <T : BaseDocument> saveAll(documents: List<T>, saveBatch: (batch: List<T>) -> Unit) {
-            if (documents.isNotEmpty()) {
-                var page = 0
-                do {
-                    val documentsBatch = documents.subList(page * BATCH_SIZE, min(++page * BATCH_SIZE, documents.size))
-                    try {
-                        saveBatch.invoke(documentsBatch)
-                    } catch (e: UncategorizedElasticsearchException) { //fallback if batch size is still too large (because of non-average size of some documents)
-                        documentsBatch.forEach { saveBatch(listOf(it)) }
-                    }
-                } while (page * BATCH_SIZE < documents.size)
-            }
+        private fun <T : BaseDocument> fetchAllIds(fetchBatchAfterId: (id: String) -> List<T>): Set<String> {
+            val documentsIds = mutableSetOf<String>()
+            var lastId = ""
+            do {
+                val batch = fetchBatchAfterId.invoke(lastId).map { it.id }
+                if (batch.isEmpty()) break
+                documentsIds.addAll(batch)
+                lastId = batch.last()
+            } while (batch.size == BATCH_SIZE)
+            return documentsIds
         }
 
-        private fun deleteAll(ids: List<String>, deleteBatch: (batch: List<String>) -> Unit) {
-            if (ids.isNotEmpty()) {
-                var page = 0
-                do {
-                    deleteBatch.invoke(ids.subList(page * BATCH_SIZE, min(++page * BATCH_SIZE, ids.size)))
-                } while (page * BATCH_SIZE < ids.size)
+        private fun <T> processAll(documents: Sequence<T>, batchOperation: (batch: List<T>) -> Unit) =
+            processAll(documents, BATCH_SIZE, { 1 }, batchOperation)
+
+        private fun <T> processAll(documents: Sequence<T>, batchWeightLimit: Int, documentWeight: (document: T) -> Int, batchOperation: (batch: List<T>) -> Unit) {
+            val batch = ArrayList<T>(BATCH_SIZE)
+            var batchWeight = 0
+            for (document in documents) {
+                batchWeight += documentWeight.invoke(document)
+                batch.add(document)
+                if (batch.size == BATCH_SIZE || batchWeight >= batchWeightLimit) {
+                    batchOperation.invoke(batch)
+                    batch.clear()
+                    batchWeight = 0
+                }
+            }
+            if (batch.isNotEmpty()) {
+                batchOperation.invoke(batch)
             }
         }
     }

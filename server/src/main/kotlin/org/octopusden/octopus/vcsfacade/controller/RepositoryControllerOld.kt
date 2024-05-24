@@ -58,9 +58,8 @@ class RepositoryControllerOld(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get commits ({},{}] in `{}` repository", (from ?: fromDate?.toString()).orEmpty(), to, vcsPath)
-        val commits = vcsManager.getCommits(vcsPath, from, fromDate, to).map { it.toOld() }
-        RepositoryResponse(commits)
+        log.info("Get commits ({},{}] in {} repository", (from ?: fromDate?.toString()).orEmpty(), to, vcsPath)
+        RepositoryResponse(vcsManager.getCommits(vcsPath, from, fromDate, to).map { it.toOld() })
     }.data
 
     @Deprecated(
@@ -84,7 +83,7 @@ class RepositoryControllerOld(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestParam("commitId") commitIdOrRef: String
     ): CommitOld {
-        log.info("Get commit {} in `{}` repository", commitIdOrRef, vcsPath)
+        log.info("Get commit {} in {} repository", commitIdOrRef, vcsPath)
         return vcsManager.getCommit(vcsPath, commitIdOrRef).toOld()
     }
 
@@ -97,14 +96,13 @@ class RepositoryControllerOld(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
         log.info(
-            "Find issue keys in commits ({},{}] in `{}` repository",
+            "Find issue keys in commits ({},{}] in {} repository",
             (from ?: fromDate?.toString()).orEmpty(), to, vcsPath
         )
-        val issues = vcsManager.getCommits(vcsPath, from, fromDate, to)
-            .map { it.toOld() }
-            .flatMap { IssueKeyParser.findIssueKeys(it.message) }
-            .distinct()
-        RepositoryResponse(issues)
+        RepositoryResponse(
+            vcsManager.getCommits(vcsPath, from, fromDate, to)
+                .flatMap { IssueKeyParser.findIssueKeys(it.message) }.distinct()
+        )
     }.data
 
     @GetMapping("issues/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -113,8 +111,7 @@ class RepositoryControllerOld(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue key {}", issueKey)
-        val commits = vcsManager.findCommits(issueKey).map { it.toOld() }
-        RepositoryResponse(commits)
+        RepositoryResponse(vcsManager.findCommits(issueKey).map { it.toOld() })
     }.data
 
 
@@ -123,7 +120,7 @@ class RepositoryControllerOld(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get tags in `{}` repository", vcsPath)
+        log.info("Get tags in {} repository", vcsPath)
         RepositoryResponse(vcsManager.getTags(vcsPath).map { it.toOld() })
     }.data
 
@@ -147,7 +144,7 @@ class RepositoryControllerOld(
         @RequestBody createPullRequest: CreatePullRequest
     ): PullRequestResponse {
         log.info(
-            "Create pull request ({} -> {}) in `{}` repository",
+            "Create pull request ({} -> {}) in {} repository",
             vcsPath,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch

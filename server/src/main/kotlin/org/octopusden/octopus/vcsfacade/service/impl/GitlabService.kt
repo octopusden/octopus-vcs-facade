@@ -59,19 +59,23 @@ class GitlabService(
 
     override val sshUrlRegex = "(?:ssh://)?git@$host:((?:[^/]+/)+)([^/]+).git".toRegex()
 
-    override fun getBranches(group: String, repository: String): List<Branch> {
+    override fun getBranches(group: String, repository: String): Sequence<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
         return retryableExecution {
-            client.repositoryApi.getBranches(getProject(group, repository).id).map { it.toBranch(group, repository) }
+            client.repositoryApi.getBranches(getProject(group, repository).id).asSequence().map {
+                it.toBranch(group, repository)
+            }
         }.also {
             log.trace("<= getBranches({}, {}): {}", group, repository, it)
         }
     }
 
-    override fun getTags(group: String, repository: String): List<Tag> {
+    override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
         return retryableExecution {
-            client.tagsApi.getTags(getProject(group, repository).id).map { it.toTag(group, repository) }
+            client.tagsApi.getTags(getProject(group, repository).id).asSequence().map {
+                it.toTag(group, repository)
+            }
         }.also {
             log.trace("<= getTags({}, {}): {}", group, repository, it)
         }
@@ -82,7 +86,7 @@ class GitlabService(
         repository: String,
         from: HashOrRefOrDate<String, Date>?,
         toHashOrRef: String
-    ): List<Commit> {
+    ): Sequence<Commit> {
         log.trace("=> getCommits({}, {}, {}, {})", group, repository, from, toHashOrRef)
         val project = getProject(group, repository)
         val toHash = getCommitByHashOrRef(project, toHashOrRef).id
@@ -95,17 +99,17 @@ class GitlabService(
         return if (from is HashOrRefValue) {
             val fromHash = getCommitByHashOrRef(project, from.value).id
             if (toHash == fromHash) {
-                emptyList()
+                emptySequence()
             } else {
                 filterCommitGraph(group, repository, commits.value, fromHash, null, toHash).also {
                     log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it)
-                }
+                }.asSequence()
             }
         } else {
             val fromDate = (from as? DateValue)?.value
             filterCommitGraph(group, repository, commits.value, null, fromDate, toHash).also {
                 log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, fromDate, toHashOrRef, it)
-            }
+            }.asSequence()
         }
     }
 
@@ -114,7 +118,7 @@ class GitlabService(
         repository: String,
         from: HashOrRefOrDate<String, Date>?,
         toHashOrRef: String
-    ): List<CommitWithFiles> {
+    ): Sequence<CommitWithFiles> {
         log.warn("There is no native implementation of getCommitsWithFiles")
         return getCommits(group, repository, from, toHashOrRef).map { CommitWithFiles(it, 0, emptyList()) }
     }
@@ -162,7 +166,7 @@ class GitlabService(
         }
     }
 
-    override fun findCommits(group: String, repository: String, hashes: Set<String>): List<Commit> {
+    override fun findCommits(group: String, repository: String, hashes: Set<String>): Sequence<Commit> {
         log.trace("=> findCommits({}, {}, {})", group, repository, hashes)
         return hashes.mapNotNull {
             try {
@@ -170,12 +174,12 @@ class GitlabService(
             } catch (e: NotFoundException) {
                 null
             }
-        }.also {
+        }.asSequence().also {
             log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it)
         }
     }
 
-    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): List<PullRequest> {
+    override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): Sequence<PullRequest> {
         log.trace("=> findPullRequests({}, {}, {})", group, repository, indexes)
         return indexes.mapNotNull {
             try {
@@ -183,29 +187,29 @@ class GitlabService(
             } catch (e: NotFoundException) {
                 null
             }
-        }.also {
+        }.asSequence().also {
             log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it)
         }
     }
 
-    override fun findBranches(issueKey: String): List<Branch> {
-        log.warn("There is no native implementation of findBranches")
-        return emptyList()
+    override fun findBranches(issueKey: String): Sequence<Branch> {
+        log.warn("The is no native implementation of findBranches")
+        return emptySequence()
     }
 
-    override fun findCommits(issueKey: String): List<Commit> {
+    override fun findCommits(issueKey: String): Sequence<Commit> {
         log.warn("There is no native implementation of findCommits")
-        return emptyList()
+        return emptySequence()
     }
 
-    override fun findCommitsWithFiles(issueKey: String): List<CommitWithFiles> {
+    override fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles> {
         log.warn("There is no native implementation of findCommitsWithFiles")
-        return emptyList()
+        return emptySequence()
     }
 
-    override fun findPullRequests(issueKey: String): List<PullRequest> {
+    override fun findPullRequests(issueKey: String): Sequence<PullRequest> {
         log.warn("There is no native implementation of findPullRequests")
-        return emptyList()
+        return emptySequence()
     }
 
     private fun getCommitByHashOrRef(project: Project, hashOrRef: String): GitlabCommit {

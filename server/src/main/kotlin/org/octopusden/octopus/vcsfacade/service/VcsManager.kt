@@ -12,16 +12,16 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
 interface VcsManager {
-    fun getTags(sshUrl: String): List<Tag>
-    fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): List<Commit>
-    fun getCommitsWithFiles(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): List<CommitWithFiles>
+    fun getTags(sshUrl: String): Sequence<Tag>
+    fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<Commit>
+    fun getCommitsWithFiles(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<CommitWithFiles>
     fun getCommit(sshUrl: String, hashOrRef: String): Commit
     fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles
     fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
     fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
-    fun findBranches(issueKey: String): List<Branch>
-    fun findCommits(issueKey: String): List<Commit>
-    fun findCommitsWithFiles(issueKey: String): List<CommitWithFiles>
-    fun findPullRequests(issueKey: String): List<PullRequest>
+    fun findBranches(issueKey: String): Sequence<Branch>
+    fun findCommits(issueKey: String): Sequence<Commit>
+    fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles>
+    fun findPullRequests(issueKey: String): Sequence<PullRequest>
     fun find(issueKey: String): SearchSummary
 }

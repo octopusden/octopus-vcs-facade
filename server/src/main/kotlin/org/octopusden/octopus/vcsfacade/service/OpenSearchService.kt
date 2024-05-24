@@ -26,23 +26,23 @@ import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 interface OpenSearchService {
     fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument>
     fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument?
-    fun saveRepositoriesInfo(repositoriesInfo: List<RepositoryInfoDocument>)
+    fun saveRepositoriesInfo(repositoriesInfo: Sequence<RepositoryInfoDocument>)
     fun deleteRepositoryInfoById(repositoryId: String)
-    fun findRefsByRepositoryId(repositoryId: String): Set<RefDocument>
-    fun saveRefs(refs: List<RefDocument>)
-    fun deleteRefsByIds(refsIds: List<String>)
+    fun findRefsIdsByRepositoryId(repositoryId: String): Set<String>
+    fun saveRefs(refs: Sequence<RefDocument>)
+    fun deleteRefsByIds(refsIds: Sequence<String>)
     fun deleteRefsByRepositoryId(repositoryId: String)
-    fun findCommitsByRepositoryId(repositoryId: String): Set<CommitDocument>
-    fun saveCommits(commits: List<CommitDocument>)
-    fun deleteCommitsByIds(commitsIds: List<String>)
+    fun findCommitsIdsByRepositoryId(repositoryId: String): Set<String>
+    fun saveCommits(commits: Sequence<CommitDocument>)
+    fun deleteCommitsByIds(commitsIds: Sequence<String>)
     fun deleteCommitsByRepositoryId(repositoryId: String)
-    fun findPullRequestsByRepositoryId(repositoryId: String): Set<PullRequestDocument>
-    fun savePullRequests(pullRequests: List<PullRequestDocument>)
-    fun deletePullRequestsByIds(pullRequestsIds: List<String>)
+    fun findPullRequestsIdsByRepositoryId(repositoryId: String): Set<String>
+    fun savePullRequests(pullRequests: Sequence<PullRequestDocument>)
+    fun deletePullRequestsByIds(pullRequestsIds: Sequence<String>)
     fun deletePullRequestsByRepositoryId(repositoryId: String)
-    fun findBranchesByIssueKey(issueKey: String): List<RefDocument>
-    fun findCommitsByIssueKey(issueKey: String): List<CommitDocument>
-    fun findPullRequestsByIssueKey(issueKey: String): List<PullRequestDocument>
+    fun findBranchesByIssueKey(issueKey: String): Sequence<RefDocument>
+    fun findCommitsByIssueKey(issueKey: String): Sequence<CommitDocument>
+    fun findPullRequestsByIssueKey(issueKey: String): Sequence<PullRequestDocument>
     fun findByIssueKey(issueKey: String): SearchSummary
 
     companion object {

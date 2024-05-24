@@ -58,13 +58,13 @@ class RepositoryControllerV1(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get commits ({},{}] in `{}` repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
+        log.info("Get commits ({},{}] in {} repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
         RepositoryResponse(vcsManager.getCommits(sshUrl, from, fromDate, to))
     }.data.sorted().map { it.toV1() }
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String): CommitV1 {
-        log.info("Get commit {} in `{}` repository", commitId, sshUrl)
+        log.info("Get commit {} in {} repository", commitId, sshUrl)
         return vcsManager.getCommit(sshUrl, commitId).toV1()
     }
 
@@ -77,7 +77,7 @@ class RepositoryControllerV1(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
-            "Find issue keys in commits ({},{}] in `{}` repository",
+            "Find issue keys in commits ({},{}] in {} repository",
             (from ?: fromDate?.toString()).orEmpty(), to, sshUrl
         )
         RepositoryResponse(
@@ -92,7 +92,7 @@ class RepositoryControllerV1(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get tags in `{}` repository", sshUrl)
+        log.info("Get tags in {} repository", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl))
     }.data.sorted().map { it.toV1() }
 
@@ -114,7 +114,7 @@ class RepositoryControllerV1(
         @RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest
     ): PullRequest {
         log.info(
-            "Create pull request ({} -> {}) in `{}` repository",
+            "Create pull request ({} -> {}) in {} repository",
             sshUrl,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch
