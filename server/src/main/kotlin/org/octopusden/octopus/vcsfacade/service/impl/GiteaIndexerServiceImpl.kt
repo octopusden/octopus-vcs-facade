@@ -119,7 +119,7 @@ class GiteaIndexerServiceImpl(
 
     private fun Repository.toRepositoryDocument(): RepositoryDocument {
         if (!giteaService.isSupport(sshUrl)) {
-            throw IllegalStateException("`$sshUrl` is not supported $GITEA repository")
+            throw IllegalStateException("$sshUrl is not supported $GITEA repository")
         }
         val (group, name) = giteaService.parse(sshUrl)
         return RepositoryDocument(GITEA, group, name, sshUrl, link, avatar)
@@ -179,7 +179,7 @@ class GiteaIndexerServiceImpl(
     private fun scan(repositoryDocument: RepositoryDocument) = try {
         giteaService.findRepository(repositoryDocument.group, repositoryDocument.name)?.let { foundRepository ->
             with(RepositoryInfoDocument(foundRepository.toRepositoryDocument(), false, Date())) {
-                log.debug("Save repository info in index for `{}` {} repository", repository.fullName(), GITEA)
+                log.debug("Save repository info in index for {} {} repository", repository.fullName(), GITEA)
                 openSearchService.saveRepositoriesInfo(sequenceOf(this))
                 val branches = giteaService.getBranches(repository.group, repository.name).map {
                     it.toDocument(repository)
@@ -190,16 +190,16 @@ class GiteaIndexerServiceImpl(
                 val orphanedRefsIds = (openSearchService.findRefsIdsByRepositoryId(repository.id) -
                         (branches.map { it.id } + tags.map { it.id }).toSet()).asSequence()
                 logIndexActionMessage(
-                    "Remove orphaned refs from index for `${repository.fullName()}` $GITEA repository",
+                    "Remove orphaned refs from index for ${repository.fullName()} $GITEA repository",
                     orphanedRefsIds
                 )
                 openSearchService.deleteRefsByIds(orphanedRefsIds)
                 logIndexActionMessage(
-                    "Save branches in index for `${repository.fullName()}` $GITEA repository", branches
+                    "Save branches in index for ${repository.fullName()} $GITEA repository", branches
                 )
                 openSearchService.saveRefs(branches)
                 logIndexActionMessage(
-                    "Save tags in index for `${repository.fullName()}` $GITEA repository", tags
+                    "Save tags in index for ${repository.fullName()} $GITEA repository", tags
                 )
                 openSearchService.saveRefs(tags)
                 val commits = giteaService.getBranchesCommitGraph(repository.group, repository.name).map {
@@ -208,12 +208,12 @@ class GiteaIndexerServiceImpl(
                 val orphanedCommitsIds = (openSearchService.findCommitsIdsByRepositoryId(repository.id) -
                         commits.map { it.id }.toSet()).asSequence()
                 logIndexActionMessage(
-                    "Remove orphaned commits from index for `${repository.fullName()}` $GITEA repository",
+                    "Remove orphaned commits from index for ${repository.fullName()} $GITEA repository",
                     orphanedCommitsIds
                 )
                 openSearchService.deleteCommitsByIds(orphanedCommitsIds)
                 logIndexActionMessage(
-                    "Save commits in index for `${repository.fullName()}` $GITEA repository ", commits
+                    "Save commits in index for ${repository.fullName()} $GITEA repository ", commits
                 )
                 openSearchService.saveCommits(commits)
                 val pullRequests = try {
@@ -224,28 +224,28 @@ class GiteaIndexerServiceImpl(
                 val orphanedPullRequestsIds = (openSearchService.findPullRequestsIdsByRepositoryId(repository.id) -
                         pullRequests.map { it.id }.toSet()).asSequence()
                 logIndexActionMessage(
-                    "Remove orphaned pull requests from index for `${repository.fullName()}` $GITEA repository",
+                    "Remove orphaned pull requests from index for ${repository.fullName()} $GITEA repository",
                     orphanedPullRequestsIds
                 )
                 openSearchService.deletePullRequestsByIds(orphanedPullRequestsIds)
                 logIndexActionMessage(
-                    "Save pull requests in index for `${repository.fullName()}` $GITEA repository ", pullRequests
+                    "Save pull requests in index for ${repository.fullName()} $GITEA repository ", pullRequests
                 )
                 openSearchService.savePullRequests(pullRequests)
             }
         } ?: run {
-            log.debug("Remove `{}` {} repository pull-requests from index", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove {} {} repository pull-requests from index", repositoryDocument.fullName(), GITEA)
             openSearchService.deletePullRequestsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove `{}` {} repository commits from index", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove {} {} repository commits from index", repositoryDocument.fullName(), GITEA)
             openSearchService.deleteCommitsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove `{}` {} repository refs from index", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove {} {} repository refs from index", repositoryDocument.fullName(), GITEA)
             openSearchService.deleteRefsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove repository info from index for `{}` {} repository", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove repository info from index for {} {} repository", repositoryDocument.fullName(), GITEA)
             openSearchService.deleteRepositoryInfoById(repositoryDocument.id)
         }
-        log.info("Scanning of `{}` {} repository completed successfully", repositoryDocument.fullName(), GITEA)
+        log.info("Scanning of {} {} repository completed successfully", repositoryDocument.fullName(), GITEA)
     } catch (e: Exception) {
-        log.error("Scanning of `${repositoryDocument.fullName()}` $GITEA repository ended in failure", e)
+        log.error("Scanning of ${repositoryDocument.fullName()} $GITEA repository ended in failure", e)
         openSearchService.saveRepositoriesInfo(sequenceOf(RepositoryInfoDocument(repositoryDocument)))
     }
 

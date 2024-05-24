@@ -189,12 +189,12 @@ class VcsManagerImpl(
                 val expectedCommits = it.healthCheck.expectedCommits
                 if (expectedCommits != commits) {
                     val diff = (commits - expectedCommits).union(expectedCommits - commits)
-                    "The symmetric difference of response commits with expected commits is $diff, repository `${it.healthCheck.repo}`".also { message ->
+                    "The symmetric difference of response commits with expected commits is $diff, repository ${it.healthCheck.repo}".also { message ->
                         log.warn(message)
                     }
                 } else null
             } catch (e: Exception) {
-                "Health check request to repository `${it.healthCheck.repo}` ended with exception".also { message ->
+                "Health check request to repository ${it.healthCheck.repo} ended with exception".also { message ->
                     log.warn(message, e)
                 }
             }
@@ -209,7 +209,7 @@ class VcsManagerImpl(
     }
 
     private fun getVcsService(sshUrl: String) = vcsServices.firstOrNull { it.isSupport(sshUrl) }
-        ?: throw IllegalStateException("There is no configured VCS service for `$sshUrl`")
+        ?: throw IllegalStateException("There is no configured VCS service for $sshUrl")
 
     companion object {
         private val log = LoggerFactory.getLogger(VcsManagerImpl::class.java)

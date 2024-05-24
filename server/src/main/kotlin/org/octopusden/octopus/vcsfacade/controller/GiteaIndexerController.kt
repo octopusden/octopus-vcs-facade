@@ -66,7 +66,7 @@ class GiteaIndexerController(
         if (eventType == "create" && event == "create") {
             with(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java)) {
                 log.info(
-                    "Register `{}` {} creation in `{}` {} repository",
+                    "Register '{}' {} creation in {} {} repository",
                     ref,
                     refType.jsonValue,
                     repository.fullName,
@@ -77,7 +77,7 @@ class GiteaIndexerController(
         } else if (eventType == "delete" && event == "delete") {
             with(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java)) {
                 log.info(
-                    "Register `{}` {} deletion in `{}` {} repository",
+                    "Register '{}' {} deletion in {} {} repository",
                     ref,
                     refType.jsonValue,
                     repository.fullName,
@@ -87,12 +87,12 @@ class GiteaIndexerController(
             }
         } else if (eventType == "push" && event == "push") {
             with(objectMapper.readValue(payload, GiteaPushEvent::class.java)) {
-                log.info("Register {} commit(s) in `{}` {} repository", commits.size, repository.fullName, GITEA)
+                log.info("Register {} commit(s) in {} {} repository", commits.size, repository.fullName, GITEA)
                 giteaIndexerService.registerGiteaPushEvent(this)
             }
         } else if (eventType == "pull_request" && event == "pull_request") {
             with(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java)) {
-                log.info("Register {} pull request in `{}` {} repository", action, repository.fullName, GITEA)
+                log.info("Register {} pull request in {} {} repository", action, repository.fullName, GITEA)
                 giteaIndexerService.registerGiteaPullRequestEvent(this)
             }
         }
