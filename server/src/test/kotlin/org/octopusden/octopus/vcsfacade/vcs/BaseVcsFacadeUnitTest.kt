@@ -14,7 +14,9 @@ import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
 import org.octopusden.octopus.vcsfacade.TestService
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -27,7 +29,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 @AutoConfigureMockMvc
 @ExtendWith(SpringExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 abstract class BaseVcsFacadeUnitTest(
     testService: TestService, testClient: TestClient
 ) : BaseVcsFacadeTest(testService, testClient) {
@@ -39,9 +41,18 @@ abstract class BaseVcsFacadeUnitTest(
     private lateinit var objectMapper: ObjectMapper
 
     @BeforeAll
-    fun beforeAllRepositoryControllerTests() {
+    fun beforeAllBaseVcsFacadeUnitTest() {
         objectMapper.setLocale(Locale.ENGLISH)
     }
+
+    override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
+        mvc.perform(
+            MockMvcRequestBuilders.post("/rest/api/2/repository/pull-requests")
+                .param("sshUrl", sshUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(createPullRequest))
+                .accept(MediaType.APPLICATION_JSON)
+        ).andReturn().response.toObject(object : TypeReference<PullRequest>() {})
 
     override fun getCommits(
         sshUrl: String,

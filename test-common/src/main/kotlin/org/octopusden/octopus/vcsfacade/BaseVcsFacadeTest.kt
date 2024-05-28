@@ -6,22 +6,25 @@ import java.util.stream.Stream
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseVcsFacadeTest(
-    private val testService: TestService,
+    protected val testService: TestService,
     private val testClient: TestClient
 ) {
     @BeforeAll
-    fun beforeAll() {
+    fun beforeAllBaseVcsFacadeTest() {
         testClient.importRepository(
             testService.sshUrl(GROUP, REPOSITORY),
             File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$REPOSITORY").apply {
@@ -33,8 +36,31 @@ abstract class BaseVcsFacadeTest(
     }
 
     @AfterAll
-    fun afterAll() {
+    fun afterAllBaseVcsFacadeTest() {
         testClient.clearData()
+    }
+
+    @Test
+    fun createPullRequest() {
+        val createPullRequest = CreatePullRequest("branch16", "master", "Test PR title", "Test PR description")
+        val pullRequest = createPullRequest(testService.sshUrl(GROUP, REPOSITORY), createPullRequest)
+        Assertions.assertEquals(createPullRequest.sourceBranch, pullRequest.source)
+        Assertions.assertEquals(createPullRequest.targetBranch, pullRequest.target)
+        Assertions.assertEquals(createPullRequest.title, pullRequest.title)
+        Assertions.assertEquals(createPullRequest.description, pullRequest.description)
+    }
+
+    @ParameterizedTest
+    @MethodSource("createPullRequestFailsArguments")
+    fun createPullRequestFails(
+        group: String,
+        repository: String,
+        createPullRequest: CreatePullRequest,
+        exceptionClass: Class<out Throwable>
+    ) {
+        Assertions.assertThrows(exceptionClass) {
+            createPullRequest(testService.sshUrl(group, repository), createPullRequest)
+        }
     }
 
     @ParameterizedTest
@@ -70,6 +96,8 @@ abstract class BaseVcsFacadeTest(
         }
     }
 
+    protected abstract fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
+
     protected abstract fun getCommits(
         sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String
     ): List<Commit>
@@ -92,6 +120,34 @@ abstract class BaseVcsFacadeTest(
 
         const val GROUP = "test"
         const val REPOSITORY = "repository"
+
+        @JvmStatic
+        private fun createPullRequestFailsArguments(): Stream<Arguments> = Stream.of(
+            Arguments.of(
+                GROUP,
+                "absent-repository",
+                CreatePullRequest(
+                    "branch16", "master", "Test PR title 2", "Test PR description 2"
+                ),
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                CreatePullRequest(
+                    "absent-ref", "master", "Test PR title 3", "Test PR description 3"
+                ),
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                CreatePullRequest(
+                    "branch16", "absent-ref", "Test PR title 4", "Test PR description 4"
+                ),
+                NotFoundException::class.java
+            )
+        )
 
         @JvmStatic
         private fun getCommitsArguments(): Stream<Arguments> = Stream.of(

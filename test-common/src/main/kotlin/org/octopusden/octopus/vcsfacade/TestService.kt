@@ -3,8 +3,13 @@ package org.octopusden.octopus.vcsfacade
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.User
 
 sealed class TestService(
     private val host: String,
@@ -40,6 +45,18 @@ sealed class TestService(
 
         override fun sshUrl(group: String, repository: String) =
             "ssh://git@$effectiveHost${if (useSlash) "/" else ":"}$group/$repository.git"
+
+        fun scan(group: String, repository: String) {
+            val query = "sshUrl=${URLEncoder.encode(sshUrl(group, repository), StandardCharsets.UTF_8)}"
+            val url = URI("$VCS_FACADE_API_URL/rest/api/1/indexer/gitea/scan?$query").toURL()
+            with(url.openConnection() as HttpURLConnection) {
+                setRequestMethod("POST")
+                if (getResponseCode() / 100 != 2) {
+                    throw RuntimeException("Unable to schedule '$group:$repository' scan")
+                }
+            }
+            Thread.sleep(10000) //vcs-facade.vcs.gitea.index.scan.delay * 2
+        }
     }
 
     class Gitlab(
@@ -52,14 +69,26 @@ sealed class TestService(
     }
 
     companion object {
+        const val VCS_FACADE_API_URL = "http://localhost:8080" //TODO: use some custom port?
+
         private val OBJECT_MAPPER = ObjectMapper().registerKotlinModule()
 
+        private fun User.replaceHost(from: String, to: String) = User(
+            name, avatar?.replace(from, to)
+        )
+
         private fun Repository.replaceHost(from: String, to: String) = Repository(
-            sshUrl.replace(from, to), link.replace(from, to), avatar
+            sshUrl.replace(from, to), link.replace(from, to), avatar?.replace(from, to)
         )
 
         private fun Commit.replaceHost(from: String, to: String) = Commit(
-            hash, message, date, author, parents, link.replace(from, to), repository.replaceHost(from, to)
+            hash,
+            message,
+            date,
+            author.replaceHost(from, to),
+            parents,
+            link.replace(from, to),
+            repository.replaceHost(from, to)
         )
     }
 }
