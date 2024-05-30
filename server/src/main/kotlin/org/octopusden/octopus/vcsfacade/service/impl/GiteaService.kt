@@ -246,7 +246,7 @@ class GiteaService(
     fun toRepository(giteaRepository: GiteaRepository): Repository {
         val repository = giteaRepository.name.lowercase()
         val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
-        return Repository("ssh://git@$host/$organization/$repository.git",
+        return Repository("ssh://git@$host/$organization/$repository.git", //TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
             giteaRepository.avatarUrl.ifBlank { null })
     }

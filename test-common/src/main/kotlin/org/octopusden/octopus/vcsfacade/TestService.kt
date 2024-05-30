@@ -7,12 +7,16 @@ import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.FileChange
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 
@@ -76,6 +80,27 @@ sealed class TestService(
         else searchIssueInRangesResponse.replaceHost(host, externalHost)
     }
 
+    fun getSearchSummary(resource: String): SearchSummary = OBJECT_MAPPER.readValue(
+        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        object : TypeReference<SearchSummary>() {}
+    )
+
+    fun getBranches(resource: String): List<Branch> = OBJECT_MAPPER.readValue(
+        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        object : TypeReference<List<Branch>>() {}
+    ).let { branches ->
+        if (externalHost.isNullOrBlank()) branches
+        else branches.map { it.replaceHost(host, externalHost) }
+    }
+
+    fun getPullRequests(resource: String): List<PullRequest> = OBJECT_MAPPER.readValue(
+        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        object : TypeReference<List<PullRequest>>() {}
+    ).let { pullRequests ->
+        if (externalHost.isNullOrBlank()) pullRequests
+        else pullRequests.map { it.replaceHost(host, externalHost) }
+    }
+
     class Bitbucket(
         host: String, externalHost: String? = null
     ) : TestService(host, externalHost) {
@@ -86,12 +111,12 @@ sealed class TestService(
     }
 
     class Gitea(
-        host: String, externalHost: String? = null, private val useSlash: Boolean = false
+        host: String, externalHost: String? = null, private val useColon: Boolean = false
     ) : TestService(host, externalHost) {
         override val type = "gitea"
 
         override fun sshUrl(group: String, repository: String) =
-            "ssh://git@$effectiveHost${if (useSlash) "/" else ":"}$group/$repository.git"
+            "ssh://git@$effectiveHost${if (useColon) ":" else "/"}$group/$repository.git"
 
         fun scan(group: String, repository: String) {
             val query = "sshUrl=${URLEncoder.encode(sshUrl(group, repository), StandardCharsets.UTF_8)}"
@@ -156,6 +181,26 @@ sealed class TestService(
                     RepositoryRange(it.sshUrl.replace(from, to), it.fromHashOrRef, it.fromDate, it.toHashOrRef)
                 }.toSet()
             }
+        )
+
+        private fun Branch.replaceHost(from: String, to: String) = Branch(
+            name, hash, link.replace(from, to), repository.replaceHost(from, to)
+        )
+
+        private fun PullRequest.replaceHost(from: String, to: String) = PullRequest(
+            index,
+            title,
+            description,
+            author.replaceHost(from, to),
+            source,
+            target,
+            assignees.map { it.replaceHost(from, to) },
+            reviewers.map { PullRequestReviewer(it.user.replaceHost(from, to), it.approved) },
+            status,
+            createdAt,
+            updatedAt,
+            link.replace(from, to),
+            repository.replaceHost(from, to)
         )
     }
 }

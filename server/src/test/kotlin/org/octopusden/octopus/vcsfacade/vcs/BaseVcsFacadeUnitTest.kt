@@ -11,6 +11,7 @@ import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
 import org.octopusden.octopus.vcsfacade.TestService
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
@@ -18,6 +19,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -122,6 +124,32 @@ abstract class BaseVcsFacadeUnitTest(
             .content(objectMapper.writeValueAsString(searchRequest))
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<SearchIssueInRangesResponse>() {})
+
+    override fun findByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<SearchSummary>() {})
+
+    override fun findBranchesByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/branches")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Branch>>() {})
+
+    override fun findCommitsByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Commit>>() {})
+
+    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits/files")
+            .param("commitFilesLimit", commitFilesLimit?.toString())
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<CommitWithFiles>>() {})
+
+    override fun findPullRequestsByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/pull-requests")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<PullRequest>>() {})
 
     private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T {
         if (status / 100 != 2) {

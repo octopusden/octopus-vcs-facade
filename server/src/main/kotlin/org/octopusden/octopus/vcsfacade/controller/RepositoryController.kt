@@ -241,7 +241,7 @@ class RepositoryController(
     companion object {
         private val log = LoggerFactory.getLogger(RepositoryController::class.java)
 
-        private fun CommitWithFiles.mapFilesList(commitFilesLimit: Int) = files.sorted().let{
+        private fun CommitWithFiles.mapFilesList(commitFilesLimit: Int) = files.sorted().let {
             CommitWithFiles(commit, totalFiles, if (commitFilesLimit > 0) it.take(commitFilesLimit) else it)
         }
     }

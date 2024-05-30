@@ -46,6 +46,17 @@ abstract class BaseVcsFacadeFunctionalTest(
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
         client.searchIssuesInRanges(searchRequest)
 
+    override fun findByIssueKey(issueKey: String) = client.findByIssueKey(issueKey)
+
+    override fun findBranchesByIssueKey(issueKey: String) = client.findBranchesByIssueKey(issueKey)
+
+    override fun findCommitsByIssueKey(issueKey: String) = client.findCommitsByIssueKey(issueKey)
+
+    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) =
+        client.findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
+
+    override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
+
     companion object {
         private val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
             override fun getApiUrl() = VCS_FACADE_API_URL
