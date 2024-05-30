@@ -14,6 +14,7 @@ import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
 import org.octopusden.octopus.vcsfacade.TestService
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
@@ -68,6 +69,36 @@ abstract class BaseVcsFacadeUnitTest(
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<Commit>>() {})
 
+    override fun getCommitsWithFiles(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        commitFilesLimit: Int?
+    ) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commits/files")
+            .param("sshUrl", sshUrl)
+            .param("fromHashOrRef", fromHashOrRef)
+            .param("fromDate", fromDate?.toVcsFacadeFormat())
+            .param("toHashOrRef", toHashOrRef)
+            .param("commitFilesLimit", commitFilesLimit?.toString())
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<CommitWithFiles>>() {})
+
+    override fun getCommit(sshUrl: String, hashOrRef: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commit")
+            .param("sshUrl", sshUrl)
+            .param("hashOrRef", hashOrRef)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<Commit>() {})
+
+    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String, commitFilesLimit: Int?) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commit/files")
+            .param("sshUrl", sshUrl)
+            .param("hashOrRef", hashOrRef)
+            .param("commitFilesLimit", commitFilesLimit?.toString())
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<CommitWithFiles>() {})
 
     private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T {
         if (status / 100 != 2) {

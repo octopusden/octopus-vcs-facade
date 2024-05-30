@@ -20,6 +20,19 @@ abstract class BaseVcsFacadeFunctionalTest(
         toHashOrRef: String
     ) = client.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
+    override fun getCommitsWithFiles(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        commitFilesLimit: Int?
+    ) = client.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef, commitFilesLimit)
+
+    override fun getCommit(sshUrl: String, hashOrRef: String) = client.getCommit(sshUrl, hashOrRef)
+
+    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String, commitFilesLimit: Int?) =
+        client.getCommitWithFiles(sshUrl, hashOrRef, commitFilesLimit)
+
     companion object {
         private val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
             override fun getApiUrl() = VCS_FACADE_API_URL

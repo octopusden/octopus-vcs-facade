@@ -12,6 +12,6 @@ class VcsFacadeUnitTestGitea : BaseVcsFacadeUnitTest(
 ) {
     @BeforeAll
     fun beforeAllVcsFacadeUnitTestGitea() {
-        (testService as TestService.Gitea).scan(GROUP, REPOSITORY)
+        (testService as TestService.Gitea).scan(GROUP, REPOSITORY_2)
     }
 }
