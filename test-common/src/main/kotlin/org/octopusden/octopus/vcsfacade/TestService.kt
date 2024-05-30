@@ -11,6 +11,9 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.FileChange
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 
 sealed class TestService(
@@ -50,6 +53,27 @@ sealed class TestService(
         object : TypeReference<CommitWithFiles>() {}
     ).let { commitWithFiles ->
         if (externalHost.isNullOrBlank()) commitWithFiles else commitWithFiles.replaceHost(host, externalHost)
+    }
+
+    fun getIssuesFromCommits(resource: String): List<String> = OBJECT_MAPPER.readValue(
+        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        object : TypeReference<List<String>>() {}
+    )
+
+    fun getTags(resource: String): List<Tag> = OBJECT_MAPPER.readValue(
+        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        object : TypeReference<List<Tag>>() {}
+    ).let { tags ->
+        if (externalHost.isNullOrBlank()) tags
+        else tags.map { it.replaceHost(host, externalHost) }
+    }
+
+    fun getSearchIssueInRangesResponse(resource: String): SearchIssueInRangesResponse = OBJECT_MAPPER.readValue(
+        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        object : TypeReference<SearchIssueInRangesResponse>() {}
+    ).let { searchIssueInRangesResponse ->
+        if (externalHost.isNullOrBlank()) searchIssueInRangesResponse
+        else searchIssueInRangesResponse.replaceHost(host, externalHost)
     }
 
     class Bitbucket(
@@ -120,6 +144,18 @@ sealed class TestService(
 
         private fun CommitWithFiles.replaceHost(from: String, to: String) = CommitWithFiles(
             commit.replaceHost(from, to), totalFiles, files.map { it.replaceHost(from, to) }
+        )
+
+        private fun Tag.replaceHost(from: String, to: String) = Tag(
+            name, hash, link.replace(from, to), repository.replaceHost(from, to)
+        )
+
+        private fun SearchIssueInRangesResponse.replaceHost(from: String, to: String) = SearchIssueInRangesResponse(
+            issueRanges.mapValues { issueRange ->
+                issueRange.value.map {
+                    RepositoryRange(it.sshUrl.replace(from, to), it.fromHashOrRef, it.fromDate, it.toHashOrRef)
+                }.toSet()
+            }
         )
     }
 }

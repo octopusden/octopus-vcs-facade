@@ -7,6 +7,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
@@ -104,7 +105,14 @@ class VcsManagerImpl(
         val messageRanges = searchRequest.ranges.flatMap { range ->
             getCommits(
                 range.sshUrl, range.fromHashOrRef, range.fromDate, range.toHashOrRef
-            ).map { commit -> commit.message to range }
+            ).map { commit ->
+                commit.message to RepositoryRange(
+                    commit.repository.sshUrl,
+                    range.fromHashOrRef,
+                    range.fromDate,
+                    range.toHashOrRef
+                )
+            }
         }.groupBy({ (message, _) -> message }, { (_, range) -> range })
         return SearchIssueInRangesResponse(searchRequest.issueKeys.map { issueKey ->
             val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)

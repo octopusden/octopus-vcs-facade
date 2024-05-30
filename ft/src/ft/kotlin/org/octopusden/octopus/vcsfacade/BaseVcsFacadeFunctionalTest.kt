@@ -4,6 +4,7 @@ import java.util.Date
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.TestService.Companion.VCS_FACADE_API_URL
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
 
@@ -32,6 +33,18 @@ abstract class BaseVcsFacadeFunctionalTest(
 
     override fun getCommitWithFiles(sshUrl: String, hashOrRef: String, commitFilesLimit: Int?) =
         client.getCommitWithFiles(sshUrl, hashOrRef, commitFilesLimit)
+
+    override fun getIssuesFromCommits(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String
+    ) = client.getIssuesFromCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+
+    override fun getTags(sshUrl: String) = client.getTags(sshUrl)
+
+    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
+        client.searchIssuesInRanges(searchRequest)
 
     companion object {
         private val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {

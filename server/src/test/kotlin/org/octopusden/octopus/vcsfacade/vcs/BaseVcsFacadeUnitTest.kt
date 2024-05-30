@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
-import java.util.Locale
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.octopusden.octopus.infrastructure.common.test.TestClient
@@ -18,6 +16,9 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -40,11 +41,6 @@ abstract class BaseVcsFacadeUnitTest(
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
-
-    @BeforeAll
-    fun beforeAllBaseVcsFacadeUnitTest() {
-        objectMapper.setLocale(Locale.ENGLISH)
-    }
 
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
         mvc.perform(
@@ -99,6 +95,33 @@ abstract class BaseVcsFacadeUnitTest(
             .param("commitFilesLimit", commitFilesLimit?.toString())
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<CommitWithFiles>() {})
+
+    override fun getIssuesFromCommits(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String
+    ) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/issues")
+            .param("sshUrl", sshUrl)
+            .param("fromHashOrRef", fromHashOrRef)
+            .param("fromDate", fromDate?.toVcsFacadeFormat())
+            .param("toHashOrRef", toHashOrRef)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<String>>() {})
+
+    override fun getTags(sshUrl: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/tags")
+            .param("sshUrl", sshUrl)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Tag>>() {})
+
+    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) = mvc.perform(
+        MockMvcRequestBuilders.post("/rest/api/2/repository/search-issues-in-ranges")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(searchRequest))
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<SearchIssueInRangesResponse>() {})
 
     private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T {
         if (status / 100 != 2) {

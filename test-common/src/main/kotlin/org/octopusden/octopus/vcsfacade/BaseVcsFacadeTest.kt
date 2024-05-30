@@ -16,6 +16,10 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 
@@ -197,6 +201,113 @@ abstract class BaseVcsFacadeTest(
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("getIssuesFromCommitsArguments")
+    fun getIssuesFromCommitsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        issuesFromCommitsFile: String
+    ) = Assertions.assertEquals(
+        testService.getIssuesFromCommits(issuesFromCommitsFile),
+        getIssuesFromCommits(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef)
+    )
+
+    @ParameterizedTest
+    @MethodSource("getCommitsFailsArguments")
+    fun getIssuesFromCommitsFailsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            getIssuesFromCommits(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @Test
+    fun getTagsTest() = Assertions.assertEquals(
+        testService.getTags("tags.json"),
+        getTags(testService.sshUrl(GROUP, REPOSITORY_2))
+    )
+
+    @Test
+    fun getTagsFailsTest() {
+        Assertions.assertThrows(NotFoundException::class.java) {
+            getTags(testService.sshUrl(GROUP, "absent-repository"))
+        }
+    }
+
+    @Test
+    fun searchIssueInRangesTest() = Assertions.assertEquals(
+        testService.getSearchIssueInRangesResponse("search-issue-in-ranges.json"),
+        searchIssuesInRanges(
+            SearchIssuesInRangesRequest(
+                setOf("ISSUE-1", "ISSUE-3"),
+                setOf(
+                    RepositoryRange(
+                        testService.sshUrl(GROUP, REPOSITORY_2),
+                        null,
+                        null,
+                        "master"
+                    ),
+                    RepositoryRange(
+                        testService.sshUrl(GROUP, REPOSITORY_2),
+                        "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+                        null,
+                        "v1.0.1"
+                    ),
+                    RepositoryRange(
+                        testService.sshUrl(GROUP, REPOSITORY_2),
+                        "v1.0",
+                        null,
+                        "feature/ISSUE-4"
+                    )
+                )
+            )
+        )
+    )
+
+    @ParameterizedTest
+    @MethodSource("getCommitsFailsArguments")
+    fun searchIssueInRangesFailsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            searchIssuesInRanges(
+                SearchIssuesInRangesRequest(
+                    setOf("ISSUE-1", "ISSUE-3"),
+                    setOf(
+                        RepositoryRange(
+                            testService.sshUrl(group, repository),
+                            fromHashOrRef,
+                            fromDate,
+                            toHashOrRef
+                        )
+                    )
+                )
+            )
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
     protected abstract fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
 
     protected abstract fun getCommits(
@@ -214,6 +325,14 @@ abstract class BaseVcsFacadeTest(
         hashOrRef: String,
         commitFilesLimit: Int?
     ): CommitWithFiles
+
+    protected abstract fun getIssuesFromCommits(
+        sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String
+    ): List<String>
+
+    protected abstract fun getTags(sshUrl: String): List<Tag>
+
+    protected abstract fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
 
     companion object {
         const val BITBUCKET_HOST = "localhost:7990"
@@ -447,6 +566,34 @@ abstract class BaseVcsFacadeTest(
                 null,
                 "commit-with-files-3.json"
             ),
+        )
+
+        @JvmStatic
+        private fun getIssuesFromCommitsArguments(): Stream<Arguments> = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                null,
+                null,
+                "master",
+                "issues-from-commits.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+                null,
+                "v1.0.1",
+                "issues-from-commits-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "v1.0",
+                null,
+                "feature/ISSUE-4",
+                "issues-from-commits-3.json"
+            )
         )
         //</editor-fold>
     }
