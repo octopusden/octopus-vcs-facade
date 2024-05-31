@@ -28,7 +28,7 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundExceptio
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseVcsFacadeTest(
     protected val testService: TestService,
-    private val testClient: TestClient
+    protected val testClient: TestClient
 ) {
     @BeforeAll
     fun beforeAllBaseVcsFacadeTest() {
