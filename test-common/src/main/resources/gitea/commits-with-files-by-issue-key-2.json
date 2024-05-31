@@ -1,1 +1,40 @@
-[{"commit":{"hash":"06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd","message":"Merge branch 'feature/ISSUE-2' (squash)\n","date":1716987041000,"author":{"name":"admin","avatar":null},"parents":["9a44342d8ee92b85b9b23bcad8953b56868f9699"],"link":"http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd","repository":{"sshUrl":"ssh://git@localhost:3000/test/repository-2.git","link":"http://localhost:3000/test/repository-2","avatar":null}},"totalFiles":3,"files":[{"type":"DELETE","path":"src/source-1.txt","link":"http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-ee724442198bac184fd8356360895fa4d9c45b69"},{"type":"ADD","path":"src/source-2.txt","link":"http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-75d4b3ab0aad35786827dc3096812657df1eb070"},{"type":"ADD","path":"src/source.txt","link":"http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-2feb10ce6a5a50faefb9fddbb78ef8a89b915a9"}]}]
+[
+  {
+    "commit": {
+      "hash": "06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd",
+      "message": "Merge branch 'feature/ISSUE-2' (squash)\n",
+      "date": 1716987041000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "9a44342d8ee92b85b9b23bcad8953b56868f9699"
+      ],
+      "link": "http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd",
+      "repository": {
+        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+        "link": "http://localhost:3000/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 3,
+    "files": [
+      {
+        "type": "DELETE",
+        "path": "src/source-1.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-ee724442198bac184fd8356360895fa4d9c45b69"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source-2.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-75d4b3ab0aad35786827dc3096812657df1eb070"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-2feb10ce6a5a50faefb9fddbb78ef8a89b915a9"
+      }
+    ]
+  }
+]

@@ -1,1 +1,68 @@
-[{"commit":{"hash":"60d98c818023c651ee816bf119fe22ac33ccfafe","message":"ISSUE-2 Second commit\n","date":1716986535000,"author":{"name":"admin","avatar":null},"parents":["fa20861b90c54efbffeb48837f4044bc23b55238"],"link":"http://localhost:3000/test/repository-2/commit/60d98c818023c651ee816bf119fe22ac33ccfafe","repository":{"sshUrl":"ssh://git@localhost:3000/test/repository-2.git","link":"http://localhost:3000/test/repository-2","avatar":null}},"totalFiles":1,"files":[{"type":"MODIFY","path":"src/source-2.txt","link":"http://localhost:3000/test/repository-2/commit/60d98c818023c651ee816bf119fe22ac33ccfafe#diff-75d4b3ab0aad35786827dc3096812657df1eb070"}]},{"commit":{"hash":"fa20861b90c54efbffeb48837f4044bc23b55238","message":"ISSUE-2 First commit\n","date":1716986401000,"author":{"name":"admin","avatar":null},"parents":["7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"],"link":"http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238","repository":{"sshUrl":"ssh://git@localhost:3000/test/repository-2.git","link":"http://localhost:3000/test/repository-2","avatar":null}},"totalFiles":3,"files":[{"type":"DELETE","path":"src/source-1.txt","link":"http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238#diff-ee724442198bac184fd8356360895fa4d9c45b69"},{"type":"ADD","path":"src/source-2.txt","link":"http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238#diff-75d4b3ab0aad35786827dc3096812657df1eb070"},{"type":"ADD","path":"src/source.txt","link":"http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238#diff-2feb10ce6a5a50faefb9fddbb78ef8a89b915a9"}]}]
+[
+  {
+    "commit": {
+      "hash": "60d98c818023c651ee816bf119fe22ac33ccfafe",
+      "message": "ISSUE-2 Second commit\n",
+      "date": 1716986535000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "fa20861b90c54efbffeb48837f4044bc23b55238"
+      ],
+      "link": "http://localhost:3000/test/repository-2/commit/60d98c818023c651ee816bf119fe22ac33ccfafe",
+      "repository": {
+        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+        "link": "http://localhost:3000/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 1,
+    "files": [
+      {
+        "type": "MODIFY",
+        "path": "src/source-2.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/60d98c818023c651ee816bf119fe22ac33ccfafe#diff-75d4b3ab0aad35786827dc3096812657df1eb070"
+      }
+    ]
+  },
+  {
+    "commit": {
+      "hash": "fa20861b90c54efbffeb48837f4044bc23b55238",
+      "message": "ISSUE-2 First commit\n",
+      "date": 1716986401000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"
+      ],
+      "link": "http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238",
+      "repository": {
+        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+        "link": "http://localhost:3000/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 3,
+    "files": [
+      {
+        "type": "DELETE",
+        "path": "src/source-1.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238#diff-ee724442198bac184fd8356360895fa4d9c45b69"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source-2.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238#diff-75d4b3ab0aad35786827dc3096812657df1eb070"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source.txt",
+        "link": "http://localhost:3000/test/repository-2/commit/fa20861b90c54efbffeb48837f4044bc23b55238#diff-2feb10ce6a5a50faefb9fddbb78ef8a89b915a9"
+      }
+    ]
+  }
+]

@@ -1,1 +1,15 @@
-{"branches":{"size":1,"updated":1716986870000},"commits":{"size":1,"latest":1716986870000},"pullRequests":{"size":1,"updated":1698062284000,"status":"OPEN"}}
+{
+  "branches": {
+    "size": 1,
+    "updated": 1716986870000
+  },
+  "commits": {
+    "size": 1,
+    "latest": 1716986870000
+  },
+  "pullRequests": {
+    "size": 1,
+    "updated": 1698062284000,
+    "status": "OPEN"
+  }
+}

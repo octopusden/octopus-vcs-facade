@@ -1,1 +1,18 @@
-{"hash":"7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1","message":"ISSUE-1 Initial implementation\n","date":1716986279000,"author":{"name":"admin","avatar":null},"parents":["49bfe6a125a88cddd90c74b75b196c40fd380685"],"link":"http://localhost:8990/test/repository-2/-/commit/7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1","repository":{"sshUrl":"ssh://git@localhost:8990:test/repository-2.git","link":"http://localhost:8990/test/repository-2","avatar":null}}
+{
+  "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+  "message": "ISSUE-1 Initial implementation\n",
+  "date": 1716986279000,
+  "author": {
+    "name": "admin",
+    "avatar": null
+  },
+  "parents": [
+    "49bfe6a125a88cddd90c74b75b196c40fd380685"
+  ],
+  "link": "http://localhost:8990/test/repository-2/-/commit/7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+  "repository": {
+    "sshUrl": "ssh://git@localhost:8990:test/repository-2.git",
+    "link": "http://localhost:8990/test/repository-2",
+    "avatar": null
+  }
+}

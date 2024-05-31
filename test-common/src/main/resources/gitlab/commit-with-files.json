@@ -1,1 +1,22 @@
-{"commit":{"hash":"fa20861b90c54efbffeb48837f4044bc23b55238","message":"ISSUE-2 First commit\n","date":1716986401000,"author":{"name":"admin","avatar":null},"parents":["7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"],"link":"http://localhost:8990/test/repository-2/-/commit/fa20861b90c54efbffeb48837f4044bc23b55238","repository":{"sshUrl":"ssh://git@localhost:8990:test/repository-2.git","link":"http://localhost:8990/test/repository-2","avatar":null}},"totalFiles":0,"files":[]}
+{
+  "commit": {
+    "hash": "fa20861b90c54efbffeb48837f4044bc23b55238",
+    "message": "ISSUE-2 First commit\n",
+    "date": 1716986401000,
+    "author": {
+      "name": "admin",
+      "avatar": null
+    },
+    "parents": [
+      "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"
+    ],
+    "link": "http://localhost:8990/test/repository-2/-/commit/fa20861b90c54efbffeb48837f4044bc23b55238",
+    "repository": {
+      "sshUrl": "ssh://git@localhost:8990:test/repository-2.git",
+      "link": "http://localhost:8990/test/repository-2",
+      "avatar": null
+    }
+  },
+  "totalFiles": 0,
+  "files": []
+}

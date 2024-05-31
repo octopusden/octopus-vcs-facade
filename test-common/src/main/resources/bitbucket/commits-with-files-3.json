@@ -1,1 +1,68 @@
-[{"commit":{"hash":"60d98c818023c651ee816bf119fe22ac33ccfafe","message":"ISSUE-2 Second commit","date":1716986535000,"author":{"name":"admin","avatar":"http://localhost:7990/users/admin/avatar.png?s=48"},"parents":["fa20861b90c54efbffeb48837f4044bc23b55238"],"link":"http://localhost:7990/projects/test/repos/repository-2/commits/60d98c818023c651ee816bf119fe22ac33ccfafe","repository":{"sshUrl":"ssh://git@localhost:7990/test/repository-2.git","link":"http://localhost:7990/projects/test/repos/repository-2/browse","avatar":"http://localhost:7990/projects/test/avatar.png?s=48"}},"totalFiles":1,"files":[{"type":"MODIFY","path":"src/source-2.txt","link":"http://localhost:7990/projects/test/repos/repository-2/commits/60d98c818023c651ee816bf119fe22ac33ccfafe#src/source-2.txt"}]},{"commit":{"hash":"fa20861b90c54efbffeb48837f4044bc23b55238","message":"ISSUE-2 First commit","date":1716986401000,"author":{"name":"admin","avatar":"http://localhost:7990/users/admin/avatar.png?s=48"},"parents":["7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"],"link":"http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238","repository":{"sshUrl":"ssh://git@localhost:7990/test/repository-2.git","link":"http://localhost:7990/projects/test/repos/repository-2/browse","avatar":"http://localhost:7990/projects/test/avatar.png?s=48"}},"totalFiles":3,"files":[{"type":"DELETE","path":"src/source-1.txt","link":"http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238#src/source-1.txt"},{"type":"ADD","path":"src/source-2.txt","link":"http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238#src/source-2.txt"},{"type":"ADD","path":"src/source.txt","link":"http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238#src/source.txt"}]}]
+[
+  {
+    "commit": {
+      "hash": "60d98c818023c651ee816bf119fe22ac33ccfafe",
+      "message": "ISSUE-2 Second commit",
+      "date": 1716986535000,
+      "author": {
+        "name": "admin",
+        "avatar": "http://localhost:7990/users/admin/avatar.png?s=48"
+      },
+      "parents": [
+        "fa20861b90c54efbffeb48837f4044bc23b55238"
+      ],
+      "link": "http://localhost:7990/projects/test/repos/repository-2/commits/60d98c818023c651ee816bf119fe22ac33ccfafe",
+      "repository": {
+        "sshUrl": "ssh://git@localhost:7990/test/repository-2.git",
+        "link": "http://localhost:7990/projects/test/repos/repository-2/browse",
+        "avatar": "http://localhost:7990/projects/test/avatar.png?s=48"
+      }
+    },
+    "totalFiles": 1,
+    "files": [
+      {
+        "type": "MODIFY",
+        "path": "src/source-2.txt",
+        "link": "http://localhost:7990/projects/test/repos/repository-2/commits/60d98c818023c651ee816bf119fe22ac33ccfafe#src/source-2.txt"
+      }
+    ]
+  },
+  {
+    "commit": {
+      "hash": "fa20861b90c54efbffeb48837f4044bc23b55238",
+      "message": "ISSUE-2 First commit",
+      "date": 1716986401000,
+      "author": {
+        "name": "admin",
+        "avatar": "http://localhost:7990/users/admin/avatar.png?s=48"
+      },
+      "parents": [
+        "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"
+      ],
+      "link": "http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238",
+      "repository": {
+        "sshUrl": "ssh://git@localhost:7990/test/repository-2.git",
+        "link": "http://localhost:7990/projects/test/repos/repository-2/browse",
+        "avatar": "http://localhost:7990/projects/test/avatar.png?s=48"
+      }
+    },
+    "totalFiles": 3,
+    "files": [
+      {
+        "type": "DELETE",
+        "path": "src/source-1.txt",
+        "link": "http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238#src/source-1.txt"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source-2.txt",
+        "link": "http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238#src/source-2.txt"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source.txt",
+        "link": "http://localhost:7990/projects/test/repos/repository-2/commits/fa20861b90c54efbffeb48837f4044bc23b55238#src/source.txt"
+      }
+    ]
+  }
+]
