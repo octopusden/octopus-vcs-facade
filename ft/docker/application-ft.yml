@@ -1,4 +1,4 @@
 vcs-facade:
   job:
-    fast-work-timout-secs: 0
+    fast-work-timout-secs: 0 #check retry mechanism
     retry-interval-secs: 1

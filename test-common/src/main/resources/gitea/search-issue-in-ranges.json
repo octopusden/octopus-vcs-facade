@@ -1,0 +1,26 @@
+{
+  "issueRanges": {
+    "ISSUE-3": [
+      {
+        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+        "fromHashOrRef": "v1.0",
+        "fromDate": null,
+        "toHashOrRef": "feature/ISSUE-4"
+      },
+      {
+        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+        "fromHashOrRef": null,
+        "fromDate": null,
+        "toHashOrRef": "master"
+      }
+    ],
+    "ISSUE-1": [
+      {
+        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+        "fromHashOrRef": null,
+        "fromDate": null,
+        "toHashOrRef": "master"
+      }
+    ]
+  }
+}

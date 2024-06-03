@@ -1,8 +1,5 @@
 package org.octopusden.octopus.vcsfacade
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.io.File
 import java.util.Date
 import java.util.stream.Stream
@@ -15,783 +12,930 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.octopusden.octopus.infrastructure.common.test.TestClient
-import org.octopusden.octopus.infrastructure.common.test.dto.ChangeSet
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-
-typealias CheckError = (Pair<Int, String>) -> Unit
+import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
+import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseVcsFacadeTest(
-    private val testClient: TestClient,
-    private val sshUrlFormat: String
+    protected val testService: TestService,
+    protected val testClient: TestClient
 ) {
-    protected abstract val exceptionsMessageInfo: Map<String, String>
-    private val repositoryChangeSets: HashMap<String, Map<String, ChangeSet>> = HashMap()
-
     @BeforeAll
-    fun beforeAllVcsFacadeTests() {
+    fun beforeAllBaseVcsFacadeTest() {
         testClient.importRepository(
-            sshUrlFormat.format(PROJECT, REPOSITORY),
-            File.createTempFile("BaseVcsFacadeTest_", "").apply {
+            testService.sshUrl(GROUP, REPOSITORY),
+            File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$REPOSITORY").apply {
                 outputStream().use {
-                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump.zip")!!.copyTo(it)
+                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("$GROUP-$REPOSITORY.zip")!!.copyTo(it)
                 }
             }
         )
-        repositoryChangeSets[REPOSITORY] =
-            testClient.getCommits(sshUrlFormat.format(PROJECT, REPOSITORY)).associateBy { it.message }
         testClient.importRepository(
-            sshUrlFormat.format(PROJECT, REPOSITORY_2),
-            File.createTempFile("BaseVcsFacadeTest_", "").apply {
+            testService.sshUrl(GROUP, REPOSITORY_2),
+            File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$REPOSITORY_2").apply {
                 outputStream().use {
-                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("dump2.zip")!!.copyTo(it)
+                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("$GROUP-$REPOSITORY_2.zip")!!
+                        .copyTo(it)
                 }
             }
         )
-        repositoryChangeSets[REPOSITORY_2] =
-            testClient.getCommits(sshUrlFormat.format(PROJECT, REPOSITORY_2)).associateBy { it.message }
+        createPullRequest(
+            testService.sshUrl(GROUP, REPOSITORY_2),
+            CreatePullRequest("feature/ISSUE-4", "master", "[ISSUE-4] test PR", "Test PR description")
+        )
     }
 
     @AfterAll
-    fun afterAllVcsFacadeTests() {
+    fun afterAllBaseVcsFacadeTest() {
         testClient.clearData()
     }
 
     @ParameterizedTest
-    @MethodSource("commits")
-    fun getCommitsTest(
-        sshUrl: String,
-        fromId: String?,
-        fromDate: Date?,
-        toId: String,
-        expectedMessages: List<String>
-    ) {
-        requestCommitsInterval(
-            sshUrl,
-            fromId,
-            fromDate,
-            toId,
-            200,
-            { Assertions.assertIterableEquals(expectedMessages, it.map { c -> c.message }) },
-            checkError
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("commitsException")
-    fun getCommitsExceptionTest(
-        sshUrl: String,
-        fromId: String?,
-        fromDate: Date?,
-        toId: String,
-        exceptionInfo: String,
-        status: Int
-    ) {
-        requestCommitsInterval(
-            sshUrl,
-            fromId,
-            fromDate,
-            toId,
-            status,
-            { Assertions.fail("Response status expected:<$status> but was:<200>") }
-        ) { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
-    }
-
-    @ParameterizedTest
-    @MethodSource("commitById")
-    fun getCommitByIdTest(sshUrl: String, commitId: String, commitIdName: Pair<String, String>) {
-        requestCommitById(
-            sshUrl,
-            commitId,
-            200,
-            { Assertions.assertEquals(commitIdName, it.hash to it.message) },
-            checkError
-        )
-    }
-
-    @MethodSource("commitByIdException")
-    @ParameterizedTest
-    fun getCommitByIdExceptionTest(sshUrl: String, commitId: String, exceptionInfo: String, status: Int) {
-        requestCommitById(
-            sshUrl,
-            commitId,
-            status,
-            { Assertions.fail("Response status expected:<$status> but was:<200>") },
-            { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("tags")
-    fun getTags(sshUrl: String, expectedTags: List<TestTag>) {
-        requestTags(
-            sshUrl,
-            200,
-            { Assertions.assertIterableEquals(expectedTags, it.map { tag -> tag.toTestTag() }) },
-            checkError
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("tagsException")
-    fun getTagsException(sshUrl: String, exceptionInfo: String, status: Int) {
-        requestTags(
-            sshUrl,
-            status,
-            { Assertions.fail("Response status expected:<$status> but was:<200>") },
-            { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("issueCommits")
-    fun getCommitsByIssueKeyTest(issueKey: String, expectedCommitIds: List<String>) {
-        requestCommitsByIssueKey(
-            issueKey,
-            200,
-            { Assertions.assertEquals(expectedCommitIds, it.map { c -> c.hash }) },
-            checkError
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("issuesInRanges")
-    fun searchIssuesInRangesTest(
-        issues: Set<String>,
-        ranges: Set<RepositoryRange>,
-        expectedData: SearchIssueInRangesResponse
-    ) {
-        searchIssuesInRanges(
-            SearchIssuesInRangesRequest(issues, ranges),
-            200,
-            { Assertions.assertEquals(expectedData, it) },
-            checkError
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("issuesInRangesException")
-    fun searchIssuesInRangesExceptionTest(
-        issues: Set<String>,
-        ranges: Set<RepositoryRange>,
-        exceptionInfo: String,
-        status: Int
-    ) {
-        searchIssuesInRanges(
-            SearchIssuesInRangesRequest(issues, ranges),
-            status,
-            { Assertions.fail("Response status expected:<$status> but was:<200>") },
-            { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
-        )
-    }
-
-    @Test
-    fun createPullRequestTest() { //TODO: assert values
-        createPullRequest(
-            sshUrlFormat.format(PROJECT, REPOSITORY),
-            CreatePullRequest(FEATURE_BRANCH, MAIN_BRANCH, "Test PR title", "Test PR description"),
-            200,
-            { Assertions.assertTrue { it.index > 0 } },
-            checkError
-        )
-    }
-
-    @ParameterizedTest
-    @MethodSource("pullRequestsException")
-    fun createPullRequestExceptionTest(
-        sshUrl: String,
-        sourceBranch: String,
-        targetBranch: String,
-        exceptionInfo: String,
-        status: Int
-    ) {
-        createPullRequest(
-            sshUrl,
-            CreatePullRequest(sourceBranch, targetBranch, "Test PR title", "Test PR description"),
-            400,
-            { Assertions.fail("Response status expected:<$status> but was:<200>") },
-            { Assertions.assertEquals(Pair(status, getExceptionMessage(exceptionInfo)), it) }
-        )
-    }
-
-    @Test
-    fun getCommitsFromIdTest() {
-        requestCommitsInterval(
-            sshUrlFormat.format(PROJECT, REPOSITORY_2),
-            "master-25\n".commitId(REPOSITORY_2),
-            null,
-            "master-36\n".commitId(REPOSITORY_2),
-            200,
-            { commits ->
-                Assertions.assertIterableEquals(
-                    getTestCommits("commitsFromId.json"),
-                    commits.map { it.toTestCommit() }
-                )
-            },
-            checkError
-        )
-    }
-
-    @Test
-    fun getCommitsFromDateTest() {
-        requestCommitsInterval(
-            sshUrlFormat.format(PROJECT, REPOSITORY_2),
-            null,
-            "master-25\n".commitDate(REPOSITORY_2),
-            "master-36\n".commitId(REPOSITORY_2),
-            200,
-            { commits ->
-                Assertions.assertIterableEquals(
-                    getTestCommits("commitsFromDate.json"),
-                    commits.map { it.toTestCommit() }
-                )
-            },
-            checkError
-        )
-    }
-
-    data class TestTag(val name: String, val commitId: String)
-
-    private fun Tag.toTestTag() = TestTag(name, hash)
-
-    data class TestCommit(val id: String, val message: String, val parents: Set<String>)
-
-    /*
-    BitBucket does trim commit message, but GitLab/Gitea does not!
-    TODO: Should such behaviour (imitated by removeSuffix("\n")) be implemented in GitLab/Gitea client?
-    */
-    private fun Commit.toTestCommit() = TestCommit(hash, message.removeSuffix("\n"), parents.toSet())
-
-    private fun getTestCommits(resource: String) =
-        OBJECT_MAPPER.readValue(
-            BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream(resource),
-            object : TypeReference<List<TestCommit>>() {}
-        )
-
-    private fun getExceptionMessage(name: String): String {
-        return exceptionsMessageInfo.getOrDefault(name, "Not exceptionsMessageInfo by name '$name'")
-    }
-
-    private val checkError: CheckError =
-        { Assertions.fail<String>("Response status expected:<200> but was: <${it.first}> '${it.second}'") }
-
-    protected abstract fun requestTags(
-        sshUrl: String,
-        status: Int,
-        checkSuccess: (List<Tag>) -> Unit,
-        checkError: CheckError
-    )
-
-    protected abstract fun requestCommitsInterval(
-        sshUrl: String,
-        fromId: String?,
-        fromDate: Date?,
-        toId: String,
-        status: Int,
-        checkSuccess: (List<Commit>) -> Unit,
-        checkError: CheckError,
-    )
-
-    protected abstract fun requestCommitsByIssueKey(
-        issueKey: String,
-        status: Int,
-        checkSuccess: (List<Commit>) -> Unit,
-        checkError: CheckError
-    )
-
-    protected abstract fun requestCommitById(
-        sshUrl: String,
-        commitId: String,
-        status: Int,
-        checkSuccess: (Commit) -> Unit,
-        checkError: CheckError
-    )
-
-    protected abstract fun searchIssuesInRanges(
-        searchRequest: SearchIssuesInRangesRequest,
-        status: Int,
-        checkSuccess: (SearchIssueInRangesResponse) -> Unit,
-        checkError: CheckError
-    )
-
-    protected abstract fun createPullRequest(
-        sshUrl: String,
+    @MethodSource("createPullRequestFailsArguments")
+    fun createPullRequestFailsTest(
+        group: String,
+        repository: String,
         createPullRequest: CreatePullRequest,
-        status: Int,
-        checkSuccess: (PullRequest) -> Unit,
-        checkError: CheckError
+        exceptionClass: Class<out Throwable>
+    ) {
+        Assertions.assertThrows(exceptionClass) {
+            createPullRequest(testService.sshUrl(group, repository), createPullRequest)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getCommitsArguments")
+    fun getCommitsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        commitsFile: String
+    ) = Assertions.assertIterableEquals(
+        testService.getCommits(commitsFile),
+        getCommits(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef)
     )
 
-    private fun String.changeSet(repository: String): ChangeSet {
-        val changeSets = repositoryChangeSets[repository] ?: throw IllegalStateException("No repository '$repository'")
-        return changeSets[this]
-            ?: throw IllegalStateException("No ChangeSet with message '$this' in repository '$repository'")
+    @ParameterizedTest
+    @MethodSource("getCommitsFailsArguments")
+    fun getCommitsFailsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            getCommits(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
     }
 
-    private fun String.commitDate(repository: String): Date = changeSet(repository).authorDate
-
-    protected fun String.commitId(repository: String): String = changeSet(repository).id
-
-    //<editor-fold defaultstate="collapsed" desc="test data">
-    private fun commits(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                null,
-                null,
-                MESSAGE_3.commitId(REPOSITORY),
-                listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                null,
-                MESSAGE_2.commitDate(REPOSITORY),
-                MESSAGE_3.commitId(REPOSITORY),
-                listOf(MESSAGE_3)
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(REPOSITORY),
-                null,
-                MESSAGE_3.commitId(REPOSITORY),
-                listOf(MESSAGE_3, MESSAGE_2)
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(REPOSITORY),
-                null,
-                MAIN_BRANCH,
-                listOf(MESSAGE_3, MESSAGE_2)
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(REPOSITORY),
-                null,
-                "refs/heads/master",
-                listOf(MESSAGE_3, MESSAGE_2)
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                null,
-                null,
-                MESSAGE_2.commitId(REPOSITORY),
-                listOf(MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_3.commitId(REPOSITORY),
-                null,
-                MESSAGE_3.commitId(REPOSITORY),
-                emptyList<String>()
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                null,
-                null,
-                MAIN_BRANCH,
-                listOf(MESSAGE_3, MESSAGE_2, MESSAGE_1, MESSAGE_INIT)
-            )
-        )
-    }
-
-    private fun commitsException(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, "absent"),
-                null,
-                null,
-                DEFAULT_ID,
-                "absent-repo",
-                400
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                null,
-                null,
-                DEFAULT_ID,
-                "commitsException_1",
-                400
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                DEFAULT_ID,
-                null,
-                MESSAGE_2.commitId(REPOSITORY),
-                "commitById",
-                400
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(REPOSITORY),
-                null,
-                DEFAULT_ID,
-                "commitById",
-                400
-            ),
-
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_1.commitId(REPOSITORY),
-                MESSAGE_2.commitDate(REPOSITORY),
-                MESSAGE_3.commitId(REPOSITORY),
-                "commitsException_2",
-                400
-            )
-        )
-    }
-
-    private fun commitById(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                MESSAGE_3.commitId(REPOSITORY),
-                MESSAGE_3.commitId(REPOSITORY) to MESSAGE_3
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                FEATURE_BRANCH,
-                FEATURE_MESSAGE_1.commitId(REPOSITORY) to FEATURE_MESSAGE_1
-            )
-        )
-    }
-
-    private fun commitByIdException(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, "absent"),
-                MESSAGE_3.commitId(REPOSITORY),
-                "absent-repo",
-                400
-            ),
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                DEFAULT_ID,
-                "commitById",
-                400
-            )
-        )
-    }
-
-    private fun tags(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, REPOSITORY),
-                listOf(
-                    TestTag(
-                        TAG_1,
-                        MESSAGE_1.commitId(REPOSITORY)
-                    ),
-                    TestTag(
-                        TAG_2,
-                        MESSAGE_2.commitId(REPOSITORY)
-                    ),
-                    TestTag(
-                        TAG_3,
-                        MESSAGE_3.commitId(REPOSITORY)
-                    )
-                )
-            )
-        )
-    }
-
-    private fun tagsException(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                sshUrlFormat.format(PROJECT, "absent"),
-                "absent-repo",
-                400
-            )
-        )
-    }
-
-    protected open fun issueCommits(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of("ABSENT-1", emptyList<String>()),
-            Arguments.of("TEST-1", listOf(MESSAGE_2.commitId(REPOSITORY), MESSAGE_1.commitId(REPOSITORY)))
-        )
-    }
-
-    private fun issuesInRanges(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                setOf("TEST-1", "TEST-2"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        MESSAGE_3.commitId(REPOSITORY)
-                    )
-                ),
-                SearchIssueInRangesResponse(
-                    mapOf(
-                        "TEST-1" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                null,
-                                null,
-                                MESSAGE_3.commitId(REPOSITORY)
-                            )
-                        ),
-                        "TEST-2" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                null,
-                                null,
-                                MESSAGE_3.commitId(REPOSITORY)
-                            )
-                        )
-                    )
-                )
-            ),
-            Arguments.of(
-                setOf("TEST-1", "TEST-2"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        "refs/heads/$MAIN_BRANCH"
-                    )
-                ),
-                SearchIssueInRangesResponse(
-                    mapOf(
-                        "TEST-1" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                null,
-                                null,
-                                "refs/heads/$MAIN_BRANCH"
-                            )
-                        ),
-                        "TEST-2" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                null,
-                                null,
-                                "refs/heads/$MAIN_BRANCH"
-                            )
-                        )
-                    )
-                )
-            ),
-            Arguments.of(
-                setOf("TEST-1", "TEST-2"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        MESSAGE_INIT.commitId(REPOSITORY),
-                        null,
-                        "refs/heads/$MAIN_BRANCH"
-                    )
-                ),
-                SearchIssueInRangesResponse(
-                    mapOf(
-                        "TEST-1" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                MESSAGE_INIT.commitId(REPOSITORY),
-                                null,
-                                "refs/heads/$MAIN_BRANCH"
-                            )
-                        ),
-                        "TEST-2" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                MESSAGE_INIT.commitId(REPOSITORY),
-                                null,
-                                "refs/heads/$MAIN_BRANCH"
-                            )
-                        )
-                    )
-                )
-            ),
-            Arguments.of(
-                setOf("TEST-1", "TEST-2"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        MESSAGE_2.commitDate(REPOSITORY),
-                        "refs/heads/$MAIN_BRANCH"
-                    )
-                ),
-                SearchIssueInRangesResponse(
-                    mapOf(
-                        "TEST-2" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                null,
-                                MESSAGE_2.commitDate(REPOSITORY),
-                                "refs/heads/$MAIN_BRANCH"
-                            )
-                        )
-                    )
-                )
-            ),
-            Arguments.of(
-                setOf("TEST-1"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        MESSAGE_3.commitId(REPOSITORY)
-                    )
-                ),
-                SearchIssueInRangesResponse(
-                    mapOf(
-                        "TEST-1" to setOf(
-                            RepositoryRange(
-                                sshUrlFormat.format(PROJECT, REPOSITORY),
-                                null,
-                                null,
-                                MESSAGE_3.commitId(REPOSITORY)
-                            )
-                        ),
-                    )
-                )
-            ),
-            Arguments.of(
-                setOf("ABSENT-1"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        MESSAGE_3.commitId(REPOSITORY)
-                    )
-                ),
-                SearchIssueInRangesResponse(emptyMap())
-            ),
-            Arguments.of(
-                setOf("ABSENT-1"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        MAIN_BRANCH
-                    )
-                ),
-                SearchIssueInRangesResponse(emptyMap())
-            )
-        )
-    }
-
-    private fun issuesInRangesException(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of(
-                setOf("TEST-1"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        DEFAULT_ID
-                    )
-                ),
-                "commitsException_1",
-                400
-            ),
-            Arguments.of(
-                setOf("RELENG-1637", "RELENG-1609"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        MESSAGE_3.commitId(REPOSITORY),
-                        null,
-                        MESSAGE_1.commitId(REPOSITORY)
-                    )
-                ),
-                "commitsException_3",
-                400
-            ),
-            Arguments.of(
-                setOf("TEST-1", "TEST-2"),
-                setOf(
-                    RepositoryRange(
-                        sshUrlFormat.format(PROJECT, REPOSITORY),
-                        null,
-                        null,
-                        DEFAULT_ID
-                    )
-                ),
-                "commitsException_1",
-                400
-            ),
-        )
-    }
-
-    private fun pullRequestsException(): Stream<Arguments> = Stream.of(
-        Arguments.of(
-            sshUrlFormat.format("absent", REPOSITORY),
-            FEATURE_BRANCH,
-            MAIN_BRANCH,
-            "pr_1",
-            400
-        ),
-        Arguments.of(
-            sshUrlFormat.format(PROJECT, "absent"),
-            FEATURE_BRANCH,
-            MAIN_BRANCH,
-            "absent-repo",
-            400
-        ),
-        Arguments.of(
-            sshUrlFormat.format(PROJECT, REPOSITORY),
-            "absent",
-            MAIN_BRANCH,
-            "pr_2",
-            400
-        ),
-        Arguments.of(
-            sshUrlFormat.format(PROJECT, REPOSITORY),
-            FEATURE_BRANCH,
-            "absent",
-            "pr_3",
-            400
+    @ParameterizedTest
+    @MethodSource("getCommitsWithFilesArguments")
+    fun getCommitsWithFilesTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        commitFilesLimit: Int?,
+        commitsWithFilesFile: String
+    ) = Assertions.assertIterableEquals(
+        testService.getCommitsWithFiles(commitsWithFilesFile),
+        getCommitsWithFiles(
+            testService.sshUrl(group, repository),
+            fromHashOrRef,
+            fromDate,
+            toHashOrRef,
+            commitFilesLimit
         )
     )
-    //</editor-fold>
+
+    @ParameterizedTest
+    @MethodSource("getCommitsFailsArguments")
+    fun getCommitsWithFilesFailsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            getCommitsWithFiles(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef, null)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getCommitArguments")
+    fun getCommitTest(
+        group: String,
+        repository: String,
+        hashOrRef: String,
+        commitFile: String
+    ) = Assertions.assertEquals(
+        testService.getCommit(commitFile),
+        getCommit(testService.sshUrl(group, repository), hashOrRef)
+    )
+
+    @ParameterizedTest
+    @MethodSource("getCommitFailsArguments")
+    fun getCommitFailsTest(
+        group: String,
+        repository: String,
+        hashOrRef: String,
+        exceptionClass: Class<out Throwable>
+    ) {
+        Assertions.assertThrows(exceptionClass) {
+            getCommit(testService.sshUrl(group, repository), hashOrRef)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getCommitWithFilesArguments")
+    fun getCommitWithFilesTest(
+        group: String,
+        repository: String,
+        hashOrRef: String,
+        commitFilesLimit: Int?,
+        commitWithFilesFile: String
+    ) = Assertions.assertEquals(
+        testService.getCommitWithFiles(commitWithFilesFile),
+        getCommitWithFiles(testService.sshUrl(group, repository), hashOrRef, commitFilesLimit)
+    )
+
+    @ParameterizedTest
+    @MethodSource("getCommitFailsArguments")
+    fun getCommitWithFilesFailsTest(
+        group: String,
+        repository: String,
+        hashOrRef: String,
+        exceptionClass: Class<out Throwable>
+    ) {
+        Assertions.assertThrows(exceptionClass) {
+            getCommitWithFiles(testService.sshUrl(group, repository), hashOrRef, null)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getIssuesFromCommitsArguments")
+    fun getIssuesFromCommitsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        issuesFromCommitsFile: String
+    ) = Assertions.assertEquals(
+        testService.getIssuesFromCommits(issuesFromCommitsFile),
+        getIssuesFromCommits(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef)
+    )
+
+    @ParameterizedTest
+    @MethodSource("getCommitsFailsArguments")
+    fun getIssuesFromCommitsFailsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            getIssuesFromCommits(testService.sshUrl(group, repository), fromHashOrRef, fromDate, toHashOrRef)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @Test
+    fun getTagsTest() = Assertions.assertEquals(
+        testService.getTags("tags.json"),
+        getTags(testService.sshUrl(GROUP, REPOSITORY_2))
+    )
+
+    @Test
+    fun getTagsFailsTest() {
+        Assertions.assertThrows(NotFoundException::class.java) {
+            getTags(testService.sshUrl(GROUP, "absent-repository"))
+        }
+    }
+
+    @Test
+    fun searchIssueInRangesTest() = Assertions.assertEquals(
+        testService.getSearchIssueInRangesResponse("search-issue-in-ranges.json"),
+        searchIssuesInRanges(
+            SearchIssuesInRangesRequest(
+                setOf("ISSUE-1", "ISSUE-3"),
+                setOf(
+                    RepositoryRange(
+                        testService.sshUrl(GROUP, REPOSITORY_2),
+                        null,
+                        null,
+                        "master"
+                    ),
+                    RepositoryRange(
+                        testService.sshUrl(GROUP, REPOSITORY_2),
+                        "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+                        null,
+                        "v1.0.1"
+                    ),
+                    RepositoryRange(
+                        testService.sshUrl(GROUP, REPOSITORY_2),
+                        "v1.0",
+                        null,
+                        "feature/ISSUE-4"
+                    )
+                )
+            )
+        )
+    )
+
+    @ParameterizedTest
+    @MethodSource("getCommitsFailsArguments")
+    fun searchIssueInRangesFailsTest(
+        group: String,
+        repository: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            searchIssuesInRanges(
+                SearchIssuesInRangesRequest(
+                    setOf("ISSUE-1", "ISSUE-3"),
+                    setOf(
+                        RepositoryRange(
+                            testService.sshUrl(group, repository),
+                            fromHashOrRef,
+                            fromDate,
+                            toHashOrRef
+                        )
+                    )
+                )
+            )
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyFailsArguments")
+    fun searchIssueInRangesFailsTest2(
+        issueKey: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(ArgumentsNotCompatibleException::class.java) {
+            searchIssuesInRanges(
+                SearchIssuesInRangesRequest(
+                    setOf("ISSUE-1", issueKey, "ISSUE-3"),
+                    setOf(
+                        RepositoryRange(
+                            testService.sshUrl(GROUP, REPOSITORY_2),
+                            null,
+                            null,
+                            "master"
+                        ),
+                        RepositoryRange(
+                            testService.sshUrl(GROUP, REPOSITORY_2),
+                            "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+                            null,
+                            "v1.0.1"
+                        ),
+                        RepositoryRange(
+                            testService.sshUrl(GROUP, REPOSITORY_2),
+                            "v1.0",
+                            null,
+                            "feature/ISSUE-4"
+                        )
+                    )
+                )
+            )
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyArguments")
+    fun findByIssueKeyTest(issueKey: String, searchSummaryFile: String) = Assertions.assertEquals(
+        testService.getSearchSummary(searchSummaryFile),
+        findByIssueKey(issueKey).let { searchSummary ->
+            SearchSummary(
+                searchSummary.branches,
+                searchSummary.commits,
+                if (searchSummary.pullRequests.size > 0) {
+                    SearchSummary.SearchPullRequestsSummary(
+                        searchSummary.pullRequests.size,
+                        Date(1698062284000L),
+                        searchSummary.pullRequests.status
+                    )
+                } else searchSummary.pullRequests
+            )
+        }
+    )
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyFailsArguments")
+    fun findByIssueKeyFailsTest(issueKey: String, exceptionClass: Class<out Throwable>, exceptionMessage: String?) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            findByIssueKey(issueKey)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("findBranchesByIssueKeyArguments")
+    fun findBranchesByIssueKeyTest(issueKey: String, branchesByIssueKeyFile: String) = Assertions.assertEquals(
+        testService.getBranches(branchesByIssueKeyFile),
+        findBranchesByIssueKey(issueKey)
+    )
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyFailsArguments")
+    fun findBranchesByIssueKeyFailsTest(
+        issueKey: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            findBranchesByIssueKey(issueKey)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("findCommitsByIssueKeyArguments")
+    fun findCommitsByIssueKeyTest(issueKey: String, commitsByIssueKeyFile: String) = Assertions.assertEquals(
+        testService.getCommits(commitsByIssueKeyFile),
+        findCommitsByIssueKey(issueKey)
+    )
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyFailsArguments")
+    fun findCommitsByIssueKeyFailsTest(
+        issueKey: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            findCommitsByIssueKey(issueKey)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("findCommitsWithFilesByIssueKeyArguments")
+    fun findCommitsWithFilesByIssueKeyTest(
+        issueKey: String,
+        commitFilesLimit: Int?,
+        commitsWithFilesByIssueKeyFile: String
+    ) = Assertions.assertEquals(
+        testService.getCommitsWithFiles(commitsWithFilesByIssueKeyFile),
+        findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
+    )
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyFailsArguments")
+    fun findCommitsWithFilesByIssueKeyFailsTest(
+        issueKey: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            findCommitsWithFilesByIssueKey(issueKey, null)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("findPullRequestsByIssueKeyArguments")
+    fun findPullRequestsByIssueKeyTest(issueKey: String, pullRequestsByIssueKeyFile: String) = Assertions.assertEquals(
+        testService.getPullRequests(pullRequestsByIssueKeyFile),
+        findPullRequestsByIssueKey(issueKey).map { pullRequest ->
+            PullRequest(
+                pullRequest.index, pullRequest.title,
+                pullRequest.description,
+                pullRequest.author,
+                pullRequest.source,
+                pullRequest.target,
+                pullRequest.assignees,
+                pullRequest.reviewers,
+                pullRequest.status,
+                Date(1698062284000L),
+                Date(1698062284000L),
+                pullRequest.link,
+                pullRequest.repository
+            )
+        }
+    )
+
+    @ParameterizedTest
+    @MethodSource("findByIssueKeyFailsArguments")
+    fun findPullRequestsByIssueKeyFailsTest(
+        issueKey: String,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
+        val exception = Assertions.assertThrows(exceptionClass) {
+            findPullRequestsByIssueKey(issueKey)
+        }
+        if (exceptionMessage != null) {
+            Assertions.assertEquals(exceptionMessage, exception.message)
+        }
+    }
+
+    protected abstract fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
+
+    protected abstract fun getCommits(
+        sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String
+    ): List<Commit>
+
+    protected abstract fun getCommitsWithFiles(
+        sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String, commitFilesLimit: Int?
+    ): List<CommitWithFiles>
+
+    protected abstract fun getCommit(sshUrl: String, hashOrRef: String): Commit
+
+    protected abstract fun getCommitWithFiles(
+        sshUrl: String,
+        hashOrRef: String,
+        commitFilesLimit: Int?
+    ): CommitWithFiles
+
+    protected abstract fun getIssuesFromCommits(
+        sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String
+    ): List<String>
+
+    protected abstract fun getTags(sshUrl: String): List<Tag>
+
+    protected abstract fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
+
+    protected abstract fun findByIssueKey(issueKey: String): SearchSummary
+
+    protected abstract fun findBranchesByIssueKey(issueKey: String): List<Branch>
+
+    protected abstract fun findCommitsByIssueKey(issueKey: String): List<Commit>
+
+    protected abstract fun findCommitsWithFilesByIssueKey(
+        issueKey: String,
+        commitFilesLimit: Int?
+    ): List<CommitWithFiles>
+
+    protected abstract fun findPullRequestsByIssueKey(issueKey: String): List<PullRequest>
+
 
     companion object {
+        const val BITBUCKET_HOST = "localhost:7990"
         const val BITBUCKET_USER = "admin"
         const val BITBUCKET_PASSWORD = "admin"
+        const val BITBUCKET_EXTERNAL_HOST = "bitbucket:7990"
 
-        const val GITLAB_USER = "root"
-        const val GITLAB_PASSWORD = "VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0="
-
+        const val GITEA_HOST = "localhost:3000"
         const val GITEA_USER = "test-admin"
         const val GITEA_PASSWORD = "test-admin"
+        const val GITEA_EXTERNAL_HOST = "gitea:3000"
 
-        const val PROJECT = "test-project"
-        const val REPOSITORY = "test-repository"
-        const val REPOSITORY_2 = "test-repository-2"
+        const val GITLAB_HOST = "localhost:8990"
+        const val GITLAB_USER = "root"
+        const val GITLAB_PASSWORD = "VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0="
+        const val GITLAB_EXTERNAL_HOST = "gitlab:8990"
 
-        const val MAIN_BRANCH = "master"
-        const val FEATURE_BRANCH = "feature/FEATURE-1"
+        const val GROUP = "test"
+        const val REPOSITORY = "repository"
+        const val REPOSITORY_2 = "repository-2"
 
-        const val MESSAGE_INIT = "initial commit"
-        const val MESSAGE_1 = "TEST-1 First commit"
-        const val MESSAGE_2 = "TEST-1 Second commit"
-        const val MESSAGE_3 = "TEST-2 Third commit"
+        //<editor-fold defaultstate="collapsed" desc="test parameters">
+        @JvmStatic
+        private fun createPullRequestFailsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                "absent-repository",
+                CreatePullRequest(
+                    "branch16", "master", "Test PR title 2", "Test PR description 2"
+                ),
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                CreatePullRequest(
+                    "absent-ref", "master", "Test PR title 3", "Test PR description 3"
+                ),
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                CreatePullRequest(
+                    "branch16", "absent-ref", "Test PR title 4", "Test PR description 4"
+                ),
+                NotFoundException::class.java
+            )
+        )
 
-        const val FEATURE_MESSAGE_1 = "FEATURE-1 First commit"
+        @JvmStatic
+        private fun getCommitsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                null,
+                Date(1698062284000L),
+                "5fb773dbe6472a87632b1c68ea771decdcd20f1e",
+                "commits.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                "c79babff3c1405618214eba90398c685ac4c0349",
+                null,
+                "5fb773dbe6472a87632b1c68ea771decdcd20f1e",
+                "commits-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                "branch8",
+                null,
+                "branch6",
+                "commits-3.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                null,
+                null,
+                "master",
+                "commits-4.json"
+            )
+        )
 
-        const val TAG_1 = "commit-1-tag"
-        const val TAG_2 = "commit-2-tag"
-        const val TAG_3 = "commit-3-tag"
+        @JvmStatic
+        private fun getCommitsFailsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                "master",
+                Date(),
+                "master",
+                ArgumentsNotCompatibleException::class.java,
+                "'hashOrRef' and 'date' can not be used together"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                "9c8daf84e7ed6ea1d32f654362131e26dbf37440",
+                null,
+                "a933dc6b4fe8e8f66856b4cb9da7f4bf8ad0e017",
+                NotFoundException::class.java,
+                "Cannot find commit '9c8daf84e7ed6ea1d32f654362131e26dbf37440' in commit graph for commit 'a933dc6b4fe8e8f66856b4cb9da7f4bf8ad0e017' in 'test:repository'"
+            ),
+            Arguments.of(
+                GROUP,
+                "absent-repository",
+                null,
+                null,
+                "master",
+                NotFoundException::class.java,
+                null
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY,
+                null,
+                null,
+                "absent-ref",
+                NotFoundException::class.java,
+                null
+            )
+        )
 
-        const val DEFAULT_ID = "0123456789abcde"
+        @JvmStatic
+        private fun getCommitsWithFilesArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                null,
+                null,
+                "master",
+                null,
+                "commits-with-files.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                null,
+                null,
+                "master",
+                1,
+                "commits-with-files-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+                null,
+                "v1.0.1",
+                -1,
+                "commits-with-files-3.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "v1.0",
+                null,
+                "feature/ISSUE-4",
+                null,
+                "commits-with-files-4.json"
+            )
+        )
 
-        val OBJECT_MAPPER = ObjectMapper().registerKotlinModule()
+        @JvmStatic
+        private fun getCommitArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "fa20861b90c54efbffeb48837f4044bc23b55238",
+                "commit.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "bugfix/ISSUE-3",
+                "commit-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "v1.0",
+                "commit-3.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun getCommitFailsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "invalid-commit-hash",
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "0123456789abcdef0123456789abcdef01234567",
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                "absent-repository",
+                "0123456789abcdef0123456789abcdef01234567",
+                NotFoundException::class.java
+            ),
+        )
+
+        @JvmStatic
+        private fun getCommitWithFilesArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "fa20861b90c54efbffeb48837f4044bc23b55238",
+                1,
+                "commit-with-files.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "bugfix/ISSUE-3",
+                -1,
+                "commit-with-files-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "v1.0",
+                null,
+                "commit-with-files-3.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun getIssuesFromCommitsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                null,
+                null,
+                "master",
+                "issues-from-commits.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+                null,
+                "v1.0.1",
+                "issues-from-commits-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "v1.0",
+                null,
+                "feature/ISSUE-4",
+                "issues-from-commits-3.json"
+            )
+        )
+
+        @JvmStatic
+        private fun findByIssueKeyArguments() = Stream.of(
+            Arguments.of(
+                "ISSUE-1",
+                "search-summary.json"
+            ),
+            Arguments.of(
+                "ISSUE-2",
+                "search-summary-2.json"
+            ),
+            Arguments.of(
+                "ISSUE-3",
+                "search-summary-3.json"
+            ),
+            Arguments.of(
+                "ISSUE-4",
+                "search-summary-4.json"
+            ),
+            Arguments.of(
+                "ISSUE-5",
+                "search-summary-5.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun findByIssueKeyFailsArguments() = Stream.of(
+            Arguments.of(
+                "ISSUE",
+                ArgumentsNotCompatibleException::class.java,
+                "Invalid issue key 'ISSUE'"
+            ),
+            Arguments.of(
+                "ISSUE-2A",
+                ArgumentsNotCompatibleException::class.java,
+                "Invalid issue key 'ISSUE-2A'"
+            ),
+            Arguments.of(
+                " ISSUE-3",
+                ArgumentsNotCompatibleException::class.java,
+                "Invalid issue key ' ISSUE-3'"
+            ),
+            Arguments.of(
+                "ISSUE+4",
+                ArgumentsNotCompatibleException::class.java,
+                "Invalid issue key 'ISSUE+4'"
+            ),
+            Arguments.of(
+                "0ISSUE-5",
+                ArgumentsNotCompatibleException::class.java,
+                "Invalid issue key '0ISSUE-5'"
+            ),
+        )
+
+        @JvmStatic
+        private fun findBranchesByIssueKeyArguments() = Stream.of(
+            Arguments.of(
+                "ISSUE-1",
+                "branches-by-issue-key.json"
+            ),
+            Arguments.of(
+                "ISSUE-2",
+                "branches-by-issue-key-2.json"
+            ),
+            Arguments.of(
+                "ISSUE-3",
+                "branches-by-issue-key-3.json"
+            ),
+            Arguments.of(
+                "ISSUE-4",
+                "branches-by-issue-key-4.json"
+            ),
+            Arguments.of(
+                "ISSUE-5",
+                "branches-by-issue-key-5.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun findCommitsByIssueKeyArguments() = Stream.of(
+            Arguments.of(
+                "ISSUE-1",
+                "commits-by-issue-key.json"
+            ),
+            Arguments.of(
+                "ISSUE-2",
+                "commits-by-issue-key-2.json"
+            ),
+            Arguments.of(
+                "ISSUE-3",
+                "commits-by-issue-key-3.json"
+            ),
+            Arguments.of(
+                "ISSUE-4",
+                "commits-by-issue-key-4.json"
+            ),
+            Arguments.of(
+                "ISSUE-5",
+                "commits-by-issue-key-5.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun findCommitsWithFilesByIssueKeyArguments() = Stream.of(
+            Arguments.of(
+                "ISSUE-1",
+                null,
+                "commits-with-files-by-issue-key.json"
+            ),
+            Arguments.of(
+                "ISSUE-2",
+                -1,
+                "commits-with-files-by-issue-key-2.json"
+            ),
+            Arguments.of(
+                "ISSUE-3",
+                1,
+                "commits-with-files-by-issue-key-3.json"
+            ),
+            Arguments.of(
+                "ISSUE-4",
+                2,
+                "commits-with-files-by-issue-key-4.json"
+            ),
+            Arguments.of(
+                "ISSUE-5",
+                0,
+                "commits-with-files-by-issue-key-5.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun findPullRequestsByIssueKeyArguments() = Stream.of(
+            Arguments.of(
+                "ISSUE-1",
+                "pull-requests-by-issue-key.json"
+            ),
+            Arguments.of(
+                "ISSUE-2",
+                "pull-requests-by-issue-key-2.json"
+            ),
+            Arguments.of(
+                "ISSUE-3",
+                "pull-requests-by-issue-key-3.json"
+            ),
+            Arguments.of(
+                "ISSUE-4",
+                "pull-requests-by-issue-key-4.json"
+            ),
+            Arguments.of(
+                "ISSUE-5",
+                "pull-requests-by-issue-key-5.json"
+            ),
+        )
+        //</editor-fold>
     }
 }
 

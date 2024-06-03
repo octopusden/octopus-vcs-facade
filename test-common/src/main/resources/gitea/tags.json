@@ -1,0 +1,24 @@
+[
+  {
+    "name": "v1.0",
+    "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+    "link": "http://localhost:3000/test/repository-2/src/tag/v1.0",
+    "repository": {
+      "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+      "link": "http://localhost:3000/test/repository-2",
+      "avatar": null
+    },
+    "type": "TAG"
+  },
+  {
+    "name": "v1.0.1",
+    "hash": "60d98c818023c651ee816bf119fe22ac33ccfafe",
+    "link": "http://localhost:3000/test/repository-2/src/tag/v1.0.1",
+    "repository": {
+      "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+      "link": "http://localhost:3000/test/repository-2",
+      "avatar": null
+    },
+    "type": "TAG"
+  }
+]

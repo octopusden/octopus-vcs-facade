@@ -331,7 +331,7 @@ class GitlabService(
         val releasedCommits = fromHash?.let { fromHashValue ->
             val exceptionFunction: (hash: String) -> NotFoundException = { commit ->
                 getCommit(namespace, project, fromHashValue)
-                NotFoundException("Can't find commit '$commit' in graph but it exists in the '$namespace:$project'")
+                NotFoundException("Cannot find commit '$commit' in commit graph for commit '$toHash' in '$namespace:$project'")
             }
             graph.findReleasedCommits(fromHashValue, exceptionFunction)
         } ?: emptySet()

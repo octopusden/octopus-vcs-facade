@@ -7,6 +7,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
@@ -14,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsConfig
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
+import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser.validateIssueKey
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.octopusden.octopus.vcsfacade.service.VcsManager
@@ -101,10 +103,18 @@ class VcsManagerImpl(
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
         log.trace("=> searchIssuesInRanges({})", searchRequest)
+        searchRequest.issueKeys.map { validateIssueKey(it) }
         val messageRanges = searchRequest.ranges.flatMap { range ->
             getCommits(
                 range.sshUrl, range.fromHashOrRef, range.fromDate, range.toHashOrRef
-            ).map { commit -> commit.message to range }
+            ).map { commit ->
+                commit.message to RepositoryRange(
+                    commit.repository.sshUrl,
+                    range.fromHashOrRef,
+                    range.fromDate,
+                    range.toHashOrRef
+                )
+            }
         }.groupBy({ (message, _) -> message }, { (_, range) -> range })
         return SearchIssueInRangesResponse(searchRequest.issueKeys.map { issueKey ->
             val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
@@ -123,6 +133,7 @@ class VcsManagerImpl(
 
     override fun findBranches(issueKey: String): Sequence<Branch> {
         log.trace("=> findBranches({})", issueKey)
+        validateIssueKey(issueKey)
         val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.map { it.toDto() as Branch }
             ?: vcsServices.flatMap { it.findBranches(issueKey) }.asSequence()
         log.trace("<= findBranches({}): {}", issueKey, branches)
@@ -131,6 +142,7 @@ class VcsManagerImpl(
 
     override fun findCommits(issueKey: String): Sequence<Commit> {
         log.trace("=> findCommits({})", issueKey)
+        validateIssueKey(issueKey)
         val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto().commit }
             ?: vcsServices.flatMap { it.findCommits(issueKey) }.asSequence()
         log.trace("<= findCommits({}): {}", issueKey, commits)
@@ -139,6 +151,7 @@ class VcsManagerImpl(
 
     override fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles> {
         log.trace("=> findCommitsWithFiles({})", issueKey)
+        validateIssueKey(issueKey)
         val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto() }
             ?: vcsServices.flatMap { it.findCommitsWithFiles(issueKey) }.asSequence()
         log.trace("<= findCommitsWithFiles({}): {}", issueKey, commits)
@@ -147,6 +160,7 @@ class VcsManagerImpl(
 
     override fun findPullRequests(issueKey: String): Sequence<PullRequest> {
         log.trace("=> findPullRequests({})", issueKey)
+        validateIssueKey(issueKey)
         val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.map { it.toDto() }
             ?: vcsServices.flatMap { it.findPullRequests(issueKey) }.asSequence()
         log.trace("<= findPullRequests({}): {}", issueKey, pullRequests)
@@ -155,6 +169,7 @@ class VcsManagerImpl(
 
     override fun find(issueKey: String): SearchSummary {
         log.trace("=> find({})", issueKey)
+        validateIssueKey(issueKey)
         val searchSummary = openSearchService?.findByIssueKey(issueKey) ?: run {
             val branchesCommits = vcsServices.flatMap { vcsService ->
                 vcsService.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {

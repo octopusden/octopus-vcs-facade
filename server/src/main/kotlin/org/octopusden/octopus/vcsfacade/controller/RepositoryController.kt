@@ -77,7 +77,7 @@ class RepositoryController(
         )
         RepositoryResponse(
             vcsManager.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-                .map { it.applyCommitFilesLimit(commitFilesLimit) }
+                .map { it.mapFilesList(commitFilesLimit) }
         )
     }.data.sorted()
 
@@ -99,7 +99,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get commit {} with files (limit {}) in {} repository", hashOrRef, commitFilesLimit, sshUrl)
-        vcsManager.getCommitWithFiles(sshUrl, hashOrRef).applyCommitFilesLimit(commitFilesLimit)
+        vcsManager.getCommitWithFiles(sshUrl, hashOrRef).mapFilesList(commitFilesLimit)
     }
 
     @GetMapping("issues", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -194,7 +194,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(issueKey).map { it.applyCommitFilesLimit(commitFilesLimit) }
+            vcsManager.findCommitsWithFiles(issueKey).map { it.mapFilesList(commitFilesLimit) }
         )
     }.data.sorted()
 
@@ -241,8 +241,8 @@ class RepositoryController(
     companion object {
         private val log = LoggerFactory.getLogger(RepositoryController::class.java)
 
-        private fun CommitWithFiles.applyCommitFilesLimit(commitFilesLimit: Int) = if (commitFilesLimit > 0)
-            CommitWithFiles(commit, totalFiles, files.take(commitFilesLimit))
-        else this
+        private fun CommitWithFiles.mapFilesList(commitFilesLimit: Int) = files.sorted().let {
+            CommitWithFiles(commit, totalFiles, if (commitFilesLimit > 0) it.take(commitFilesLimit) else it)
+        }
     }
 }

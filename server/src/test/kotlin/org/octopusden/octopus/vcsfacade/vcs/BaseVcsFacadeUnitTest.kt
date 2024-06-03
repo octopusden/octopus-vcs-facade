@@ -2,205 +2,174 @@ package org.octopusden.octopus.vcsfacade.vcs
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.junit.jupiter.api.BeforeAll
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Date
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
-import org.octopusden.octopus.vcsfacade.CheckError
+import org.octopusden.octopus.vcsfacade.TestService
 import org.octopusden.octopus.vcsfacade.VcsFacadeApplication
+import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
-import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
+import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.*
-
-private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 
 @AutoConfigureMockMvc
 @ExtendWith(SpringExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-abstract class BaseVcsFacadeUnitTest(testClient: TestClient, sshUrlFormat: String) :
-    BaseVcsFacadeTest(testClient, sshUrlFormat) {
+@SpringBootTest(classes = [VcsFacadeApplication::class], webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+abstract class BaseVcsFacadeUnitTest(
+    testService: TestService, testClient: TestClient
+) : BaseVcsFacadeTest(testService, testClient) {
 
     @Autowired
     private lateinit var mvc: MockMvc
 
     @Autowired
-    private lateinit var mapper: ObjectMapper
+    private lateinit var objectMapper: ObjectMapper
 
-    @BeforeAll
-    fun beforeAllRepositoryControllerTests() {
-        mapper.setLocale(Locale.ENGLISH)
-    }
+    override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
+        mvc.perform(
+            MockMvcRequestBuilders.post("/rest/api/2/repository/pull-requests")
+                .param("sshUrl", sshUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(createPullRequest))
+                .accept(MediaType.APPLICATION_JSON)
+        ).andReturn().response.toObject(object : TypeReference<PullRequest>() {})
 
-    override fun requestCommitsInterval(
+    override fun getCommits(
         sshUrl: String,
-        fromId: String?,
+        fromHashOrRef: String?,
         fromDate: Date?,
-        toId: String,
-        status: Int,
-        checkSuccess: (List<Commit>) -> Unit,
-        checkError: CheckError
-    ) {
-        val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/2/repository/commits")
-                .param("sshUrl", sshUrl)
-                .param("fromHashOrRef", fromId)
-                .param("fromDate", fromDate?.toVcsFacadeFormat())
-                .param("toHashOrRef", toId)
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(MockMvcResultMatchers.status().`is`(status))
-            .andReturn()
-            .response
-        checkResponse(response, status, object : TypeReference<List<Commit>>() {}, checkSuccess, checkError)
-    }
+        toHashOrRef: String
+    ) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commits")
+            .param("sshUrl", sshUrl)
+            .param("fromHashOrRef", fromHashOrRef)
+            .param("fromDate", fromDate?.toVcsFacadeFormat())
+            .param("toHashOrRef", toHashOrRef)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Commit>>() {})
 
-    override fun requestCommitById(
+    override fun getCommitsWithFiles(
         sshUrl: String,
-        commitId: String,
-        status: Int,
-        checkSuccess: (Commit) -> Unit,
-        checkError: CheckError
-    ) {
-        val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/2/repository/commit")
-                .param("sshUrl", sshUrl)
-                .param("hashOrRef", commitId)
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(MockMvcResultMatchers.status().`is`(status))
-            .andReturn()
-            .response
-        checkResponse(response, status, object : TypeReference<Commit>() {}, checkSuccess, checkError)
-    }
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+        commitFilesLimit: Int?
+    ) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commits/files")
+            .param("sshUrl", sshUrl)
+            .param("fromHashOrRef", fromHashOrRef)
+            .param("fromDate", fromDate?.toVcsFacadeFormat())
+            .param("toHashOrRef", toHashOrRef)
+            .param("commitFilesLimit", commitFilesLimit?.toString())
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<CommitWithFiles>>() {})
 
-    override fun requestTags(
+    override fun getCommit(sshUrl: String, hashOrRef: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commit")
+            .param("sshUrl", sshUrl)
+            .param("hashOrRef", hashOrRef)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<Commit>() {})
+
+    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String, commitFilesLimit: Int?) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commit/files")
+            .param("sshUrl", sshUrl)
+            .param("hashOrRef", hashOrRef)
+            .param("commitFilesLimit", commitFilesLimit?.toString())
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<CommitWithFiles>() {})
+
+    override fun getIssuesFromCommits(
         sshUrl: String,
-        status: Int,
-        checkSuccess: (List<Tag>) -> Unit,
-        checkError: CheckError
-    ) {
-        val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/2/repository/tags")
-                .param("sshUrl", sshUrl)
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(MockMvcResultMatchers.status().`is`(status))
-            .andReturn()
-            .response
-        checkResponse(response, status, object : TypeReference<List<Tag>>() {}, checkSuccess, checkError)
-    }
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String
+    ) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/issues")
+            .param("sshUrl", sshUrl)
+            .param("fromHashOrRef", fromHashOrRef)
+            .param("fromDate", fromDate?.toVcsFacadeFormat())
+            .param("toHashOrRef", toHashOrRef)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<String>>() {})
 
-    override fun requestCommitsByIssueKey(
-        issueKey: String,
-        status: Int,
-        checkSuccess: (List<Commit>) -> Unit,
-        checkError: CheckError
-    ) {
-        val response = mvc.perform(
-            MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits")
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(MockMvcResultMatchers.status().`is`(status))
-            .andReturn()
-            .response
-        checkResponse(response, status, object : TypeReference<List<Commit>>() {}, checkSuccess, checkError)
-    }
+    override fun getTags(sshUrl: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/tags")
+            .param("sshUrl", sshUrl)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Tag>>() {})
 
-    override fun searchIssuesInRanges(
-        searchRequest: SearchIssuesInRangesRequest,
-        status: Int,
-        checkSuccess: (SearchIssueInRangesResponse) -> Unit,
-        checkError: CheckError
-    ) {
-        val content = mapper.writeValueAsString(searchRequest)
-        val response = mvc.perform(
-            MockMvcRequestBuilders.post("/rest/api/2/repository/search-issues-in-ranges")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content)
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(MockMvcResultMatchers.status().`is`(status))
-            .andReturn()
-            .response
-        checkResponse(
-            response,
-            status,
-            object : TypeReference<SearchIssueInRangesResponse>() {},
-            checkSuccess,
-            checkError
-        )
-    }
+    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) = mvc.perform(
+        MockMvcRequestBuilders.post("/rest/api/2/repository/search-issues-in-ranges")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(searchRequest))
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<SearchIssueInRangesResponse>() {})
 
-    override fun createPullRequest(
-        sshUrl: String,
-        createPullRequest: CreatePullRequest,
-        status: Int,
-        checkSuccess: (PullRequest) -> Unit,
-        checkError: CheckError
-    ) {
-        val content = mapper.writeValueAsString(createPullRequest)
-        val response = mvc.perform(
-            MockMvcRequestBuilders.post("/rest/api/2/repository/pull-requests", sshUrl)
-                .param("sshUrl", sshUrl)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content)
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(MockMvcResultMatchers.status().`is`(status))
-            .andReturn()
-            .response
-        checkResponse(
-            response,
-            status,
-            object : TypeReference<PullRequest>() {},
-            checkSuccess,
-            checkError
-        )
-    }
+    override fun findByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<SearchSummary>() {})
 
-    private fun <T> checkResponse(
-        response: MockHttpServletResponse,
-        status: Int,
-        typeReference: TypeReference<T>,
-        checkSuccess: (T) -> Unit,
-        checkError: CheckError
-    ) {
-        if (HttpStatus.OK == HttpStatus.valueOf(status)) {
-            checkSuccess(response.toObject(typeReference))
-        } else {
-            val err = response.toObject(object : TypeReference<ErrorResponse>() {})
-            checkError(Pair(response.status, err.errorMessage))
+    override fun findBranchesByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/branches")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Branch>>() {})
+
+    override fun findCommitsByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<Commit>>() {})
+
+    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits/files")
+            .param("commitFilesLimit", commitFilesLimit?.toString())
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<CommitWithFiles>>() {})
+
+    override fun findPullRequestsByIssueKey(issueKey: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/pull-requests")
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<List<PullRequest>>() {})
+
+    private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T {
+        if (status / 100 != 2) {
+            throw try {
+                objectMapper.readValue(this.contentAsByteArray, ErrorResponse::class.java).let {
+                    it.errorCode.getException(it.errorMessage)
+                }
+            } catch (e: Exception) {
+                RuntimeException(String(this.contentAsByteArray))
+            }
         }
-    }
-
-    private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T =
-        mapper.readValue(contentAsByteArray, typeReference)
-
-    private fun Date.toVcsFacadeFormat(): String {
-        return FORMATTER.format(toInstant())
+        return objectMapper.readValue(this.contentAsByteArray, typeReference)
     }
 
     companion object {
-        private val FORMATTER = DateTimeFormatter.ofPattern(ISO_PATTERN)
+        private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
             .withZone(ZoneId.systemDefault())
+
+        private fun Date.toVcsFacadeFormat(): String {
+            return DATE_FORMATTER.format(toInstant())
+        }
     }
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "hash": "06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd",
+    "message": "Merge branch 'feature/ISSUE-2' (squash)\n",
+    "date": 1716987041000,
+    "author": {
+      "name": "admin",
+      "avatar": null
+    },
+    "parents": [
+      "9a44342d8ee92b85b9b23bcad8953b56868f9699"
+    ],
+    "link": "http://localhost:3000/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd",
+    "repository": {
+      "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
+      "link": "http://localhost:3000/test/repository-2",
+      "avatar": null
+    }
+  }
+]
