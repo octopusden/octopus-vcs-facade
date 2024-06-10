@@ -38,15 +38,28 @@ ftImplementation.isCanBeResolved = true
 
 configurations["ftRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
 
+val helmNamespace = "helmNamespace".getExt()
+val helmRelease = "helmRelease".getExt()
+val clusterDomain = "clusterDomain".getExt()
+val localDomain = "localDomain".getExt()
+val bitbucketHost = "bitbucketHost".getExt()
+val platform = "platform".getExt()
+
 val ft by tasks.creating(Test::class) {
     group = "verification"
     description = "Runs the integration tests"
     testClassesDirs = sourceSets["ft"].output.classesDirs
     classpath = sourceSets["ft"].runtimeClasspath
     systemProperties["test.profile"] = "testProfile".getExt()
+    systemProperties["platform"] = platform
+    if (platform == "okd") {
+        systemProperties["bitbucketHost"] = bitbucketHost
+        systemProperties["bitbucketExternalHost"] = bitbucketHost
+        systemProperties["bitbucketUrl"] = "http://$bitbucketHost"
+        systemProperties["vcs-facade.vcs.bitbucket.host"] = "http://$bitbucketHost"
+        systemProperties["vcsFacadeUrl"] = "http://$helmRelease-vcs-facade-route-$helmNamespace.$clusterDomain"
+    }
 }
-
-dockerCompose.isRequiredBy(ft)
 
 tasks["composeUp"].doLast {
     if ("testProfile".getExt() == "gitea") {
@@ -65,10 +78,6 @@ tasks["composeUp"].doLast {
     }
 }
 
-tasks.named("composeUp") {
-    dependsOn(":vcs-facade:dockerBuildImage")
-}
-
 idea.module {
     scopes["PROVIDED"]?.get("plus")?.add(configurations["ftImplementation"])
 }
@@ -79,4 +88,16 @@ dependencies {
     ftImplementation(project(":test-common"))
     ftImplementation("org.junit.jupiter:junit-jupiter-engine")
     ftImplementation("org.junit.jupiter:junit-jupiter-params")
+}
+
+if (platform == "okd") {
+    tasks.named("ft") {
+        dependsOn(":deploy:deployHelm")
+        finalizedBy(":deploy:uninstallHelm")
+    }
+} else {
+    dockerCompose.isRequiredBy(ft)
+    tasks.named("composeUp") {
+        dependsOn(":vcs-facade:dockerBuildImage")
+    }
 }

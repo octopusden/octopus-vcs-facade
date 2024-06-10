@@ -10,19 +10,27 @@ import org.octopusden.octopus.infrastructure.common.test.dto.NewChangeSet
 import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 
-@EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
+@EnabledIfSystemProperty(named = TEST_PROFILE, matches = GITEA)
 class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
-    TestService.Gitea(GITEA_HOST, GITEA_EXTERNAL_HOST, true),
-    GiteaTestClient("http://$GITEA_HOST", GITEA_USER, GITEA_PASSWORD, GITEA_EXTERNAL_HOST)
+    TestService.Gitea(
+        Configuration.model.gitea.host,
+        Configuration.model.gitea.externalHost,
+        true),
+    GiteaTestClient(
+        Configuration.model.gitea.url,
+        Configuration.model.gitea.user,
+        Configuration.model.gitea.password,
+        Configuration.model.gitea.externalHost
+    )
 ) {
     @BeforeAll
     fun beforeAllVcsFacadeFunctionalTestGitea() {
-        val url = URI("http://$GITEA_HOST/api/v1/repos/$GROUP/$REPOSITORY_2/hooks").toURL()
+        val url = URI("http://${Configuration.model.gitea.host}/api/v1/repos/$GROUP/$REPOSITORY_2/hooks").toURL()
         with(url.openConnection() as HttpURLConnection) {
             setRequestMethod("POST")
             setRequestProperty(
                 "Authorization",
-                "Basic " + Base64.getEncoder().encodeToString("$GITEA_USER:$GITEA_PASSWORD".toByteArray())
+                "Basic " + Base64.getEncoder().encodeToString("${Configuration.model.gitea.user}:${Configuration.model.gitea.password}".toByteArray())
             )
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")

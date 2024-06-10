@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "vcsFacade.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "chart-test.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.vcsFacade.service.type }}
+  ports:
+    - port: {{ .Values.vcsFacade.service.port }}
+      targetPort: {{ .Values.vcsFacade.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: vcs-facade
