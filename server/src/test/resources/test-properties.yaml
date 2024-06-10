@@ -1,0 +1,22 @@
+bitbucket:
+  host: "localhost:7990"
+  externalHost: "bitbucket:7990"
+  user: "admin"
+  password: "admin"
+  url: "http://localhost:7990"
+
+gitlab:
+  host: "localhost:8990"
+  externalHost: "gitlab:8990"
+  user: "root"
+  password: "VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0="
+  url: "http://localhost:8990"
+
+gitea:
+  host: "localhost:3000"
+  externalHost: "gitea:3000"
+  user: "test-admin"
+  password: "test-admin"
+  url: "http://localhost:3000"
+
+vcsFacadeUrl: "http://localhost:8080"

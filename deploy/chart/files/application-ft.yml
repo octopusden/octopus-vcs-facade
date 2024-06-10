@@ -1,0 +1,4 @@
+vcs-facade:
+  job:
+    fast-work-timout-secs: 0
+    retry-interval-secs: 1

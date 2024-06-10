@@ -12,10 +12,10 @@
         "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7",
         "ce1b7175c9b4914cf2fc03c0f28046509f820597"
       ],
-      "link": "http://localhost:3000/test/repository-2/commit/9a44342d8ee92b85b9b23bcad8953b56868f9699",
+      "link": "{{url}}/test/repository-2/commit/9a44342d8ee92b85b9b23bcad8953b56868f9699",
       "repository": {
-        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
-        "link": "http://localhost:3000/test/repository-2",
+        "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+        "link": "{{url}}/test/repository-2",
         "avatar": null
       }
     },
@@ -34,10 +34,10 @@
       "parents": [
         "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"
       ],
-      "link": "http://localhost:3000/test/repository-2/commit/ce1b7175c9b4914cf2fc03c0f28046509f820597",
+      "link": "{{url}}/test/repository-2/commit/ce1b7175c9b4914cf2fc03c0f28046509f820597",
       "repository": {
-        "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
-        "link": "http://localhost:3000/test/repository-2",
+        "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+        "link": "{{url}}/test/repository-2",
         "avatar": null
       }
     },
@@ -46,7 +46,7 @@
       {
         "type": "MODIFY",
         "path": "src/source-1.txt",
-        "link": "http://localhost:3000/test/repository-2/commit/ce1b7175c9b4914cf2fc03c0f28046509f820597#diff-ee724442198bac184fd8356360895fa4d9c45b69"
+        "link": "{{url}}/test/repository-2/commit/ce1b7175c9b4914cf2fc03c0f28046509f820597#diff-ee724442198bac184fd8356360895fa4d9c45b69"
       }
     ]
   }

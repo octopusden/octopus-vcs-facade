@@ -5,17 +5,17 @@
     "date": 1716986762000,
     "author": {
       "name": "admin",
-      "avatar": "http://localhost:7990/users/admin/avatar.png?s=48"
+      "avatar": "{{url}}/users/admin/avatar.png?s=48"
     },
     "parents": [
       "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7",
       "ce1b7175c9b4914cf2fc03c0f28046509f820597"
     ],
-    "link": "http://localhost:7990/projects/test/repos/repository-2/commits/9a44342d8ee92b85b9b23bcad8953b56868f9699",
+    "link": "{{url}}/projects/test/repos/repository-2/commits/9a44342d8ee92b85b9b23bcad8953b56868f9699",
     "repository": {
-      "sshUrl": "ssh://git@localhost:7990/test/repository-2.git",
-      "link": "http://localhost:7990/projects/test/repos/repository-2/browse",
-      "avatar": "http://localhost:7990/projects/test/avatar.png?s=48"
+      "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+      "link": "{{url}}/projects/test/repos/repository-2/browse",
+      "avatar": "{{url}}/projects/test/avatar.png?s=48"
     }
   },
   {
@@ -24,16 +24,16 @@
     "date": 1716986486000,
     "author": {
       "name": "admin",
-      "avatar": "http://localhost:7990/users/admin/avatar.png?s=48"
+      "avatar": "{{url}}/users/admin/avatar.png?s=48"
     },
     "parents": [
       "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"
     ],
-    "link": "http://localhost:7990/projects/test/repos/repository-2/commits/ce1b7175c9b4914cf2fc03c0f28046509f820597",
+    "link": "{{url}}/projects/test/repos/repository-2/commits/ce1b7175c9b4914cf2fc03c0f28046509f820597",
     "repository": {
-      "sshUrl": "ssh://git@localhost:7990/test/repository-2.git",
-      "link": "http://localhost:7990/projects/test/repos/repository-2/browse",
-      "avatar": "http://localhost:7990/projects/test/avatar.png?s=48"
+      "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+      "link": "{{url}}/projects/test/repos/repository-2/browse",
+      "avatar": "{{url}}/projects/test/avatar.png?s=48"
     }
   }
 ]

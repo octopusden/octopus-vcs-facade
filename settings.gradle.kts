@@ -23,3 +23,4 @@ include(":test-common")
 include(":server")
 findProject(":server")?.name = "vcs-facade"
 include(":ft")
+include(":deploy")

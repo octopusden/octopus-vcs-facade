@@ -19,10 +19,10 @@
     "status": "OPEN",
     "createdAt": 1698062284000,
     "updatedAt": 1698062284000,
-    "link": "http://localhost:3000/test/repository-2/pulls/1",
+    "link": "{{url}}/test/repository-2/pulls/1",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
-      "link": "http://localhost:3000/test/repository-2",
+      "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+      "link": "{{url}}/test/repository-2",
       "avatar": null
     }
   }

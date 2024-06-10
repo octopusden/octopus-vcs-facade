@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bitbucketDb.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "bitbucketDb.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "bitbucketDb.fullname" . }}
+    spec:
+      containers:
+        - name: {{ include "bitbucketDb.fullname" . }}
+          securityContext: {}
+          image: {{ .Values.dockerRegistry }}/postgres:{{ .Values.bitbucketDb.image.version }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5432
+          {{- if eq .Values.platform "podman" }}
+              hostPort: 5432
+          {{- end }}
+              protocol: TCP
+          env:
+          {{- range $key, $value := .Values.bitbucketDb.environment }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ .Release.Name }}-bitbucket-db-storage
+              mountPath: /var/lib/postgresql/
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U {{ .Values.bitbucket.environment.JDBC_USER }}
+            initialDelaySeconds: 90
+          resources: {}
+      volumes:
+        - name: {{ .Release.Name }}-bitbucket-db-storage
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-bitbucket-db-storage
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Release.Name }}-bitbucket-db-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

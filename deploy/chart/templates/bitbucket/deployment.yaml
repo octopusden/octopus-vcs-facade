@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bitbucket.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "bitbucket.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "bitbucket.fullname" . }}
+    spec:
+      containers:
+        - name: vcs-facade-ft-bitbucket
+          securityContext: {}
+          image: {{ .Values.dockerRegistry }}/atlassian/bitbucket-server:{{ .Values.bitbucket.image.version }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ssh
+              containerPort: 7999
+          {{- if eq .Values.platform "podman" }}
+              hostPort: 7999
+          {{- end }}    
+              protocol: TCP
+            - name: http
+              containerPort: 7990
+            {{- if eq .Values.platform "podman" }}
+              hostPort: 7990
+            {{- end }}
+              protocol: TCP
+          env:
+          {{- range $key, $value := .Values.bitbucket.environment }}
+          {{- if contains $key "SETUP_LICENSE" }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ tpl $value $ }}"
+                  key: token
+          {{- else }}
+            - name: {{ $key }}
+              value: "{{ tpl $value $ }}"
+          {{- end }}
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  if curl -s http://localhost:7990/status | grep -q '"state":"RUNNING"'; then
+                  exit 0
+                  else
+                  exit 1
+                  fi
+            initialDelaySeconds: 120
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  if curl -s http://localhost:7990/status | grep -q '"state":"RUNNING"'; then
+                  exit 0
+                  else
+                  exit 1
+                  fi
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources: {}
+          volumeMounts:
+            - name: {{ .Release.Name }}-bitbucket-volume
+              mountPath: /var/atlassian/application-data/bitbucket
+      volumes:
+        - name: {{ .Release.Name }}-bitbucket-volume
+          {{- if eq .Values.platform "podman" }}
+          hostPath:
+            path: {{ .Values.bitbucket.path }}
+            type: Directory
+          {{ else }}
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-bitbucket-volume
+          {{- end }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Release.Name }}-bitbucket-volume
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

@@ -30,15 +30,20 @@ sealed class TestService(
 
     protected val effectiveHost = externalHost ?: host
 
+    protected val variables = mapOf(
+        "url" to "http://$effectiveHost",
+        "host" to effectiveHost
+    )
+
     fun getCommits(resource: String): List<Commit> = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<List<Commit>>() {}
     ).let { commits ->
         if (externalHost.isNullOrBlank()) commits else commits.map { it.replaceHost(host, externalHost) }
     }
 
     fun getCommitsWithFiles(resource: String): List<CommitWithFiles> = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<List<CommitWithFiles>>() {}
     ).let { commitsWithFiles ->
         if (externalHost.isNullOrBlank()) commitsWithFiles
@@ -46,26 +51,26 @@ sealed class TestService(
     }
 
     fun getCommit(resource: String): Commit = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<Commit>() {}
     ).let { commit ->
         if (externalHost.isNullOrBlank()) commit else commit.replaceHost(host, externalHost)
     }
 
     fun getCommitWithFiles(resource: String): CommitWithFiles = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<CommitWithFiles>() {}
     ).let { commitWithFiles ->
         if (externalHost.isNullOrBlank()) commitWithFiles else commitWithFiles.replaceHost(host, externalHost)
     }
 
     fun getIssuesFromCommits(resource: String): List<String> = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<List<String>>() {}
     )
 
     fun getTags(resource: String): List<Tag> = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<List<Tag>>() {}
     ).let { tags ->
         if (externalHost.isNullOrBlank()) tags
@@ -73,7 +78,7 @@ sealed class TestService(
     }
 
     fun getSearchIssueInRangesResponse(resource: String): SearchIssueInRangesResponse = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<SearchIssueInRangesResponse>() {}
     ).let { searchIssueInRangesResponse ->
         if (externalHost.isNullOrBlank()) searchIssueInRangesResponse
@@ -81,12 +86,12 @@ sealed class TestService(
     }
 
     fun getSearchSummary(resource: String): SearchSummary = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<SearchSummary>() {}
     )
 
     fun getBranches(resource: String): List<Branch> = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<List<Branch>>() {}
     ).let { branches ->
         if (externalHost.isNullOrBlank()) branches
@@ -94,7 +99,7 @@ sealed class TestService(
     }
 
     fun getPullRequests(resource: String): List<PullRequest> = OBJECT_MAPPER.readValue(
-        TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<List<PullRequest>>() {}
     ).let { pullRequests ->
         if (externalHost.isNullOrBlank()) pullRequests
@@ -104,7 +109,7 @@ sealed class TestService(
     class Bitbucket(
         host: String, externalHost: String? = null
     ) : TestService(host, externalHost) {
-        override val type = "bitbucket"
+        override val type = BITBUCKET
 
         override fun sshUrl(group: String, repository: String) =
             "ssh://git@$effectiveHost/$group/$repository.git"
@@ -113,14 +118,14 @@ sealed class TestService(
     class Gitea(
         host: String, externalHost: String? = null, private val useColon: Boolean = false
     ) : TestService(host, externalHost) {
-        override val type = "gitea"
+        override val type = GITEA
 
         override fun sshUrl(group: String, repository: String) =
             "ssh://git@$effectiveHost${if (useColon) ":" else "/"}$group/$repository.git"
 
         fun scan(group: String, repository: String) {
             val query = "sshUrl=${URLEncoder.encode(sshUrl(group, repository), StandardCharsets.UTF_8)}"
-            val url = URI("$VCS_FACADE_API_URL/rest/api/1/indexer/gitea/scan?$query").toURL()
+            val url = URI("${Configuration.model.vcsFacadeUrl}/rest/api/1/indexer/gitea/scan?$query").toURL()
             with(url.openConnection() as HttpURLConnection) {
                 setRequestMethod("POST")
                 if (getResponseCode() / 100 != 2) {
@@ -134,14 +139,13 @@ sealed class TestService(
     class Gitlab(
         host: String, externalHost: String? = null
     ) : TestService(host, externalHost) {
-        override val type = "gitlab"
+        override val type = GITLAB
 
         override fun sshUrl(group: String, repository: String) =
             "ssh://git@$effectiveHost:$group/$repository.git"
     }
 
     companion object {
-        const val VCS_FACADE_API_URL = "http://localhost:8080" //TODO: use some custom port?
 
         private val OBJECT_MAPPER = ObjectMapper().registerKotlinModule()
 
