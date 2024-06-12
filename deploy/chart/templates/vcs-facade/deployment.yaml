@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vcsFacade.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "chart-test.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.vcsFacade.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "chart-test.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "vcsFacade.fullname" . }}
+          securityContext: {}
+          image: {{ .Values.dockerRegistry }}/octopusden/vcs-facade:{{ .Values.vcsFacade.image.version }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          {{- if eq .Values.platform "podman" }}
+              hostPort: 8080
+          {{- end }}    
+              protocol: TCP
+          env:
+          {{- range $key, $value := .Values.vcsFacade.environment }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          resources: {}
+          volumeMounts:
+{{- if eq .Values.platform "podman" }}
+            - name: {{ .Release.Namespace }}-application-bitbucket-config
+              mountPath: /app/config/application-bitbucket.yml
+              readOnly: true
+            - name: {{ .Release.Namespace }}-application-ft-config
+              mountPath: /app/config/application-ft.yml
+              readOnly: true
+            - name: {{ .Release.Namespace }}-bootstrap-ft-config
+              mountPath: /app/config/bootstrap-ft.yml
+              readOnly: true
+{{ else }}
+            - name: {{ .Release.Namespace }}-application-config
+              mountPath: /app/config
+              readOnly: true
+{{- end }}
+      volumes:
+{{- if eq .Values.platform "podman" }}
+        - hostPath:
+            path: {{ .Values.vcsFacade.configFile.applicationBitbucket.path }}
+            type: File
+          name: {{ .Release.Namespace }}-application-bitbucket-config
+        - hostPath:
+            path: {{ .Values.vcsFacade.configFile.applicationFt.path }}
+            type: File
+          name: {{ .Release.Namespace }}-application-ft-config
+        - hostPath:
+            path: {{ .Values.vcsFacade.configFile.bootstrapFt.path }}
+            type: File
+          name: {{ .Release.Namespace }}-bootstrap-ft-config
+{{ else }}
+        - name: {{ .Release.Namespace }}-application-config
+          configMap:
+            name: {{ include "vcsFacade.fullname" . }}-conf
+            defaultMode: 420
+{{- end }}

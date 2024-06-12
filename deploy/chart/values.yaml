@@ -1,0 +1,78 @@
+# Default values for chart-test.
+# This is a YAML-formatted file.
+
+platform: openshift
+profile: gitea
+
+clusterDomain:
+localDomain: svc.cluster.local
+
+dockerRegistry: docker.io/library
+
+gitea:
+  fullnameOverride: vcs-facade-ft-gitea
+  image:
+    version: 1.21.10
+
+bitbucket:
+  host: bitbucket:7990
+  fullnameOverride: bitbucket
+  license:
+  image:
+    version: 8.14.0-jdk11
+  environment:
+    SETUP_DISPLAYNAME: Bitbucket
+    SETUP_BASEURL: http://localhost:7990
+    SETUP_LICENSE: "{{ .Release.Name }}-{{ .Values.bitbucket.fullnameOverride }}-bitbucket-license-secret"
+    SETUP_SYSADMIN_USERNAME: admin
+    SETUP_SYSADMIN_PASSWORD: admin
+    SETUP_SYSADMIN_DISPLAYNAME: Dev Instance Admin
+    SETUP_SYSADMIN_EMAILADDRESS: admin@domain.corp
+    JDBC_DRIVER: org.postgresql.Driver
+    JDBC_USER: bitbucket
+    JDBC_PASSWORD: bitbucket
+    JDBC_URL: "jdbc:postgresql://{{ .Release.Name }}-{{ .Values.bitbucketDb.fullnameOverride }}.{{ .Release.Namespace }}.{{ .Values.localDomain }}:5432/bitbucket"
+  service:
+    ssh:
+      type: ClusterIP
+      port: 7999
+      targetPort: 7999
+    http:
+      type: ClusterIP
+      port: 7990
+      targetPort: 7990
+  path: ./bitbucket
+
+bitbucketDb:
+  fullnameOverride: bitbucket-db
+  image:
+    version: 13-alpine
+  environment:
+    POSTGRES_USER: bitbucket
+    POSTGRES_PASSWORD: bitbucket
+    POSTGRES_DB: bitbucket
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+
+vcsFacade:
+  fullnameOverride: vcs-facade
+  image:
+    version: 3.0.5
+  environment:
+    SPRING_CONFIG_ADDITIONAL_LOCATION: /app/config/
+    SPRING_PROFILES_ACTIVE: ft,bitbucket
+    JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  configFile:
+    applicationBitbucket:
+      path: ./chart/files/application-bitbucket.yml
+    applicationFt:
+      path: ./chart/files/application-ft.yml
+    bootstrapFt:
+      path: ./chart/files/bootstrap-ft.yml
+

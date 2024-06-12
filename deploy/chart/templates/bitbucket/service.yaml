@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "bitbucket.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "chart-test.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.bitbucket.service.type }}
+  ports:
+    - port: {{ .Values.bitbucket.service.ssh.port }}
+      targetPort: {{ .Values.bitbucket.service.ssh.targetPort }}
+      protocol: TCP
+      name: ssh
+    - port: {{ .Values.bitbucket.service.http.port }}
+      targetPort: {{ .Values.bitbucket.service.http.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "bitbucket.fullname" . }}

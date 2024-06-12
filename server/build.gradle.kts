@@ -88,12 +88,27 @@ docker {
     }
 }
 
-tasks.withType<Test> {
-    dependsOn("composeUp")
-    systemProperties["spring.profiles.active"] = "ut,${"testProfile".getExt()}"
+val helmNamespace: String? by project
+val helmRelease = "helmRelease".getExt()
+val clusterDomain: String? by project
+val localDomain: String? by project
+var bitbucketHost: String? = null
+if ("platform".getExt() == "okd") {
+    bitbucketHost = "$helmRelease-bitbucket-route-$helmNamespace.$clusterDomain"
 }
 
-dockerCompose.isRequiredBy(tasks["test"])
+tasks.withType<Test> {
+    systemProperties["spring.profiles.active"] = "ut,${"testProfile".getExt()}"
+    if ("platform".getExt() == "okd") {
+        extensions.extraProperties["bitbucketHost"] = bitbucketHost
+        systemProperties["bitbucketHost"] = bitbucketHost
+        systemProperties["bitbucketUrl"] = "http://$bitbucketHost"
+        systemProperties["vcs-facade.vcs.bitbucket.host"] = "http://$bitbucketHost"
+        systemProperties["vcsFacadeUrl"] = "http://$helmRelease-vcs-facade-route-$helmNamespace.$clusterDomain"
+    } else {
+        dependsOn("composeUp")
+    }
+}
 
 springBoot {
     buildInfo()
@@ -122,4 +137,15 @@ dependencies {
 
 configurations.all {
     exclude("commons-logging", "commons-logging")
+}
+
+if ("platform".getExt() == "okd") {
+    println("Platform is OKD")
+
+    tasks.named("test") {
+        dependsOn(":deploy:deployHelm")
+        finalizedBy(":deploy:uninstallHelm")
+    }
+} else {
+    dockerCompose.isRequiredBy(tasks["test"])
 }

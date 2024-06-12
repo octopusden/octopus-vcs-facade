@@ -1,0 +1,14 @@
+{{- if eq .Values.platform "openshift" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vcsFacade.fullname" . }}-conf
+  namespace: {{ .Release.Namespace | quote }}
+data:
+  bootstrap-ft.yml: |
+{{ tpl (.Files.Get "files/bootstrap-ft.yml") . | indent 4 }}
+  application-bitbucket.yml: |
+{{ tpl (.Files.Get "files/application-bitbucket.yml") . | indent 4 }}
+  application-ft.yml: |
+{{ tpl (.Files.Get "files/application-ft.yml") . | indent 4 }}
+{{- end }}

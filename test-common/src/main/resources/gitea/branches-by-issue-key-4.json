@@ -2,10 +2,10 @@
   {
     "name": "feature/ISSUE-4",
     "hash": "b1adb6beb8ffe099d0a746a845a031538ee44e4f",
-    "link": "http://localhost:3000/test/repository-2/src/branch/feature/ISSUE-4",
+    "link": "{{url}}/test/repository-2/src/branch/feature/ISSUE-4",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository-2.git",
-      "link": "http://localhost:3000/test/repository-2",
+      "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+      "link": "{{url}}/test/repository-2",
       "avatar": null
     },
     "type": "BRANCH"

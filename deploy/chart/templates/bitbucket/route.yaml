@@ -1,0 +1,10 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ template "bitbucket.fullname" . }}-route
+spec:
+  port:
+    targetPort: 7990
+  to:
+    kind: Service
+    name: {{ template "bitbucket.fullname" . }}
