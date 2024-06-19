@@ -1,0 +1,49 @@
+{{- if eq .Values.profile "gitea" }}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ include "opensearch.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: opensearch
+    app.kubernetes.io/component: opensearch
+    app.kubernetes.io/instance: opensearch
+    app.kubernetes.io/name: {{ include "opensearch.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "opensearch.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "opensearch.fullname" . }}
+        app.kubernetes.io/name: {{ include "opensearch.fullname" . }}
+    spec:
+      containers:
+        - name: {{ include "opensearch.fullname" . }}
+          ports:
+            - name: http2
+              containerPort: 9600
+              protocol: TCP
+            - name: http
+              containerPort: 9200
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9200
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+            - name: LOGGING_LEVEL_ORG_OPENSEARCH
+              value: DEBUG
+            - name: OPENSEARCH_PASSWORD
+              value: "admin"
+            - name: discovery.type
+              value: "single-node"
+            - name: plugins.security.disabled
+              value: "true"
+          image: >-
+            {{ .Values.dockerRegistry }}/bitnami/opensearch:{{ .Values.opensearch.image.version }}
+{{- end }}

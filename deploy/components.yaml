@@ -1,0 +1,335 @@
+---
+# Source: vcs-facade/templates/bitbucket/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vcs-facade-bitbucket-bitbucket-license-secret
+type: Opaque
+data:
+  token: "QUFBQnNnME9EQW9QZU5wOWtsRnYyakFVaGQvOUt5enRaVk9WeWlFRUFwS2xsY1JwWVJRb0pHeXFlREhoRmp5Q2s5bE9HUHYxTlJBMFZacjI2bnZ1K2U2NTE1K1NDbkFNYSt4Nm1IVDd4TzBUSDRlTEJMZElxNDFDQmR5SVFrYmNBRDIvT0tUbHVHMFVnYzZVS004bE9oQm1YV1Y3TVBpemxYRWNnalNndm1DZkVKeHFVSHJWeHhIVWtCY2xLSnlBT3VDeHlFQnFRTTljV0sza01nUDJ1eFRxZE9QNEY0Nkh0T0Y2ZDc4d1hGbEwrc1p6MnpTcERtdFEwN2VMTjdVVTFOajl6NEpuUnRSQWphb0E1VmY1MHJhZjUyK2hSYlgrRytjaVlUWFBxMHZ5QmpwVld5NkZ2ajVOUzVEZitRay9hTUh4VEluYUltMm1nekN3UVdFaGphVXhteTJuK3ZqVnBwWkhmdHFxb2lydnMrSnd3ei9ac2VoemVBempKL1VhUHdieEwrK25uNjdIRThLQ3U4N2M4R0xrdlR6czV1a3l5b0pOOHJxUmY0VHg3K3BIUGRLZDRYNjMxZHNWWGRGYitHRkV4OE5vd1NiTzJPMzEyaTAvNkRUUkcwRnlLbUhDRDBBanRtVGo2WXpObS9yNWFOZWJYYk12UU5XZ3JOK0FKYWt6NnJIWUdhVGZmampkWmVTaFBaeHVlM003aEhSSjRIa3VtbFVxMjNFTkg3K0pkOXZGQmZ1dlZkaHg2Y2VSM3dFaXo5bFhNQzBDRkRhUXJzN1JYWHlyUWdJRFpnRGVnL2wxOWhxckFoVUFpMHM1QS9oV2pvSU5SQ0Q2RjRwbDN3U0ZnZnM9WDAya3M="
+---
+# Source: vcs-facade/templates/bitbucket-db/deployment.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: test-env-bitbucket-db-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Source: vcs-facade/templates/bitbucket/deployment.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: test-env-bitbucket-volume
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Source: vcs-facade/templates/bitbucket-db/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcs-facade-bitbucket-db
+  namespace: "test-env"
+  labels:
+    helm.sh/chart: vcs-facade-0.1.0
+    app.kubernetes.io/name: vcs-facade
+    app.kubernetes.io/instance: vcs-facade
+    app/version: "3.0.5"
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: vcs-facade-bitbucket-db
+---
+# Source: vcs-facade/templates/bitbucket/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcs-facade-bitbucket
+  namespace: "test-env"
+  labels:
+    helm.sh/chart: vcs-facade-0.1.0
+    app.kubernetes.io/name: vcs-facade
+    app.kubernetes.io/instance: vcs-facade
+    app/version: "3.0.5"
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: 
+  ports:
+    - port: 7999
+      targetPort: 7999
+      protocol: TCP
+      name: ssh
+    - port: 7990
+      targetPort: 7990
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: vcs-facade-bitbucket
+---
+# Source: vcs-facade/templates/vcs-facade/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcs-facade-vcs-facade
+  namespace: "test-env"
+  labels:
+    helm.sh/chart: vcs-facade-0.1.0
+    app.kubernetes.io/name: vcs-facade
+    app.kubernetes.io/instance: vcs-facade
+    app/version: "3.0.5"
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: vcs-facade
+---
+# Source: vcs-facade/templates/bitbucket-db/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vcs-facade-bitbucket-db
+  namespace: "test-env"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vcs-facade-bitbucket-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vcs-facade-bitbucket-db
+    spec:
+      containers:
+        - name: vcs-facade-bitbucket-db
+          securityContext: {}
+          image: docker.artifactory.openwaygroup.com/postgres:13-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5432
+              hostPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: "bitbucket"
+            - name: POSTGRES_PASSWORD
+              value: "bitbucket"
+            - name: POSTGRES_USER
+              value: "bitbucket"
+          volumeMounts:
+            - name: test-env-bitbucket-db-storage
+              mountPath: /var/lib/postgresql/
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U bitbucket
+            initialDelaySeconds: 90
+          resources: {}
+      volumes:
+        - name: test-env-bitbucket-db-storage
+          persistentVolumeClaim:
+            claimName: test-env-bitbucket-db-storage
+---
+# Source: vcs-facade/templates/bitbucket/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vcs-facade-bitbucket
+  namespace: "test-env"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vcs-facade-bitbucket
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vcs-facade-bitbucket
+    spec:
+      containers:
+        - name: vcs-facade-ft-bitbucket
+          securityContext: {}
+          image: docker.artifactory.openwaygroup.com/atlassian/bitbucket-server:8.14.0-jdk11
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ssh
+              containerPort: 7999
+              hostPort: 7999    
+              protocol: TCP
+            - name: http
+              containerPort: 7990
+              hostPort: 7990
+              protocol: TCP
+          env:
+            - name: JVM_MINIMUM_MEMORY
+              value: "4096m"
+            - name: JVM_MAXIMUM_MEMORY
+              value: "4096m"
+            - name: BITBUCKET_TICKETS_MIN
+              value: "3"
+            - name: JDBC_DRIVER
+              value: "org.postgresql.Driver"
+            - name: JDBC_PASSWORD
+              value: "bitbucket"
+            - name: JDBC_URL
+              value: "jdbc:postgresql://vcs-facade-bitbucket-db-pod:5432/bitbucket"
+#              value: "jdbc:postgresql://vcs-facade-bitbucket-db.test-env.svc.cluster.local:5432/bitbucket"
+            - name: JDBC_USER
+              value: "bitbucket"
+            - name: SETUP_BASEURL
+              value: "http://localhost:7990"
+            - name: SETUP_DISPLAYNAME
+              value: "Bitbucket"
+            - name: SETUP_LICENSE
+              value: "AAABsg0ODAoPeNp9klFv2jAUhd/9KyztZVOVyiEEApKllcRpYRQoJGyqeDHhFjyCk9lOGPv1NRA0VZr26nvu+e6515+SCnAMa+x6mHT7xO0TH4eLBLdIq41CBdyIQkbcAD2/OKTluG0Ugc6UKM8lOhBmXWV7MPizlXEcgjSgvmCfEJxqUHrVxxHUkBclKJyAOuCxyEBqQM9cWK3kMgP2uxTqdOP4F46HtOF6d78wXFlL+sZz2zSpDmtQ07eLN7UU1Nj9z4JnRtRAjaoA5Vf50raf52+hRbX+G+ciYTXPq0vyBjpVWy6Fvj5NS5Df+Qk/aMHxTInaIm2mgzCwQWEhjaUxmy2n+vjVppZHftqqoirvs+Jwwz/ZsehzeAzjJ/UaPwbxL++nn67HE8KCu87c8GLkvTzs5ukyyoJN8rqRf4Tx7+pHPdKd4X631dsVXdFb+GFEx8NowSbO2O312i0/6DTRG0FyKmHCD0AjtmTj6YzNm/r5aNebXbMvQNWgrN+AJakz6rHYGaTffjjdZeShPZxue3M7hHRJ4HkumlUq23ENH7+Jd9vFBfuvVdhx6ceR3wEiz9lXMC0CFDaQrs7RXXyrQgIDZgDeg/l19hqrAhUAi0s5A/hWjoINRCD6F4pl3wSFgfs=X02ks"
+            - name: SETUP_SYSADMIN_DISPLAYNAME
+              value: "Dev Instance Admin"
+            - name: SETUP_SYSADMIN_EMAILADDRESS
+              value: "admin@domain.corp"
+            - name: SETUP_SYSADMIN_PASSWORD
+              value: "admin"
+            - name: SETUP_SYSADMIN_USERNAME
+              value: "admin"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  if curl -s http://localhost:7990/status | grep -q '"state":"RUNNING"'; then
+                  exit 0
+                  else
+                  exit 1
+                  fi
+            initialDelaySeconds: 120
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  if curl -s http://localhost:7990/status | grep -q '"state":"RUNNING"'; then
+                  exit 0
+                  else
+                  exit 1
+                  fi
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources: {}
+          volumeMounts:
+            - name: test-env-bitbucket-volume
+              mountPath: /var/atlassian/application-data/bitbucket
+      volumes:
+        - name: test-env-bitbucket-volume
+          hostPath:
+            path: /Users/ozonophore/Projects/octopus-vcs-facade/deploy/bitbucket
+            type: Directory
+---
+# Source: vcs-facade/templates/vcs-facade/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vcs-facade-vcs-facade
+  namespace: "test-env"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vcs-facade
+      app.kubernetes.io/instance: vcs-facade
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vcs-facade
+        app.kubernetes.io/instance: vcs-facade
+    spec:
+      containers:
+        - name: vcs-facade-vcs-facade
+          securityContext: {}
+          image: docker.artifactory.openwaygroup.com/octopusden/vcs-facade:3.0.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              hostPort: 8080    
+              protocol: TCP
+          env:
+            - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+              value: "/app/config/"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "ft,bitbucket"
+          resources: {}
+          volumeMounts:
+            - name: test-env-application-bitbucket-config
+              mountPath: /app/config/application-bitbucket.yml
+              readOnly: true
+            - name: test-env-application-ft-config
+              mountPath: /app/config/application-ft.yml
+              readOnly: true
+            - name: test-env-bootstrap-ft-config
+              mountPath: /app/config/bootstrap-ft.yml
+              readOnly: true
+
+      volumes:
+        - hostPath:
+            path: /Users/ozonophore/Projects/octopus-vcs-facade/deploy/chart/files/application-bitbucket.yml
+            type: File
+          name: test-env-application-bitbucket-config
+        - hostPath:
+            path: /Users/ozonophore/Projects/octopus-vcs-facade/deploy/chart/files/application-ft.yml
+            type: File
+          name: test-env-application-ft-config
+        - hostPath:
+            path: /Users/ozonophore/Projects/octopus-vcs-facade/deploy/chart/files/bootstrap-ft.yml
+            type: File
+          name: test-env-bootstrap-ft-config
+---
+# Source: vcs-facade/templates/bitbucket/route.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: vcs-facade-bitbucket-route
+spec:
+  port:
+    targetPort: 7990
+  to:
+    kind: Service
+    name: vcs-facade-bitbucket
+---
+# Source: vcs-facade/templates/vcs-facade/route.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: vcs-facade-vcs-facade-route
+spec:
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: vcs-facade-vcs-facade

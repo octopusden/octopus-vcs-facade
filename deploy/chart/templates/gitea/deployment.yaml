@@ -1,0 +1,91 @@
+{{- if eq .Values.profile "gitea" }}
+###############################
+# Gitea PVC
+###############################
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "gitea.fullname" . }}-pvc
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+###############################
+# Deplyoment Gitea
+###############################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gitea.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "gitea.fullname" . }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: gitea
+      labels:
+        app: gitea
+        app.kubernetes.io/name: {{ include "gitea.fullname" . }}
+    spec:
+      containers:
+        - name: gitea
+          image: {{ .Values.dockerRegistry }}/gitea/gitea:{{ .Values.gitea.image.version }}
+          imagePullPolicy: Always
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/conf/add_admin.sh"]
+          env:
+            - name: GITEA__ADMIN_USER
+              value: test-admin
+            - name: GITEA__ADMIN_PASSWORD
+              value: test-admin
+            - name: GITEA__security__INSTALL_LOCK
+              value: "true"
+            - name: GITEA__webhook__ALLOWED_HOST_LIST
+              value: "*"
+          volumeMounts:
+            - mountPath: "/etc/gitea"
+              name: gitea-data
+              subPath: var-etc-gitea
+            - mountPath: "/var/lib/gitea"
+              name: gitea-data
+              subPath: var-lib-gitea
+            - name: gitea-conf-add-script
+              mountPath: /conf
+          ports:
+            - containerPort: 22
+              name: ssh
+              protocol: TCP
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /user/login
+              port: 3000
+              scheme: HTTP
+      imagePullSecrets:
+        - name: artifactory-okd-puller
+      restartPolicy: Always
+      volumes:
+        - name: gitea-data
+          persistentVolumeClaim:
+            claimName: {{ include "gitea.fullname" . }}-pvc
+        - name: gitea-conf-add-script
+          configMap:
+            name: {{ include "gitea.fullname" . }}-config
+            items:
+              - key: add_admin.sh
+                path: add_admin.sh
+  selector:
+    matchLabels:
+      app: gitea
+{{- end }}

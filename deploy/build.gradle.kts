@@ -5,6 +5,7 @@ val helmRelease: String? = project.ext["helmRelease"] as String?
 val clusterDomain: String? = project.ext["clusterDomain"] as String?
 val localDomain: String? = project.ext["localDomain"] as String?
 var bitbucketHost: String? = project.ext["bitbucketHost"] as String?
+var giteaHost: String? = project.ext["giteaHost"] as String?
 val dockerRegistry: String? = project.ext["dockerRegistry"] as String?
 
 tasks.register("uninstallHelm") {
@@ -52,10 +53,12 @@ tasks.register<Exec>("deployHelm") {
         , "--set", "bitbucket.license=$bitbucketLicense"
         , "--set", "vcsFacade.image.version=${project.version}"
         , "--set", "bitbucket.host=${bitbucketHost}"
+        , "--set", "gitea.host=${giteaHost}"
         , "--set", "clusterDomain=${clusterDomain}"
         , "--set", "localDomain=${localDomain}"
         , "--set", "dockerRegistry=$dockerRegistry"
         , "--set", "platform=openshift"
+        , "--set", "profile=$testProfile"
     )
     doLast {
         val execResult = executionResult.get()

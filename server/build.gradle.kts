@@ -88,23 +88,28 @@ docker {
     }
 }
 
-val helmNamespace: String? by project
+val helmNamespace = "helmNamespace".getExt()
 val helmRelease = "helmRelease".getExt()
-val clusterDomain: String? by project
-val localDomain: String? by project
-var bitbucketHost: String? = null
-if ("platform".getExt() == "okd") {
-    bitbucketHost = "$helmRelease-bitbucket-route-$helmNamespace.$clusterDomain"
-}
+val clusterDomain = "clusterDomain".getExt()
+val localDomain = "localDomain".getExt()
+val bitbucketHost = "bitbucketHost".getExt()
+val giteaHost = "giteaHost".getExt()
+val platform = "platform".getExt()
 
 tasks.withType<Test> {
     systemProperties["spring.profiles.active"] = "ut,${"testProfile".getExt()}"
-    if ("platform".getExt() == "okd") {
+    if (platform == "okd") {
         extensions.extraProperties["bitbucketHost"] = bitbucketHost
         systemProperties["bitbucketHost"] = bitbucketHost
         systemProperties["bitbucketUrl"] = "http://$bitbucketHost"
         systemProperties["vcs-facade.vcs.bitbucket.host"] = "http://$bitbucketHost"
+
         systemProperties["vcsFacadeUrl"] = "http://$helmRelease-vcs-facade-route-$helmNamespace.$clusterDomain"
+
+        systemProperties["giteaHost"] = giteaHost
+        systemProperties["giteaExternalHost"] = giteaHost
+        systemProperties["giteaUrl"] = "http://$giteaHost"
+        systemProperties["vcs-facade.vcs.gitea.host"] = "http://$giteaHost"
     } else {
         dependsOn("composeUp")
     }
@@ -139,7 +144,7 @@ configurations.all {
     exclude("commons-logging", "commons-logging")
 }
 
-if ("platform".getExt() == "okd") {
+if (platform == "okd") {
     println("Platform is OKD")
 
     tasks.named("test") {
