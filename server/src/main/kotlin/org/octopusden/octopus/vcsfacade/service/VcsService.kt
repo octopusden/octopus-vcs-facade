@@ -5,6 +5,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsConfig
@@ -21,6 +22,9 @@ abstract class VcsService(vcsProperties: VcsConfig.VcsProperties) {
 
     abstract fun getBranches(group: String, repository: String): Sequence<Branch>
     abstract fun getTags(group: String, repository: String): Sequence<Tag>
+    abstract fun createTag(group: String, repository: String, createTag: CreateTag): Tag
+    abstract fun getTag(group: String, repository: String, name: String): Tag
+    abstract fun deleteTag(group: String, repository: String, name: String)
     abstract fun getCommits(group: String, repository: String, from: HashOrRefOrDate<String, Date>?, toHashOrRef: String): Sequence<Commit>
     abstract fun getCommitsWithFiles(group: String, repository: String, from: HashOrRefOrDate<String, Date>?, toHashOrRef: String): Sequence<CommitWithFiles>
     abstract fun getCommit(group: String, repository: String, hashOrRef: String): Commit

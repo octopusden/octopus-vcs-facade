@@ -11,6 +11,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestW
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommitChange
+import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCreateTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequest
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
@@ -20,11 +21,13 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommitChanges
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
+import org.octopusden.octopus.infrastructure.bitbucket.client.getTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.FileChange
 import org.octopusden.octopus.vcsfacade.client.common.dto.FileChangeType
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
@@ -76,6 +79,28 @@ class BitbucketService(
         return client.getTags(group, repository).asSequence().map {
             it.toTag(group, repository)
         }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+    }
+
+    override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
+        log.trace("=> createTag({}, {}, {})", group, repository, createTag)
+        return client.createTag(
+            group, repository, BitbucketCreateTag(createTag.name, createTag.hashOrRef, createTag.message)
+        ).toTag(group, repository).also {
+            log.trace("<= createTag({}, {}, {}): {}", group, repository, createTag, it)
+        }
+    }
+
+    override fun getTag(group: String, repository: String, name: String): Tag {
+        log.trace("=> getTag({}, {}, {})", group, repository, name)
+        return client.getTag(group, repository, name).toTag(group, repository).also {
+            log.trace("<= getTag({}, {}, {}): {}", group, repository, name, it)
+        }
+    }
+
+    override fun deleteTag(group: String, repository: String, name: String) {
+        log.trace("=> deleteTag({}, {}, {})", group, repository, name)
+        client.deleteTag(group, repository, name)
+        log.trace("<= deleteTag({}, {}, {})", group, repository, name)
     }
 
     override fun getCommits(
@@ -266,7 +291,7 @@ class BitbucketService(
                 author,
                 fromRef.displayId,
                 toRef.displayId,
-                listOf(author),
+                emptyList(),
                 reviewers.map { PullRequestReviewer(it.user.toUser(), it.approved) },
                 when (state) {
                     BitbucketPullRequestState.MERGED -> PullRequestStatus.MERGED

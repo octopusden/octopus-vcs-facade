@@ -4,6 +4,7 @@ import java.util.Date
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.TestService.Companion.VCS_FACADE_API_URL
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.impl.ClassicVcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersProvider
@@ -42,6 +43,12 @@ abstract class BaseVcsFacadeFunctionalTest(
     ) = client.getIssuesFromCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
     override fun getTags(sshUrl: String) = client.getTags(sshUrl)
+
+    override fun createTag(sshUrl: String, createTag: CreateTag) = client.createTag(sshUrl, createTag)
+
+    override fun getTag(sshUrl: String, name: String) = client.getTag(sshUrl, name)
+
+    override fun deleteTag(sshUrl: String, name: String) = client.deleteTag(sshUrl, name)
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
         client.searchIssuesInRanges(searchRequest)

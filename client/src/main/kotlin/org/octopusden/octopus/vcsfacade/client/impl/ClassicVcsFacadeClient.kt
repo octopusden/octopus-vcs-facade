@@ -7,15 +7,17 @@ import feign.Feign
 import feign.Logger
 import feign.Request
 import feign.httpclient.ApacheHttpClient
+import feign.jackson.JacksonDecoder
 import feign.jackson.JacksonEncoder
 import feign.slf4j.Slf4jLogger
 import java.util.Date
 import java.util.concurrent.TimeUnit
-import org.octopusden.octopus.vcsfacade.client.DeferredResultDecoder
+import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
-import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetry
+import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetryer
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 
 class ClassicVcsFacadeClient(
@@ -50,6 +52,12 @@ class ClassicVcsFacadeClient(
 
     override fun getTags(sshUrl: String) = client.getTags(sshUrl)
 
+    override fun createTag(sshUrl: String, createTag: CreateTag) = client.createTag(sshUrl, createTag)
+
+    override fun getTag(sshUrl: String, name: String) = client.getTag(sshUrl, name)
+
+    override fun deleteTag(sshUrl: String, name: String) = client.deleteTag(sshUrl, name)
+
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
         client.searchIssuesInRanges(searchRequest)
 
@@ -81,9 +89,10 @@ class ClassicVcsFacadeClient(
         private fun createClient(apiUrl: String, objectMapper: ObjectMapper, timeRetryInMillis: Int): VcsFacadeClient {
             return Feign.builder().client(ApacheHttpClient())
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
-                .encoder(JacksonEncoder(objectMapper)).decoder(DeferredResultDecoder(objectMapper))
-                .errorDecoder(VcsFacadeErrorDecoder(objectMapper)).retryer(VcsFacadeRetry(timeRetryInMillis))
                 .logger(Slf4jLogger(VcsFacadeClient::class.java)).logLevel(Logger.Level.FULL)
+                .encoder(JacksonEncoder(objectMapper))
+                .responseInterceptor(VcsFacadeResponseInterceptor(objectMapper)).retryer(VcsFacadeRetryer(timeRetryInMillis))
+                .decoder(JacksonDecoder(objectMapper)).errorDecoder(VcsFacadeErrorDecoder(objectMapper))
                 .target(VcsFacadeClient::class.java, apiUrl)
         }
     }

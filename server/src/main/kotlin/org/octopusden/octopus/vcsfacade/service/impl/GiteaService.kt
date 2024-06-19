@@ -12,6 +12,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaBranch
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCreateTag
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequest
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaPullRequestReview
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
@@ -31,6 +32,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.FileChange
 import org.octopusden.octopus.vcsfacade.client.common.dto.FileChangeType
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
@@ -105,6 +107,28 @@ class GiteaService(
         return with(getRepository(group, repository)) {
             client.getTags(group, repository).asSequence().map { it.toTag(this) }
         }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+    }
+
+    override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
+        log.trace("=> createTag({}, {}, {})", group, repository, createTag)
+        return with(getRepository(group, repository)) {
+            client.createTag(
+                group, repository, GiteaCreateTag(createTag.name, createTag.hashOrRef, createTag.message)
+            ).toTag(this)
+        }.also { log.trace("<= createTag({}, {}, {}): {}", group, repository, createTag, it) }
+    }
+
+    override fun getTag(group: String, repository: String, name: String): Tag {
+        log.trace("=> getTag({}, {}, {})", group, repository, name)
+        return with(getRepository(group, repository)) {
+            client.getTag(group, repository, name).toTag(this)
+        }.also { log.trace("<= getTag({}, {}, {}): {}", group, repository, name, it) }
+    }
+
+    override fun deleteTag(group: String, repository: String, name: String) {
+        log.trace("=> deleteTag({}, {}, {})", group, repository, name)
+        client.deleteTag(group, repository, name)
+        log.trace("<= deleteTag({}, {}, {})", group, repository, name)
     }
 
     override fun getCommits(

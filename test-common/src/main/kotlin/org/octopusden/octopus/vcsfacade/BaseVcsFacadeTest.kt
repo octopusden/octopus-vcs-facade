@@ -16,6 +16,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
@@ -240,6 +241,69 @@ abstract class BaseVcsFacadeTest(
     fun getTagsFailsTest() {
         Assertions.assertThrows(NotFoundException::class.java) {
             getTags(testService.sshUrl(GROUP, "absent-repository"))
+        }
+    }
+
+    @Test
+    fun getTagTest() = Assertions.assertEquals(
+        testService.getTag("tag.json"),
+        getTag(testService.sshUrl(GROUP, REPOSITORY_2), "v1.0")
+    )
+
+    @Test
+    fun tagsTestScenario() {
+        val repository = "repository-2-tags"
+        testClient.importRepository(
+            testService.sshUrl(GROUP, repository),
+            File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$repository").apply {
+                outputStream().use {
+                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("$GROUP-$REPOSITORY_2.zip")!!
+                        .copyTo(it)
+                }
+            }
+        )
+        createTag(
+            testService.sshUrl(GROUP, repository),
+            CreateTag("test-0.1", "v1.0", "tagsTestScenario")
+        )
+        createTag(
+            testService.sshUrl(GROUP, repository),
+            CreateTag("test-0.2", "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7", "tagsTestScenario")
+        )
+        createTag(
+            testService.sshUrl(GROUP, repository),
+            CreateTag("test-0.3", "feature/ISSUE-4", "tagsTestScenario")
+        )
+        deleteTag(testService.sshUrl(GROUP, repository), "v1.0")
+        Assertions.assertEquals(
+            testService.getTags("tags-2.json"), getTags(testService.sshUrl(GROUP, repository))
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("createTagFailsArguments")
+    fun createTagFailsTest(group: String, repository: String, hashOrRef: String, exceptionClass: Class<out Throwable>) {
+        Assertions.assertThrows(exceptionClass) {
+            createTag(
+                testService.sshUrl(group, repository),
+                CreateTag("tag", hashOrRef, "createTagFailsTest")
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTagFailsArguments")
+    fun getTagFailsTest(group: String, repository: String, name: String, exceptionClass: Class<out Throwable>) {
+        Assertions.assertThrows(exceptionClass) {
+            getTag(testService.sshUrl(group, repository), name)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTagFailsArguments")
+    fun deleteTagFailsTest(group: String, repository: String, name: String, exceptionClass: Class<out Throwable>) {
+        Assertions.assertThrows(exceptionClass) {
+            deleteTag(testService.sshUrl(group, repository), name)
         }
     }
 
@@ -504,6 +568,12 @@ abstract class BaseVcsFacadeTest(
 
     protected abstract fun getTags(sshUrl: String): List<Tag>
 
+    protected abstract fun createTag(sshUrl: String, createTag: CreateTag): Tag
+
+    protected abstract fun getTag(sshUrl: String, name: String): Tag
+
+    protected abstract fun deleteTag(sshUrl: String, name: String)
+
     protected abstract fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
 
     protected abstract fun findByIssueKey(issueKey: String): SearchSummary
@@ -751,6 +821,38 @@ abstract class BaseVcsFacadeTest(
                 "v1.0",
                 null,
                 "commit-with-files-3.json"
+            ),
+        )
+
+        @JvmStatic
+        private fun createTagFailsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "absent-hash-or-ref",
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                "absent-repository",
+                "absent-hash-or-ref",
+                NotFoundException::class.java
+            ),
+        )
+
+        @JvmStatic
+        private fun getTagFailsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                "absent-tag",
+                NotFoundException::class.java
+            ),
+            Arguments.of(
+                GROUP,
+                "absent-repository",
+                "absent-tag",
+                NotFoundException::class.java
             ),
         )
 
