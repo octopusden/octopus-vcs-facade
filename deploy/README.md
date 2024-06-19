@@ -40,12 +40,30 @@ helm uninstall <helm_release> --namespace <project>
 
 ### To run from gradle
 
+In the ft and test modes, a different set of environment services is launched. Therefore, the deployment task is divided into two: deployHelmTest and deployHelmFt.
+
 ```shell
-./gradlew deployHelm -Pdocker.registry=<docker_registry> -Pplatform=okd -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=bitbucket -Pversion=<version> -Pbitbucket.license=<license>
+./gradlew deployHelmTest -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
 ```
+or
+```shell
+./gradlew deployHelmTest -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
+```
+
 
 ```shell
 ./gradlew uninstallHelm -PhelmRelease=<release_name> -PhelmNamespace=<project>
+```
+
+#### To run ft
+
+```shell
+./gradlew ft -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
+```
+
+#### To tun test
+```shell
+./gradlew test -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
 ```
 
 ### Create a project in OKD

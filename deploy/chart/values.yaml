@@ -2,17 +2,26 @@
 # This is a YAML-formatted file.
 
 platform: openshift
-profile: gitea
+profile: bitbucket
+mode: ft
 
 clusterDomain:
 localDomain: svc.cluster.local
 
 dockerRegistry: docker.io/library
 
-gitea:
-  fullnameOverride: vcs-facade-ft-gitea
+opensearch:
+  fullnameOverride: opensearch
   image:
-    version: 1.21.10
+    version: 2.14.0-debian-12-r1
+  service:
+    type: ClusterIP
+
+gitea:
+  host: gitea:3000
+  fullnameOverride: gitea
+  image:
+    version: 1.21.10-rootless
 
 bitbucket:
   host: bitbucket:7990
@@ -62,7 +71,6 @@ vcsFacade:
     version: 3.0.5
   environment:
     SPRING_CONFIG_ADDITIONAL_LOCATION: /app/config/
-    SPRING_PROFILES_ACTIVE: ft,bitbucket
     JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
   service:
     type: ClusterIP

@@ -1,3 +1,4 @@
+{{- if eq .Values.profile "bitbucket" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,9 +22,6 @@ spec:
           ports:
             - name: http
               containerPort: 5432
-          {{- if eq .Values.platform "podman" }}
-              hostPort: 5432
-          {{- end }}
               protocol: TCP
           env:
           {{- range $key, $value := .Values.bitbucketDb.environment }}
@@ -56,3 +54,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
+{{- end }}

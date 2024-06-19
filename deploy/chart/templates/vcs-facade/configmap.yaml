@@ -1,4 +1,4 @@
-{{- if eq .Values.platform "openshift" }}
+{{- if eq .Values.mode "ft" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,8 +7,13 @@ metadata:
 data:
   bootstrap-ft.yml: |
 {{ tpl (.Files.Get "files/bootstrap-ft.yml") . | indent 4 }}
+{{- if eq .Values.profile "bitbucket" }}
   application-bitbucket.yml: |
 {{ tpl (.Files.Get "files/application-bitbucket.yml") . | indent 4 }}
+{{ else }}
+  application-gitea.yml: |
+{{ tpl (.Files.Get "files/application-gitea.yml") . | indent 4 }}
+{{- end }}
   application-ft.yml: |
 {{ tpl (.Files.Get "files/application-ft.yml") . | indent 4 }}
 {{- end }}

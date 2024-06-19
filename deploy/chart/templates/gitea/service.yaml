@@ -1,0 +1,31 @@
+{{- if eq .Values.profile "gitea" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "gitea.fullname" . }}-service
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "gitea.fullname" . }}
+  ports:
+    - name: {{ include "gitea.fullname" . }}-http
+      port: 3000
+      targetPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "gitea.fullname" . }}-ssh
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "gitea.fullname" . }}-ssh
+spec:
+  selector:
+    app: {{ include "gitea.fullname" . }}
+  ports:
+    - name: {{ include "gitea.fullname" . }}-ssh
+      port: 22
+      targetPort: 22
+  type: NodePort
+{{- end }}

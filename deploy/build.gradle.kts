@@ -5,6 +5,7 @@ val helmRelease: String? = project.ext["helmRelease"] as String?
 val clusterDomain: String? = project.ext["clusterDomain"] as String?
 val localDomain: String? = project.ext["localDomain"] as String?
 var bitbucketHost: String? = project.ext["bitbucketHost"] as String?
+var giteaHost: String? = project.ext["giteaHost"] as String?
 val dockerRegistry: String? = project.ext["dockerRegistry"] as String?
 
 tasks.register("uninstallHelm") {
@@ -27,8 +28,7 @@ tasks.register("uninstallHelm") {
 println("Profile: " + testProfile)
 println("Platform: " + if (platform == "okd") "OKD" else "DOCKER-COMPOSE")
 
-tasks.register<Exec>("deployHelm") {
-
+tasks.register<Exec>("deployHelmFt") {
     if (helmRelease == null) {
         throw GradleException("Helm release name is not set")
     }
@@ -41,7 +41,11 @@ tasks.register<Exec>("deployHelm") {
     if (localDomain == null) {
         throw GradleException("Local domain is not set")
     }
+    if (testProfile == null) {
+        throw GradleException("Test profile is not set")
+    }
 
+    println("Profile: $testProfile")
     println("Release: $helmRelease")
 
     val bitbucketLicense: String by project
@@ -52,10 +56,58 @@ tasks.register<Exec>("deployHelm") {
         , "--set", "bitbucket.license=$bitbucketLicense"
         , "--set", "vcsFacade.image.version=${project.version}"
         , "--set", "bitbucket.host=${bitbucketHost}"
+        , "--set", "gitea.host=${giteaHost}"
         , "--set", "clusterDomain=${clusterDomain}"
         , "--set", "localDomain=${localDomain}"
         , "--set", "dockerRegistry=$dockerRegistry"
         , "--set", "platform=openshift"
+        , "--set", "profile=$testProfile"
+        , "--set", "mode=ft"
+    )
+    doLast {
+        val execResult = executionResult.get()
+        if (execResult.exitValue != 0) {
+            val errorOutput = standardOutput.toString()
+            throw GradleException("Helm deploy failed with exit code ${execResult.exitValue} and the following error:\\n$errorOutput")
+        }
+    }
+}
+
+tasks.register<Exec>("deployHelmTest") {
+    if (helmRelease == null) {
+        throw GradleException("Helm release name is not set")
+    }
+    if (helmNamespace == null) {
+        throw GradleException("Helm namespace is not set")
+    }
+    if (clusterDomain == null) {
+        throw GradleException("Cluster domain is not set")
+    }
+    if (localDomain == null) {
+        throw GradleException("Local domain is not set")
+    }
+    if (testProfile == null) {
+        throw GradleException("Test profile is not set")
+    }
+
+    println("Profile: $testProfile")
+    println("Release: $helmRelease")
+
+    val bitbucketLicense: String by project
+
+    commandLine("helm", "upgrade", "--wait"
+        , "--install", helmRelease, "chart"
+        , "--namespace", helmNamespace
+        , "--set", "bitbucket.license=$bitbucketLicense"
+        , "--set", "vcsFacade.image.version=${project.version}"
+        , "--set", "bitbucket.host=${bitbucketHost}"
+        , "--set", "gitea.host=${giteaHost}"
+        , "--set", "clusterDomain=${clusterDomain}"
+        , "--set", "localDomain=${localDomain}"
+        , "--set", "dockerRegistry=$dockerRegistry"
+        , "--set", "platform=openshift"
+        , "--set", "profile=$testProfile"
+        , "--set", "mode=ut"
     )
     doLast {
         val execResult = executionResult.get()

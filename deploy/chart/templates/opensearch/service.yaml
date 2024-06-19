@@ -1,0 +1,18 @@
+{{- if eq .Values.profile "gitea" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "opensearch.fullname" . }}-service
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "chart-test.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opensearch.service.type }}
+  ports:
+    - port: 9200
+      targetPort: 9200
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "opensearch.fullname" . }}
+{{- end }}

@@ -1,3 +1,4 @@
+{{- if eq .Values.profile "bitbucket" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,22 +15,16 @@ spec:
         app.kubernetes.io/name: {{ include "bitbucket.fullname" . }}
     spec:
       containers:
-        - name: vcs-facade-ft-bitbucket
+        - name: {{ include "bitbucket.fullname" . }}
           securityContext: {}
           image: {{ .Values.dockerRegistry }}/atlassian/bitbucket-server:{{ .Values.bitbucket.image.version }}
           imagePullPolicy: IfNotPresent
           ports:
             - name: ssh
               containerPort: 7999
-          {{- if eq .Values.platform "podman" }}
-              hostPort: 7999
-          {{- end }}    
               protocol: TCP
             - name: http
               containerPort: 7990
-            {{- if eq .Values.platform "podman" }}
-              hostPort: 7990
-            {{- end }}
               protocol: TCP
           env:
           {{- range $key, $value := .Values.bitbucket.environment }}
@@ -77,14 +72,8 @@ spec:
               mountPath: /var/atlassian/application-data/bitbucket
       volumes:
         - name: {{ .Release.Name }}-bitbucket-volume
-          {{- if eq .Values.platform "podman" }}
-          hostPath:
-            path: {{ .Values.bitbucket.path }}
-            type: Directory
-          {{ else }}
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-bitbucket-volume
-          {{- end }}
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -96,3 +85,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
+{{- end }}

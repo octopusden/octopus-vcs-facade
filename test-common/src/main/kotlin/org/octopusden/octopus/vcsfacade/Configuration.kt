@@ -31,6 +31,7 @@ object Configuration {
         configModel.gitlab.externalHost = System.getProperty("gitlabExternalHost", configModel.gitlab.externalHost)
         configModel.gitlab.url = System.getProperty("gitlabUrl", configModel.gitlab.url)
         configModel.vcsFacadeUrl = System.getProperty("vcsFacadeUrl", configModel.vcsFacadeUrl)
+        configModel.vcsFacadeInternalUrl = System.getProperty("vcsFacadeInternalUrl", configModel.vcsFacadeInternalUrl)
         return configModel
     }
 }
@@ -60,6 +61,7 @@ data class ConfigModel(
         "http://localhost:3000"),
 
     var vcsFacadeUrl: String = "http://localhost:8080",
+    var vcsFacadeInternalUrl: String = "http://vcs-facade:8080",
     var project: String = "test-project",
     var repository: String = "test-repository",
     var repository2: String = "test-repository-2",

@@ -1,3 +1,4 @@
+{{- if eq .Values.mode "ft" }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -8,3 +9,4 @@ spec:
   to:
     kind: Service
     name: {{ template "vcsFacade.fullname" . }}
+{{- end }}
