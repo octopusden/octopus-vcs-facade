@@ -134,6 +134,7 @@ subprojects {
             set( "clusterDomain", clusterDomain)
             set("localDomain", it.getOrDefault("LOCAL_DOMAIN", project.properties["localDomain"]))
             set("bitbucketHost", "$helmRelease-bitbucket-route-$helmNamespace.$clusterDomain")
+            set("giteaHost", "$helmRelease-gitea-route-$helmNamespace.$clusterDomain")
         }
     }
 

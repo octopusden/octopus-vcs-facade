@@ -23,6 +23,10 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         Configuration.model.gitea.externalHost
     )
 ) {
+
+    protected val variables = mapOf(
+        "url" to Configuration.model.vcsFacadeInternalUrl,
+    )
     @BeforeAll
     fun beforeAllVcsFacadeFunctionalTestGitea() {
         val url = URI("http://${Configuration.model.gitea.host}/api/v1/repos/$GROUP/$REPOSITORY_2/hooks").toURL()
@@ -36,7 +40,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             setRequestProperty("Accept", "application/json")
             setDoOutput(true)
             outputStream.use {
-                it.write(WEBHOOK_CREATION_REQUEST.toByteArray())
+                it.write(FileTemplateProcessor(WEBHOOK_CREATION_REQUEST.toByteArray()).processTemplate(variables).toByteArray())
             }
             if (getResponseCode() / 100 != 2) {
                 throw RuntimeException("Unable to create webhook for '$GROUP:$REPOSITORY_2'")
@@ -81,7 +85,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
     "branch_filter": "*",
     "config": {
         "content_type": "json",
-        "url": "http://vcs-facade:8080/rest/api/1/indexer/gitea/webhook",
+        "url": "{{url}}/rest/api/1/indexer/gitea/webhook",
         "secret": "b59dd966-2445-4c84-b631-49502427477e"
     },
     "events": [

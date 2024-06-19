@@ -69,62 +69,9 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
-{{/*
-Create a test-component fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "test-component.fullname" -}}
-{{- if .Values.vcsFacade.fullnameOverride }}
-{{- .Values.vcsFacade.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.vcsFacade.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "test-component-%s" .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
-Create a components-registry fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "components-registry.fullname" -}}
-{{- if .Values.componentsRegisty.fullnameOverride }}
-{{- .Values.componentsRegisty.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.componentsRegisty.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "components-registy-%s" .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-
-{{/*
-Components-registry labels
-*/}}
-{{- define "components-registry.labels" -}}
-helm.sh/chart: {{ include "chart-test.chart" . }}
-{{ include "chart-test.selectorLabels" . }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end }}
-
 {{- define "gitea.fullname" -}}
 {{- if .Values.gitea.fullnameOverride }}
-{{- .Values.gitea.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.gitea.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "gitea-%s" .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- printf "%s-%s" .Release.Name .Values.gitea.fullnameOverride }}
 {{- end }}
 {{- end }}
 
@@ -143,5 +90,11 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- define "vcsFacade.fullname" -}}
 {{- if .Values.vcsFacade.fullnameOverride }}
 {{- printf "%s-%s" .Release.Name .Values.vcsFacade.fullnameOverride }}
+{{- end }}
+{{- end }}
+
+{{- define "opensearch.fullname" -}}
+{{- if .Values.opensearch.fullnameOverride }}
+{{- printf "%s-%s" .Release.Name .Values.opensearch.fullnameOverride }}
 {{- end }}
 {{- end }}

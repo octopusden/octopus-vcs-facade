@@ -1,6 +1,7 @@
 package org.octopusden.octopus.vcsfacade
 
 import java.io.BufferedReader
+import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStreamReader
 
@@ -10,21 +11,48 @@ import java.io.InputStreamReader
  *
  * @property fileName The name of the template file in the resources folder.
  */
-class FileTemplateProcessor(private val fileName: String) {
+class FileTemplateProcessor {
+
+    private val content: String
+
+    constructor(fileName: String) {
+        this.content = readFile(fileName)
+    }
+
+    constructor(byteArray: ByteArray) {
+        this.content = readByteArray(byteArray)
+    }
 
     /**
      * Reads the content of the file from the resources folder.
      *
+     * @param fileName The name of the file to read.
      * @return The content of the file as a String.
      * @throws IOException If an I/O error occurs reading from the file or a malformed or unmappable byte sequence is read.
      */
     @Throws(IOException::class)
-    private fun readFile(): String {
+    private fun readFile(fileName: String): String {
         val inputStream = javaClass.classLoader.getResourceAsStream(fileName)
             ?: throw IOException("File not found: $fileName")
 
         BufferedReader(InputStreamReader(inputStream)).use { reader ->
             return reader.readText()
+        }
+    }
+
+    /**
+     * Reads the content from a byte array.
+     *
+     * @param byteArray The byte array to read.
+     * @return The content of the byte array as a String.
+     * @throws IOException If an I/O error occurs reading from the byte array.
+     */
+    @Throws(IOException::class)
+    private fun readByteArray(byteArray: ByteArray): String {
+        ByteArrayInputStream(byteArray).use { inputStream ->
+            BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                return reader.readText()
+            }
         }
     }
 
@@ -52,7 +80,6 @@ class FileTemplateProcessor(private val fileName: String) {
      */
     @Throws(IOException::class)
     fun processTemplate(variables: Map<String, String>): String {
-        val content = readFile()
         return bindVariables(content, variables)
     }
 

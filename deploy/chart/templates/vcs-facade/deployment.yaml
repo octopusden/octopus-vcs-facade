@@ -1,3 +1,4 @@
+{{- if eq .Values.mode "ft" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,47 +26,31 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          {{- if eq .Values.platform "podman" }}
-              hostPort: 8080
-          {{- end }}    
               protocol: TCP
           env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: ft,{{ .Values.profile }}
           {{- range $key, $value := .Values.vcsFacade.environment }}
             - name: {{ $key }}
               value: {{ $value | quote }}
           {{- end }}
           resources: {}
+          {{- if eq .Values.profile "gitea" }}
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >
+                  curl -s -o /dev/null -w "%{http_code}" http://{{ include "gitea.fullname" . }}-route-{{ .Release.Namespace }}.{{ .Values.clusterDomain }}/user/login | grep -q "200"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          {{- end }}
           volumeMounts:
-{{- if eq .Values.platform "podman" }}
-            - name: {{ .Release.Namespace }}-application-bitbucket-config
-              mountPath: /app/config/application-bitbucket.yml
-              readOnly: true
-            - name: {{ .Release.Namespace }}-application-ft-config
-              mountPath: /app/config/application-ft.yml
-              readOnly: true
-            - name: {{ .Release.Namespace }}-bootstrap-ft-config
-              mountPath: /app/config/bootstrap-ft.yml
-              readOnly: true
-{{ else }}
             - name: {{ .Release.Namespace }}-application-config
               mountPath: /app/config
               readOnly: true
-{{- end }}
       volumes:
-{{- if eq .Values.platform "podman" }}
-        - hostPath:
-            path: {{ .Values.vcsFacade.configFile.applicationBitbucket.path }}
-            type: File
-          name: {{ .Release.Namespace }}-application-bitbucket-config
-        - hostPath:
-            path: {{ .Values.vcsFacade.configFile.applicationFt.path }}
-            type: File
-          name: {{ .Release.Namespace }}-application-ft-config
-        - hostPath:
-            path: {{ .Values.vcsFacade.configFile.bootstrapFt.path }}
-            type: File
-          name: {{ .Release.Namespace }}-bootstrap-ft-config
-{{ else }}
         - name: {{ .Release.Namespace }}-application-config
           configMap:
             name: {{ include "vcsFacade.fullname" . }}-conf

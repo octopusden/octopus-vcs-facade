@@ -43,6 +43,7 @@ val helmRelease = "helmRelease".getExt()
 val clusterDomain = "clusterDomain".getExt()
 val localDomain = "localDomain".getExt()
 val bitbucketHost = "bitbucketHost".getExt()
+val giteaHost = "giteaHost".getExt()
 val platform = "platform".getExt()
 
 val ft by tasks.creating(Test::class) {
@@ -57,6 +58,12 @@ val ft by tasks.creating(Test::class) {
         systemProperties["bitbucketExternalHost"] = bitbucketHost
         systemProperties["bitbucketUrl"] = "http://$bitbucketHost"
         systemProperties["vcs-facade.vcs.bitbucket.host"] = "http://$bitbucketHost"
+
+        systemProperties["giteaHost"] = giteaHost
+        systemProperties["giteaExternalHost"] = giteaHost
+        systemProperties["giteaUrl"] = "http://$giteaHost"
+        systemProperties["vcs-facade.vcs.gitea.host"] = "http://$giteaHost"
+
         systemProperties["vcsFacadeUrl"] = "http://$helmRelease-vcs-facade-route-$helmNamespace.$clusterDomain"
     }
 }
@@ -92,7 +99,7 @@ dependencies {
 
 if (platform == "okd") {
     tasks.named("ft") {
-        dependsOn(":deploy:deployHelm")
+        dependsOn(":deploy:deployHelmFt")
         finalizedBy(":deploy:uninstallHelm")
     }
 } else {

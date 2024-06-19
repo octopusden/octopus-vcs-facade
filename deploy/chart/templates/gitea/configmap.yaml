@@ -1,0 +1,12 @@
+{{- if eq .Values.profile "gitea" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gitea.fullname" . }}-config
+  namespace: {{ .Release.Namespace | quote }}
+data:
+  add_admin.sh: |
+    #!/bin/bash
+    until gitea admin user list &> /dev/null; do sleep 5; done
+    gitea admin user create --username=test-admin --password=test-admin --email=admin@example.com --admin=true
+{{- end }}
