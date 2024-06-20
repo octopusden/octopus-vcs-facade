@@ -19,7 +19,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesRes
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
@@ -48,7 +47,7 @@ class RepositoryControllerV1(
     private val vcsManager: VcsManager,
     @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
 ) {
-    private val requestJobs = ConcurrentHashMap<String, Future<out VcsFacadeResponse>>()
+    private val requestJobs = ConcurrentHashMap<String, Future<*>>()
 
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommits(
@@ -158,7 +157,7 @@ class RepositoryControllerV1(
         RepositoryResponse(vcsManager.findPullRequests(issueKey))
     }.data.sorted()
 
-    private fun <T : VcsFacadeResponse> processRequest(requestId: String, func: () -> T): T {
+    private fun <T> processRequest(requestId: String, func: () -> T): T {
         with(requestJobs.computeIfAbsent(requestId) { newRequest ->
             log.debug("Submit request {}", newRequest)
             val future = jobExecutor.submit(Callable {
@@ -233,8 +232,7 @@ class RepositoryControllerV1(
         private fun SearchIssuesInRangesRequestV1.toNew() =
             SearchIssuesInRangesRequest(issues, ranges.map { range -> range.toNew() }.toSet())
 
-        data class SearchIssueInRangesResponseV1(val issueRanges: Map<String, Set<RepositoryRangeV1>>) :
-            VcsFacadeResponse
+        data class SearchIssueInRangesResponseV1(val issueRanges: Map<String, Set<RepositoryRangeV1>>)
 
         private fun SearchIssueInRangesResponse.toV1() =
             SearchIssueInRangesResponseV1(issueRanges.mapValues { it.value.map { range -> range.toV1() }.toSet() })

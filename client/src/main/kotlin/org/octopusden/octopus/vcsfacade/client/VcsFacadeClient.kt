@@ -8,6 +8,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -52,6 +53,16 @@ interface VcsFacadeClient {
 
     @RequestLine("GET rest/api/2/repository/tags?sshUrl={sshUrl}")
     fun getTags(@Param("sshUrl") sshUrl: String): List<Tag>
+
+    @RequestLine("POST rest/api/2/repository/tags?sshUrl={sshUrl}")
+    @Headers("Content-Type: application/json")
+    fun createTag(@Param("sshUrl") sshUrl: String, createTag: CreateTag): Tag
+
+    @RequestLine("GET rest/api/2/repository/tag?sshUrl={sshUrl}&name={name}")
+    fun getTag(@Param("sshUrl") sshUrl: String, @Param("name") name: String): Tag
+
+    @RequestLine("DELETE rest/api/2/repository/tag?sshUrl={sshUrl}&name={name}")
+    fun deleteTag(@Param("sshUrl") sshUrl: String, @Param("name") name: String)
 
     @RequestLine("POST rest/api/2/repository/search-issues-in-ranges")
     @Headers("Content-Type: application/json")

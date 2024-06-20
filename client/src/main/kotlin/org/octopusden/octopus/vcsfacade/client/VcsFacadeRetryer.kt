@@ -7,15 +7,11 @@ import java.util.concurrent.TimeUnit
 import org.apache.http.HttpStatus
 import org.slf4j.LoggerFactory
 
-const val numberAttempts: Int = 5
-const val timeDelayAttempt: Int = 300
-const val numberIterations: Int = 5
-
-class VcsFacadeRetry(private val timeRetryInMillis: Int = 60000) : Retryer {
-    private val timeDelayIteration: Int = timeRetryInMillis / numberIterations - (numberAttempts * timeDelayAttempt)
+class VcsFacadeRetryer(private val timeRetryInMillis: Int = 60000) : Retryer {
+    private val timeDelayIteration: Int = timeRetryInMillis / NUMBER_ITERATIONS - (NUMBER_ATTEMPTS * TIME_DELAY_ATTEMPT)
     private val stopTime = System.currentTimeMillis() + timeRetryInMillis
-    private var attempt: Int = numberAttempts
-    private var iteration: Int = numberIterations
+    private var attempt: Int = NUMBER_ATTEMPTS
+    private var iteration: Int = NUMBER_ITERATIONS
 
     override fun continueOrPropagate(e: RetryableException) {
         strategies.getOrDefault(e.status()) {
@@ -23,12 +19,12 @@ class VcsFacadeRetry(private val timeRetryInMillis: Int = 60000) : Retryer {
                 throw e.cause!!
             }
             if (log.isDebugEnabled) {
-                log.debug("Retry: iteration=${numberIterations - iteration + 1}, attempt=${numberAttempts - attempt + 1}")
+                log.debug("Retry: iteration=${NUMBER_ITERATIONS - iteration + 1}, attempt=${NUMBER_ATTEMPTS - attempt + 1}")
             }
             if (attempt-- > 0) {
-                TimeUnit.MILLISECONDS.sleep(timeDelayAttempt.toLong())
+                TimeUnit.MILLISECONDS.sleep(TIME_DELAY_ATTEMPT.toLong())
             } else if (iteration-- > 0) {
-                attempt = numberAttempts
+                attempt = NUMBER_ATTEMPTS
                 TimeUnit.MILLISECONDS.sleep(timeDelayIteration.toLong())
             } else {
                 throw e.cause!!
@@ -37,11 +33,15 @@ class VcsFacadeRetry(private val timeRetryInMillis: Int = 60000) : Retryer {
     }
 
     override fun clone(): Retryer {
-        return VcsFacadeRetry(timeRetryInMillis)
+        return VcsFacadeRetryer(timeRetryInMillis)
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(VcsFacadeRetry::class.java)
+        private const val NUMBER_ATTEMPTS = 5
+        private const val TIME_DELAY_ATTEMPT = 300
+        private const val NUMBER_ITERATIONS = 5
+
+        private val log = LoggerFactory.getLogger(VcsFacadeRetryer::class.java)
         private val strategies = mapOf<Int, (e: RetryableException) -> Unit>(HttpStatus.SC_ACCEPTED to { e ->
             val currentDate = Date()
             val retryAfterDate = Date(e.retryAfter())

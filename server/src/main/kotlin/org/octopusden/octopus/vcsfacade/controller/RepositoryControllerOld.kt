@@ -19,7 +19,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
@@ -48,7 +47,7 @@ class RepositoryControllerOld(
     private val vcsManager: VcsManager,
     @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
 ) {
-    private val requestJobs = ConcurrentHashMap<String, Future<out VcsFacadeResponse>>()
+    private val requestJobs = ConcurrentHashMap<String, Future<*>>()
 
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommitsForRelease(
@@ -152,7 +151,7 @@ class RepositoryControllerOld(
         return vcsManager.createPullRequest(vcsPath, createPullRequest).toOld()
     }
 
-    private fun <T : VcsFacadeResponse> processJob(requestId: String, func: () -> T): T {
+    private fun <T> processJob(requestId: String, func: () -> T): T {
         log.debug("Process request: {}", requestId)
         val future = requestJobs.computeIfAbsent(requestId) { processingRequest ->
             log.debug("Add job request: {}", processingRequest)
@@ -237,8 +236,7 @@ class RepositoryControllerOld(
         private fun SearchIssuesInRangesRequestOld.toNew() =
             SearchIssuesInRangesRequest(issues, ranges.map { range -> range.toNew() }.toSet())
 
-        data class SearchIssueInRangesResponseOld(val issueRanges: Map<String, Set<RepositoryRangeOld>>) :
-            VcsFacadeResponse
+        data class SearchIssueInRangesResponseOld(val issueRanges: Map<String, Set<RepositoryRangeOld>>)
 
         private fun SearchIssueInRangesResponse.toOld() =
             SearchIssueInRangesResponseOld(issueRanges.mapValues { it.value.map { range -> range.toOld() }.toSet() })

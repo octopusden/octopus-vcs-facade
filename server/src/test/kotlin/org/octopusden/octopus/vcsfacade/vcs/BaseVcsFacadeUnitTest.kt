@@ -15,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
@@ -118,6 +119,28 @@ abstract class BaseVcsFacadeUnitTest(
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<Tag>>() {})
 
+    override fun createTag(sshUrl: String, createTag: CreateTag) = mvc.perform(
+        MockMvcRequestBuilders.post("/rest/api/2/repository/tags")
+            .param("sshUrl", sshUrl)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(createTag))
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<Tag>() {})
+
+    override fun getTag(sshUrl: String, name: String) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/tag")
+            .param("sshUrl", sshUrl)
+            .param("name", name)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.toObject(object : TypeReference<Tag>() {})
+
+    override fun deleteTag(sshUrl: String, name: String) = mvc.perform(
+        MockMvcRequestBuilders.delete("/rest/api/2/repository/tag")
+            .param("sshUrl", sshUrl)
+            .param("name", name)
+            .accept(MediaType.APPLICATION_JSON)
+    ).andReturn().response.decodeError()
+
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) = mvc.perform(
         MockMvcRequestBuilders.post("/rest/api/2/repository/search-issues-in-ranges")
             .contentType(MediaType.APPLICATION_JSON)
@@ -151,7 +174,7 @@ abstract class BaseVcsFacadeUnitTest(
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<PullRequest>>() {})
 
-    private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T {
+    private fun MockHttpServletResponse.decodeError() {
         if (status / 100 != 2) {
             throw try {
                 objectMapper.readValue(this.contentAsByteArray, ErrorResponse::class.java).let {
@@ -161,6 +184,10 @@ abstract class BaseVcsFacadeUnitTest(
                 RuntimeException(String(this.contentAsByteArray))
             }
         }
+    }
+
+    private fun <T> MockHttpServletResponse.toObject(typeReference: TypeReference<T>): T {
+        decodeError()
         return objectMapper.readValue(this.contentAsByteArray, typeReference)
     }
 
