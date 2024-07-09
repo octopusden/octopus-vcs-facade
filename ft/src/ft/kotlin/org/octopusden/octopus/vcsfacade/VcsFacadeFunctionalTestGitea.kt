@@ -1,7 +1,10 @@
 package org.octopusden.octopus.vcsfacade
 
-import java.net.HttpURLConnection
+import java.io.File
 import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse.BodyHandlers
 import java.util.Base64
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -9,13 +12,12 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.octopusden.octopus.infrastructure.common.test.dto.NewChangeSet
 import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
+
 
 @EnabledIfSystemProperty(named = TEST_PROFILE, matches = GITEA)
 class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
-    TestService.Gitea(
-        Configuration.model.gitea.host,
-        Configuration.model.gitea.externalHost,
-        true),
+    TestService.Gitea(Configuration.model.gitea.host, Configuration.model.gitea.externalHost, true),
     GiteaTestClient(
         Configuration.model.gitea.url,
         Configuration.model.gitea.user,
@@ -24,79 +26,249 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
     )
 ) {
 
-    protected val variables = mapOf(
-        "url" to Configuration.model.vcsFacadeInternalUrl,
-    )
     @BeforeAll
     fun beforeAllVcsFacadeFunctionalTestGitea() {
-        val url = URI("http://${Configuration.model.gitea.host}/api/v1/repos/$GROUP/$REPOSITORY_2/hooks").toURL()
-        with(url.openConnection() as HttpURLConnection) {
-            setRequestMethod("POST")
-            setRequestProperty(
-                "Authorization",
-                "Basic " + Base64.getEncoder().encodeToString("${Configuration.model.gitea.user}:${Configuration.model.gitea.password}".toByteArray())
-            )
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Accept", "application/json")
-            setDoOutput(true)
-            outputStream.use {
-                it.write(FileTemplateProcessor(WEBHOOK_CREATION_REQUEST.toByteArray()).processTemplate(variables).toByteArray())
-            }
-            if (getResponseCode() / 100 != 2) {
-                throw RuntimeException("Unable to create webhook for '$GROUP:$REPOSITORY_2'")
-            }
-        }
         (testService as TestService.Gitea).scan(GROUP, REPOSITORY_2)
+        doHttpRequest(userCreationRequest(ASSIGNEE))
+        doHttpRequest(userCreationRequest(REVIEWER))
+        doHttpRequest(userCreationRequest(APPROVER))
     }
 
     @Test
-    fun webhooksTest() {
-        var success = false
+    fun webhooksTestScenario() {
+        val repository = "repository-2-webhooks"
+        val issue = "ISSUE-10"
+        testClient.importRepository(
+            testService.sshUrl(GROUP, repository),
+            File.createTempFile("VcsFacadeFunctionalTestGitea-", "-$GROUP-$repository").apply {
+                outputStream().use {
+                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("$GROUP-$REPOSITORY_2.zip")!!
+                        .copyTo(it)
+                }
+            }
+        )
+        doHttpRequest(webhookCreationRequest(GROUP, repository))
+        doHttpRequest(makeUserCollaboratorRequest(GROUP, repository, ASSIGNEE))
+        doHttpRequest(makeUserCollaboratorRequest(GROUP, repository, REVIEWER))
+        doHttpRequest(makeUserCollaboratorRequest(GROUP, repository, APPROVER))
         testClient.commit(
-            NewChangeSet("Commit (ISSUE-10)", testService.sshUrl(GROUP, REPOSITORY_2), "ISSUE-10"),
+            NewChangeSet("Commit ($issue)", testService.sshUrl(GROUP, repository), issue),
             "master"
         )
-        for (i in 1..5) {
-            Thread.sleep(1000L * i)
-            success = with(findByIssueKey("ISSUE-10")) {
+        check("Commit and branch for $issue have not been registered") {
+            with(findByIssueKey(issue)) {
                 branches.size == 1 && commits.size == 1 && pullRequests.size == 0
             }
-            if (success) break
         }
-        if (!success) throw RuntimeException("Commit and branch for ISSUE-10 have not been registered")
         createPullRequest(
-            testService.sshUrl(GROUP, REPOSITORY_2),
-            CreatePullRequest("ISSUE-10", "master", "Webhook test PR", "Description ISSUE-10")
+            testService.sshUrl(GROUP, repository),
+            CreatePullRequest(issue, "master", "Webhook test PR", "Description $issue")
         )
-        for (i in 1..5) {
-            Thread.sleep(1000L * i)
-            success = with(findByIssueKey("ISSUE-10")) {
+        check("Pull request for $issue has not been registered") {
+            with(findByIssueKey(issue)) {
                 branches.size == 1 && commits.size == 1 && pullRequests.size == 1
             }
-            if (success) break
         }
-        if (!success) throw RuntimeException("Pull request for ISSUE-10 has not been registered")
+        val pullRequestIndex = findPullRequestsByIssueKey(issue)[0].index
+        check("Creation of pull request $pullRequestIndex has not been registered") {
+            with(findPullRequestsByIssueKey(issue)) {
+                size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN
+            }
+        }
+        doHttpRequest(setPullRequestAssigneeRequest(GROUP, repository, pullRequestIndex, ASSIGNEE))
+        check("Assigning of pull request $pullRequestIndex has not been registered") {
+            with(findPullRequestsByIssueKey(issue)) {
+                size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
+                        this[0].assignees.size == 1 && this[0].assignees[0].name == ASSIGNEE
+            }
+        }
+        doHttpRequest(addPullRequestReviewerRequest(GROUP, repository, pullRequestIndex, REVIEWER))
+        doHttpRequest(addPullRequestReviewerRequest(GROUP, repository, pullRequestIndex, APPROVER))
+        check("Addition of review requests for pull request $pullRequestIndex has not been registered") {
+            with(findPullRequestsByIssueKey(issue)) {
+                size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
+                        this[0].reviewers.size == 2 && this[0].reviewers.none { it.approved } &&
+                        this[0].reviewers.any { it.user.name == REVIEWER } && this[0].reviewers.any { it.user.name == APPROVER }
+            }
+        }
+        doHttpRequest(deletePullRequestReviewerRequest(GROUP, repository, pullRequestIndex, REVIEWER))
+        check("Deletion of review request for pull request $pullRequestIndex has not been registered") {
+            with(findPullRequestsByIssueKey(issue)) {
+                size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
+                        this[0].reviewers.size == 1 && this[0].reviewers[0].user.name == APPROVER && !this[0].reviewers[0].approved
+            }
+        }
+        doHttpRequest(approvePullRequestRequest(GROUP, repository, pullRequestIndex, APPROVER))
+        check("Approval of pull request $pullRequestIndex has not been registered") {
+            with(findPullRequestsByIssueKey(issue)) {
+                size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
+                        this[0].reviewers.size == 1 && this[0].reviewers[0].user.name == APPROVER && this[0].reviewers[0].approved
+            }
+        }
+        doHttpRequest(mergePullRequestRequest(GROUP, repository, pullRequestIndex))
+        check("Merging of pull request $pullRequestIndex has not been registered") {
+            with(findPullRequestsByIssueKey(issue)) {
+                size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.MERGED
+            }
+        }
     }
 
     companion object {
-        //<editor-fold defaultstate="collapsed" desc="webhook creation request">
-        const val WEBHOOK_CREATION_REQUEST = """{
-    "type": "gitea",
-    "branch_filter": "*",
-    "config": {
-        "content_type": "json",
-        "url": "{{url}}/rest/api/1/indexer/gitea/webhook",
-        "secret": "b59dd966-2445-4c84-b631-49502427477e"
-    },
-    "events": [
-        "create",
-        "delete",
-        "push",
-        "pull_request"
-    ],
-    "authorization_header": "",
-    "active": true
-}"""
+        private const val ASSIGNEE = "test-assignee"
+        private const val REVIEWER = "test-reviewer"
+        private const val APPROVER = "test-approver"
+
+        private fun check(failMessage: String, checkFunction: () -> Boolean) {
+            var success = false
+            for (i in 1..5) {
+                Thread.sleep(1000L * i)
+                success = checkFunction.invoke()
+                if (success) break
+            }
+            if (!success) throw RuntimeException(failMessage)
+        }
+
+        //TODO: implement some of below functionality in Gitea client?
+        //<editor-fold defaultstate="collapsed" desc="http requests data">
+
+        private val httpClient = HttpClient.newHttpClient()
+
+        private data class GiteaHttpRequest(
+            val path: String,
+            val method: String,
+            val user: String,
+            val password: String,
+            val body: String,
+            val failMessage: String
+        )
+
+        private val variables = mapOf(
+            "url" to Configuration.model.vcsFacadeInternalUrl,
+        )
+
+        private fun doHttpRequest(giteaHttpRequest: GiteaHttpRequest) {
+            with(
+                httpClient.send(
+                    HttpRequest.newBuilder()
+                        .uri(URI("http://${Configuration.model.gitea.host}/api/v1/${giteaHttpRequest.path}"))
+                        .header(
+                            "Authorization",
+                            "Basic " + Base64.getEncoder()
+                                .encodeToString("${giteaHttpRequest.user}:${giteaHttpRequest.password}".toByteArray())
+                        )
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json")
+                        .method(giteaHttpRequest.method, HttpRequest.BodyPublishers.ofString(giteaHttpRequest.body))
+                        .build(),
+                    BodyHandlers.ofString()
+                )
+            ) {
+                if (statusCode() / 100 != 2) {
+                    throw RuntimeException("${giteaHttpRequest.failMessage}\n${body()}")
+                }
+            }
+        }
+
+        private fun userCreationRequest(user: String) = GiteaHttpRequest(
+            "admin/users",
+            "POST",
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
+            """{"email": "$user@domain.corp", "username": "$user", "password": "$user", "must_change_password": false}""",
+            "Unable to create '$user' user"
+        )
+
+        private fun webhookCreationRequest(organization: String, repository: String) = GiteaHttpRequest(
+            "repos/$organization/$repository/hooks",
+            "POST",
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
+            FileTemplateProcessor(
+                """{
+            "type": "gitea",
+            "branch_filter": "*",
+            "config": {
+                "content_type": "json",
+                "url": "{{url}}/rest/api/1/indexer/gitea/webhook",
+                "secret": "b59dd966-2445-4c84-b631-49502427477e"
+            },
+            "events": [
+                "create",
+                "delete",
+                "push",
+                "pull_request",
+                "pull_request_approved",
+                "pull_request_rejected"
+            ],
+            "authorization_header": "",
+            "active": true
+        }""".toByteArray()
+            ).processTemplate(variables),
+            "Unable to create webhook for '$organization:$repository' repository"
+        )
+
+        private fun makeUserCollaboratorRequest(organization: String, repository: String, user: String) =
+            GiteaHttpRequest(
+                "repos/$organization/$repository/collaborators/$user",
+                "PUT",
+                Configuration.model.gitea.user,
+                Configuration.model.gitea.password,
+                """{"permission": "write"}""",
+                "Unable to make user '$user' collaborator of '$organization:$repository' repository"
+            )
+
+        private fun setPullRequestAssigneeRequest(organization: String, repository: String, index: Long, user: String) =
+            GiteaHttpRequest(
+                "repos/$organization/$repository/pulls/$index",
+                "PATCH",
+                Configuration.model.gitea.user,
+                Configuration.model.gitea.password,
+                """{"assignee": "$user"}""",
+                "Unable to make user '$user' assignee in pull request $index in '$organization:$repository' repository"
+            )
+
+        private fun addPullRequestReviewerRequest(organization: String, repository: String, index: Long, user: String) =
+            GiteaHttpRequest(
+                "repos/$organization/$repository/pulls/$index/requested_reviewers",
+                "POST",
+                Configuration.model.gitea.user,
+                Configuration.model.gitea.password,
+                """{"reviewers": ["$user"]}""",
+                "Unable to add review request for '$user' reviewer in pull request $index in '$organization:$repository' repository"
+            )
+
+        private fun deletePullRequestReviewerRequest(
+            organization: String,
+            repository: String,
+            index: Long,
+            user: String
+        ) = GiteaHttpRequest(
+            "repos/$organization/$repository/pulls/$index/requested_reviewers",
+            "DELETE",
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
+            """{"reviewers": ["$user"]}""",
+            "Unable to delete review request for '$user' reviewer in pull request $index in '$organization:$repository' repository"
+        )
+
+        private fun approvePullRequestRequest(organization: String, repository: String, index: Long, user: String) =
+            GiteaHttpRequest(
+                "repos/$organization/$repository/pulls/$index/reviews",
+                "POST",
+                user,
+                user,
+                """{"event": "APPROVED"}""",
+                "Unable to approve pull request $index in '$organization:$repository' repository by '$user' user"
+            )
+
+        private fun mergePullRequestRequest(organization: String, repository: String, index: Long) = GiteaHttpRequest(
+            "repos/$organization/$repository/pulls/$index/merge",
+            "POST",
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
+            """{"Do": "merge"}""",
+            "Unable to merge pull request $index in '$organization:$repository' repository"
+        )
         //</editor-fold>
     }
 }

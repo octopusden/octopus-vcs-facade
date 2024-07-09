@@ -5,6 +5,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -13,6 +14,9 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
 interface VcsManager {
     fun getTags(sshUrl: String): Sequence<Tag>
+    fun createTag(sshUrl: String, createTag: CreateTag): Tag
+    fun getTag(sshUrl: String, name: String): Tag
+    fun deleteTag(sshUrl: String, name: String)
     fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<Commit>
     fun getCommitsWithFiles(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<CommitWithFiles>
     fun getCommit(sshUrl: String, hashOrRef: String): Commit

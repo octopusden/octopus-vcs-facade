@@ -6,6 +6,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
@@ -36,9 +37,31 @@ class VcsManagerImpl(
         return getVcsService(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             getTags(group, repository)
-        }.also {
-            log.trace("<= getTags({}): {}", sshUrl, it)
-        }
+        }.also { log.trace("<= getTags({}): {}", sshUrl, it) }
+    }
+
+    override fun createTag(sshUrl: String, createTag: CreateTag): Tag {
+        log.trace("=> createTag({}, {})", sshUrl, createTag)
+        return getVcsService(sshUrl).run {
+            val (group, repository) = parse(sshUrl)
+            createTag(group, repository, createTag)
+        }.also { log.trace("<= getTags({}, {}): {}", sshUrl, createTag, it) }
+    }
+
+    override fun getTag(sshUrl: String, name: String): Tag {
+        log.trace("=> getTag({}, {})", sshUrl, name)
+        return getVcsService(sshUrl).run {
+            val (group, repository) = parse(sshUrl)
+            getTag(group, repository, name)
+        }.also { log.trace("<= getTag({}, {}): {}", sshUrl, name, it) }
+    }
+
+    override fun deleteTag(sshUrl: String, name: String) {
+        log.trace("=> deleteTag({}, {})", sshUrl, name)
+        getVcsService(sshUrl).run {
+            val (group, repository) = parse(sshUrl)
+            deleteTag(group, repository, name)
+        }.also { log.trace("<= deleteTag({}, {}): {}", sshUrl, name, it) }
     }
 
     override fun getCommits(
@@ -51,9 +74,7 @@ class VcsManagerImpl(
         return getVcsService(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             getCommits(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
-        }.also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it)
-        }
+        }.also { log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it) }
     }
 
     override fun getCommitsWithFiles(
@@ -76,9 +97,7 @@ class VcsManagerImpl(
         return getVcsService(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             getCommit(group, repository, hashOrRef)
-        }.also {
-            log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it)
-        }
+        }.also { log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it) }
     }
 
     override fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles {
@@ -86,9 +105,7 @@ class VcsManagerImpl(
         return getVcsService(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             getCommitWithFiles(group, repository, hashOrRef)
-        }.also {
-            log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it)
-        }
+        }.also { log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it) }
     }
 
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest {
@@ -96,9 +113,7 @@ class VcsManagerImpl(
         return getVcsService(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             createPullRequest(group, repository, createPullRequest)
-        }.also {
-            log.trace("<= createPullRequest({}, {}): {}", sshUrl, createPullRequest, it)
-        }
+        }.also { log.trace("<= createPullRequest({}, {}): {}", sshUrl, createPullRequest, it) }
     }
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
@@ -126,9 +141,7 @@ class VcsManagerImpl(
                     { (_, ranges) -> ranges.flatten().toSet() },
                     { a, b -> a + b })
             ).filter { (_, ranges) -> ranges.isNotEmpty() }
-        ).also {
-            log.trace("<= searchIssuesInRanges({}): {}", searchRequest, it)
-        }
+        ).also { log.trace("<= searchIssuesInRanges({}): {}", searchRequest, it) }
     }
 
     override fun findBranches(issueKey: String): Sequence<Branch> {

@@ -10,9 +10,8 @@ import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeResponse
 import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
@@ -23,6 +22,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.MediaType
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -40,7 +40,7 @@ class RepositoryController(
     private val vcsManager: VcsManager,
     @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
 ) {
-    private val requestJobs = ConcurrentHashMap<String, Future<out VcsFacadeResponse>>()
+    private val requestJobs = ConcurrentHashMap<String, Future<*>>()
 
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommits(
@@ -132,6 +132,36 @@ class RepositoryController(
         RepositoryResponse(vcsManager.getTags(sshUrl))
     }.data.sorted()
 
+    @PostMapping("tags", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun createTag(
+        @RequestParam("sshUrl") sshUrl: String,
+        @RequestBody createTag: CreateTag,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Create tag {} on {} in {} repository", createTag.name, createTag.hashOrRef, sshUrl)
+        vcsManager.createTag(sshUrl, createTag)
+    }
+
+    @GetMapping("tag", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getTag(
+        @RequestParam("sshUrl") sshUrl: String,
+        @RequestParam("name") name: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get tag {} in {} repository", name, sshUrl)
+        vcsManager.getTag(sshUrl, name)
+    }
+
+    @DeleteMapping("tag", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun deleteTag(
+        @RequestParam("sshUrl") sshUrl: String,
+        @RequestParam("name") name: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Delete tag {} in {} repository", name, sshUrl)
+        vcsManager.deleteTag(sshUrl, name)
+    }
+
     @PostMapping(
         "search-issues-in-ranges",
         consumes = [MediaType.APPLICATION_JSON_VALUE],
@@ -145,18 +175,23 @@ class RepositoryController(
         vcsManager.searchIssuesInRanges(searchRequest)
     }
 
-    @PostMapping("pull-requests")
+    @PostMapping(
+        "pull-requests",
+        consumes = [MediaType.APPLICATION_JSON_VALUE],
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
     fun createPullRequest(
         @RequestParam("sshUrl") sshUrl: String,
-        @RequestBody createPullRequest: CreatePullRequest
-    ): PullRequest {
+        @RequestBody createPullRequest: CreatePullRequest,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
             "Create pull request ({} -> {}) in {} repository",
             sshUrl,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch
         )
-        return vcsManager.createPullRequest(sshUrl, createPullRequest)
+        vcsManager.createPullRequest(sshUrl, createPullRequest)
     }
 
     @GetMapping("find/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -207,7 +242,7 @@ class RepositoryController(
         RepositoryResponse(vcsManager.findPullRequests(issueKey))
     }.data.sorted()
 
-    private fun <T : VcsFacadeResponse> processRequest(requestId: String, func: () -> T): T {
+    private fun <T> processRequest(requestId: String, func: () -> T): T {
         with(requestJobs.computeIfAbsent(requestId) { newRequest ->
             log.debug("Submit request {}", newRequest)
             val future = jobExecutor.submit(Callable {

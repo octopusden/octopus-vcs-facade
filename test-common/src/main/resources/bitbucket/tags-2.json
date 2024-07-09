@@ -1,0 +1,46 @@
+[
+  {
+    "name": "test-0.1",
+    "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+    "link": "{{url}}/projects/test/repos/repository-2-tags/browse?at=test-0.1",
+    "repository": {
+      "sshUrl": "ssh://git@{{host}}/test/repository-2-tags.git",
+      "link": "{{url}}/projects/test/repos/repository-2-tags/browse",
+      "avatar": "{{url}}/projects/test/avatar.png?s=48"
+    },
+    "type": "TAG"
+  },
+  {
+    "name": "test-0.2",
+    "hash": "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7",
+    "link": "{{url}}/projects/test/repos/repository-2-tags/browse?at=test-0.2",
+    "repository": {
+      "sshUrl": "ssh://git@{{host}}/test/repository-2-tags.git",
+      "link": "{{url}}/projects/test/repos/repository-2-tags/browse",
+      "avatar": "{{url}}/projects/test/avatar.png?s=48"
+    },
+    "type": "TAG"
+  },
+  {
+    "name": "test-0.3",
+    "hash": "b1adb6beb8ffe099d0a746a845a031538ee44e4f",
+    "link": "{{url}}/projects/test/repos/repository-2-tags/browse?at=test-0.3",
+    "repository": {
+      "sshUrl": "ssh://git@{{host}}/test/repository-2-tags.git",
+      "link": "{{url}}/projects/test/repos/repository-2-tags/browse",
+      "avatar": "{{url}}/projects/test/avatar.png?s=48"
+    },
+    "type": "TAG"
+  },
+  {
+    "name": "v1.0.1",
+    "hash": "60d98c818023c651ee816bf119fe22ac33ccfafe",
+    "link": "{{url}}/projects/test/repos/repository-2-tags/browse?at=v1.0.1",
+    "repository": {
+      "sshUrl": "ssh://git@{{host}}/test/repository-2-tags.git",
+      "link": "{{url}}/projects/test/repos/repository-2-tags/browse",
+      "avatar": "{{url}}/projects/test/avatar.png?s=48"
+    },
+    "type": "TAG"
+  }
+]

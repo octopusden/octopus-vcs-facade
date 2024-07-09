@@ -14,6 +14,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
@@ -65,20 +66,36 @@ class GitlabService(
             client.repositoryApi.getBranches(getProject(group, repository).id).asSequence().map {
                 it.toBranch(group, repository)
             }
-        }.also {
-            log.trace("<= getBranches({}, {}): {}", group, repository, it)
-        }
+        }.also { log.trace("<= getBranches({}, {}): {}", group, repository, it) }
     }
 
     override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
         return retryableExecution {
-            client.tagsApi.getTags(getProject(group, repository).id).asSequence().map {
-                it.toTag(group, repository)
-            }
-        }.also {
-            log.trace("<= getTags({}, {}): {}", group, repository, it)
-        }
+            client.tagsApi.getTags(getProject(group, repository).id).asSequence().map { it.toTag(group, repository) }
+        }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+    }
+
+    override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
+        log.trace("=> createTag({}, {}, {})", group, repository, createTag)
+        return retryableExecution {
+            client.tagsApi.createTag(
+                getProject(group, repository).id, createTag.name, createTag.hashOrRef, createTag.message, ""
+            ).toTag(group, repository)
+        }.also { log.trace("<= createTag({}, {}, {}): {}", group, repository, createTag, it) }
+    }
+
+    override fun getTag(group: String, repository: String, name: String): Tag {
+        log.trace("=> getTag({}, {}, {})", group, repository, name)
+        return retryableExecution {
+            client.tagsApi.getTag(getProject(group, repository).id, name).toTag(group, repository)
+        }.also { log.trace("<= getTag({}, {}, {}): {}", group, repository, name, it) }
+    }
+
+    override fun deleteTag(group: String, repository: String, name: String) {
+        log.trace("=> deleteTag({}, {}, {})", group, repository, name)
+        retryableExecution { client.tagsApi.deleteTag(getProject(group, repository).id, name) }
+        log.trace("<= deleteTag({}, {}, {})", group, repository, name)
     }
 
     override fun getCommits(
@@ -286,7 +303,9 @@ class GitlabService(
             try {
                 return func()
             } catch (e: GitLabApiException) {
-                if (e.httpStatus == 404) {
+                if (e.httpStatus == 404 || e.httpStatus == 400 &&
+                    e.message?.let { it.startsWith("Target ") && it.endsWith(" is invalid") } == true
+                ) {
                     throw NotFoundException(message)
                 }
                 log.error("${e.message}, attempt=$attempt:$attemptLimit, retry in $attemptIntervalSec sec")

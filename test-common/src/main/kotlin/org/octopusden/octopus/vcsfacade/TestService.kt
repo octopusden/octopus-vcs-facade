@@ -77,6 +77,13 @@ sealed class TestService(
         else tags.map { it.replaceHost(host, externalHost) }
     }
 
+    fun getTag(resource: String): Tag = OBJECT_MAPPER.readValue(
+        FileTemplateProcessor("$type/$resource").processTemplate(variables),
+        object : TypeReference<Tag>() {}
+    ).let { tag ->
+        if (externalHost.isNullOrBlank()) tag else tag.replaceHost(host, externalHost)
+    }
+
     fun getSearchIssueInRangesResponse(resource: String): SearchIssueInRangesResponse = OBJECT_MAPPER.readValue(
         FileTemplateProcessor("$type/$resource").processTemplate(variables),
         object : TypeReference<SearchIssueInRangesResponse>() {}

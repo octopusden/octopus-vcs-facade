@@ -1,0 +1,11 @@
+{
+  "name": "v1.0",
+  "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+  "link": "{{url}}/test/repository-2/src/tag/v1.0",
+  "repository": {
+    "sshUrl": "ssh://git@{{host}}/test/repository-2.git",
+    "link": "{{url}}/test/repository-2",
+    "avatar": null
+  },
+  "type": "TAG"
+}

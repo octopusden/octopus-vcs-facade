@@ -9,12 +9,7 @@
     },
     "source": "feature/ISSUE-4",
     "target": "master",
-    "assignees": [
-      {
-        "name": "test-admin",
-        "avatar": "https://secure.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?d=identicon"
-      }
-    ],
+    "assignees": [],
     "reviewers": [],
     "status": "OPEN",
     "createdAt": 1698062284000,
