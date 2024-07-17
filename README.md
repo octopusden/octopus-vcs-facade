@@ -16,3 +16,9 @@
 ## Features / limitations
 
 VCS servers must be configured to use default ports for http(s)/ssh (urls must not contain port specified).
+
+## Using local.properties for Custom Configuration
+
+In order to use custom properties defined in local.properties across all submodules of your Gradle project. 
+Create a local.properties file in the root directory of your project. Add your custom properties to this file.
+Properties specified in this file will override the properties from gradle.properties in all subprojects.

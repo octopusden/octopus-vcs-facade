@@ -1,6 +1,8 @@
 import java.time.Duration
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     java
@@ -31,6 +33,24 @@ nexusPublishing {
 }
 
 /**
+ * Loads properties from a local.properties file and sets them as extra properties in the project.
+ *
+ * This script checks if the local.properties file exists in the project's root directory. If the file
+ * exists, it loads the properties from the file and sets them as extra properties in the project.
+ * These properties can then be accessed throughout the build script using the project property mechanism.
+ */
+subprojects {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        val localProperties = Properties()
+        localProperties.load(FileInputStream(localPropertiesFile))
+        localProperties.forEach { key, value ->
+            project.extensions.extraProperties.set(key.toString(), value)
+        }
+    }
+}
+
+/**
  * Sanitizes a Helm release name to ensure it adheres to Helm's naming conventions.
  *
  * Helm release names must:
@@ -47,7 +67,7 @@ fun sanitizeHelmReleaseName(name: String?): String? {
         return null
     }
 
-    var sanitized = name.toLowerCase().replace(Regex("[^a-z0-9-]"), "-")
+    var sanitized = name.lowercase().replace(Regex("[^a-z0-9-]"), "-")
 
     if (!sanitized.first().isLetter()) {
         sanitized = "a$sanitized"
