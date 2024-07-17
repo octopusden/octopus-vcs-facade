@@ -1,7 +1,7 @@
-### Required enveraments
+### Required environments
 
-- Helm
-- OC (Openshift Client)
+- Helm (https://helm.sh/docs/intro/install/)
+- OC (Openshift Client)(4.14 or later https://docs.openshift.com/container-platform/4.16/cli_reference/openshift_cli/getting-started-cli.html)
 
 ### OC login
 
