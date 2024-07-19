@@ -47,7 +47,7 @@ In the ft and test modes, a different set of environment services is launched. T
 ```
 or
 ```shell
-./gradlew deployHelmTest -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
+./gradlew deployHelmFt -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
 ```
 
 
@@ -61,7 +61,7 @@ or
 ./gradlew ft -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
 ```
 
-#### To tun test
+#### To unit tests
 ```shell
 ./gradlew test -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
 ```
