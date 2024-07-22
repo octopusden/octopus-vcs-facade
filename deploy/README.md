@@ -66,6 +66,17 @@ or
 ./gradlew test -Pdocker.registry=<docker_registry> -Pplatform=<okd | docker> -PhelmRelease=<release_name> -PhelmNamespace=<project> -PlocalDomain=<local_domain> -PclusterDomain=<cluster_domain> -Ptest.profile=<bitbucket | gitea> -Pversion=<version> -Pbitbucket.license=<license>
 ```
 
+
+If you use **local.properties**, the command call is reduced to:
+
+```shell   
+./gradlew deployHelmTest
+```
+```shell   
+./gradlew test ft
+```
+
+
 ### Create a project in OKD
 
 1. To create a new project, you need to click the **Create Project** button in the dropdown menu, as shown in the image below.

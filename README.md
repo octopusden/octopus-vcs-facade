@@ -35,3 +35,5 @@ helmNamespace=test-env
 helmRelease=test-release
 platform=okd
 ```
+
+## [Using test environment deployment in OKD](deploy/README.md)
