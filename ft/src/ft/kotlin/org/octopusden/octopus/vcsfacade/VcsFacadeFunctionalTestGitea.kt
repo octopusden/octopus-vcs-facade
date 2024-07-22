@@ -15,11 +15,17 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 
 
-@EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
+@EnabledIfSystemProperty(named = TEST_PROFILE, matches = GITEA)
 class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
-    TestService.Gitea(GITEA_HOST, GITEA_EXTERNAL_HOST, true),
-    GiteaTestClient("http://$GITEA_HOST", GITEA_USER, GITEA_PASSWORD, GITEA_EXTERNAL_HOST)
+    TestService.Gitea(Configuration.model.gitea.host, Configuration.model.gitea.externalHost, true),
+    GiteaTestClient(
+        Configuration.model.gitea.url,
+        Configuration.model.gitea.user,
+        Configuration.model.gitea.password,
+        Configuration.model.gitea.externalHost
+    )
 ) {
+
     @BeforeAll
     fun beforeAllVcsFacadeFunctionalTestGitea() {
         (testService as TestService.Gitea).scan(GROUP, REPOSITORY_2)
@@ -136,11 +142,15 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             val failMessage: String
         )
 
+        private val variables = mapOf(
+            "url" to Configuration.model.vcsFacadeInternalUrl,
+        )
+
         private fun doHttpRequest(giteaHttpRequest: GiteaHttpRequest) {
             with(
                 httpClient.send(
                     HttpRequest.newBuilder()
-                        .uri(URI("http://$GITEA_HOST/api/v1/${giteaHttpRequest.path}"))
+                        .uri(URI("http://${Configuration.model.gitea.host}/api/v1/${giteaHttpRequest.path}"))
                         .header(
                             "Authorization",
                             "Basic " + Base64.getEncoder()
@@ -162,8 +172,8 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         private fun userCreationRequest(user: String) = GiteaHttpRequest(
             "admin/users",
             "POST",
-            GITEA_USER,
-            GITEA_PASSWORD,
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
             """{"email": "$user@domain.corp", "username": "$user", "password": "$user", "must_change_password": false}""",
             "Unable to create '$user' user"
         )
@@ -171,27 +181,29 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         private fun webhookCreationRequest(organization: String, repository: String) = GiteaHttpRequest(
             "repos/$organization/$repository/hooks",
             "POST",
-            GITEA_USER,
-            GITEA_PASSWORD,
-            """{
-    "type": "gitea",
-    "branch_filter": "*",
-    "config": {
-        "content_type": "json",
-        "url": "http://vcs-facade:8080/rest/api/1/indexer/gitea/webhook",
-        "secret": "b59dd966-2445-4c84-b631-49502427477e"
-    },
-    "events": [
-        "create",
-        "delete",
-        "push",
-        "pull_request",
-        "pull_request_approved",
-        "pull_request_rejected"
-    ],
-    "authorization_header": "",
-    "active": true
-}""",
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
+            FileTemplateProcessor(
+                """{
+            "type": "gitea",
+            "branch_filter": "*",
+            "config": {
+                "content_type": "json",
+                "url": "{{url}}/rest/api/1/indexer/gitea/webhook",
+                "secret": "b59dd966-2445-4c84-b631-49502427477e"
+            },
+            "events": [
+                "create",
+                "delete",
+                "push",
+                "pull_request",
+                "pull_request_approved",
+                "pull_request_rejected"
+            ],
+            "authorization_header": "",
+            "active": true
+        }""".toByteArray()
+            ).processTemplate(variables),
             "Unable to create webhook for '$organization:$repository' repository"
         )
 
@@ -199,8 +211,8 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             GiteaHttpRequest(
                 "repos/$organization/$repository/collaborators/$user",
                 "PUT",
-                GITEA_USER,
-                GITEA_PASSWORD,
+                Configuration.model.gitea.user,
+                Configuration.model.gitea.password,
                 """{"permission": "write"}""",
                 "Unable to make user '$user' collaborator of '$organization:$repository' repository"
             )
@@ -209,8 +221,8 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             GiteaHttpRequest(
                 "repos/$organization/$repository/pulls/$index",
                 "PATCH",
-                GITEA_USER,
-                GITEA_PASSWORD,
+                Configuration.model.gitea.user,
+                Configuration.model.gitea.password,
                 """{"assignee": "$user"}""",
                 "Unable to make user '$user' assignee in pull request $index in '$organization:$repository' repository"
             )
@@ -219,8 +231,8 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             GiteaHttpRequest(
                 "repos/$organization/$repository/pulls/$index/requested_reviewers",
                 "POST",
-                GITEA_USER,
-                GITEA_PASSWORD,
+                Configuration.model.gitea.user,
+                Configuration.model.gitea.password,
                 """{"reviewers": ["$user"]}""",
                 "Unable to add review request for '$user' reviewer in pull request $index in '$organization:$repository' repository"
             )
@@ -233,8 +245,8 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         ) = GiteaHttpRequest(
             "repos/$organization/$repository/pulls/$index/requested_reviewers",
             "DELETE",
-            GITEA_USER,
-            GITEA_PASSWORD,
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
             """{"reviewers": ["$user"]}""",
             "Unable to delete review request for '$user' reviewer in pull request $index in '$organization:$repository' repository"
         )
@@ -252,8 +264,8 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         private fun mergePullRequestRequest(organization: String, repository: String, index: Long) = GiteaHttpRequest(
             "repos/$organization/$repository/pulls/$index/merge",
             "POST",
-            GITEA_USER,
-            GITEA_PASSWORD,
+            Configuration.model.gitea.user,
+            Configuration.model.gitea.password,
             """{"Do": "merge"}""",
             "Unable to merge pull request $index in '$organization:$repository' repository"
         )

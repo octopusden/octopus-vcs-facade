@@ -88,12 +88,34 @@ docker {
     }
 }
 
-tasks.withType<Test> {
-    dependsOn("composeUp")
-    systemProperties["spring.profiles.active"] = "ut,${"testProfile".getExt()}"
-}
+val helmNamespace = "helmNamespace".getExt()
+val helmRelease = "helmRelease".getExt()
+val clusterDomain = "clusterDomain".getExt()
+val localDomain = "localDomain".getExt()
+val bitbucketHost = "bitbucketHost".getExt()
+val giteaHost = "giteaHost".getExt()
+val platform = "platform".getExt()
+val testProfile = "testProfile".getExt()
 
-dockerCompose.isRequiredBy(tasks["test"])
+tasks.withType<Test> {
+    println("Profile: $testProfile")
+    systemProperties["spring.profiles.active"] = "ut,$testProfile"
+    if (platform == "okd") {
+        extensions.extraProperties["bitbucketHost"] = bitbucketHost
+        systemProperties["bitbucketHost"] = bitbucketHost
+        systemProperties["bitbucketUrl"] = "http://$bitbucketHost"
+        systemProperties["vcs-facade.vcs.bitbucket.host"] = "http://$bitbucketHost"
+
+        systemProperties["giteaHost"] = giteaHost
+        systemProperties["giteaExternalHost"] = giteaHost
+        systemProperties["giteaUrl"] = "http://$giteaHost"
+        systemProperties["vcs-facade.vcs.gitea.host"] = "http://$giteaHost"
+
+        systemProperties["vcs-facade.opensearch.host"] = "$helmRelease-opensearch-route-$helmNamespace.$clusterDomain:80"
+    } else {
+       dependsOn("composeUp")
+    }
+}
 
 springBoot {
     buildInfo()
@@ -122,4 +144,15 @@ dependencies {
 
 configurations.all {
     exclude("commons-logging", "commons-logging")
+}
+
+if (platform == "okd") {
+    println("Platform is OKD")
+
+    tasks.named("test") {
+        dependsOn(":deploy:deployHelmTest")
+        finalizedBy(":deploy:uninstallHelm")
+    }
+} else {
+    dockerCompose.isRequiredBy(tasks["test"])
 }

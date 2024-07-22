@@ -2,7 +2,6 @@ package org.octopusden.octopus.vcsfacade
 
 import java.util.Date
 import org.octopusden.octopus.infrastructure.common.test.TestClient
-import org.octopusden.octopus.vcsfacade.TestService.Companion.VCS_FACADE_API_URL
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -66,7 +65,7 @@ abstract class BaseVcsFacadeFunctionalTest(
 
     companion object {
         private val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
-            override fun getApiUrl() = VCS_FACADE_API_URL
+            override fun getApiUrl() = Configuration.model.vcsFacadeUrl
             override fun getTimeRetryInMillis() = 180000
         })
     }

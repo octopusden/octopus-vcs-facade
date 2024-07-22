@@ -1,0 +1,58 @@
+{{- if eq .Values.mode "ft" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vcsFacade.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "chart-test.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.vcsFacade.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "chart-test.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "vcsFacade.fullname" . }}
+          securityContext: {}
+          image: {{ .Values.dockerRegistry }}/octopusden/vcs-facade:{{ .Values.vcsFacade.image.version }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: ft,{{ .Values.profile }}
+          {{- range $key, $value := .Values.vcsFacade.environment }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          resources: {}
+          {{- if eq .Values.profile "gitea" }}
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >
+                  curl -s -o /dev/null -w "%{http_code}" http://{{ include "gitea.fullname" . }}-route-{{ .Release.Namespace }}.{{ .Values.clusterDomain }}/user/login | grep -q "200"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          {{- end }}
+          volumeMounts:
+            - name: {{ .Release.Namespace }}-application-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: {{ .Release.Namespace }}-application-config
+          configMap:
+            name: {{ include "vcsFacade.fullname" . }}-conf
+            defaultMode: 420
+{{- end }}

@@ -1,0 +1,31 @@
+vcs-facade:
+  vcs:
+    bitbucket:
+      enabled: false
+    gitea:
+      host: http://{{ .Values.gitea.host | default "gitea:3000" }}
+      username: test-admin
+      password: test-admin
+      health-check:
+        repo: ssh://git@gitea:3000:test-data/vcs-facade-healthcheck.git
+        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
+        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
+        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
+      index:
+        webhook-secret: b59dd966-2445-4c84-b631-49502427477e
+        scan:
+          delay: 5000
+    gitlab:
+      enabled: false
+  opensearch:
+    host: {{ template "opensearch.fullname" . }}-service.{{ .Release.Namespace }}.{{ .Values.localDomain }}
+    ssl: false
+    username: admin
+    password: admin
+    index:
+      suffix: ft
+
+logging:
+  level:
+    org.opensearch: DEBUG
+    org.octopusden.octopus.vcsfacade: TRACE
