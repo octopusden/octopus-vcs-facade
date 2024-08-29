@@ -3,7 +3,7 @@ version: '2.4'
 services:
   vcs-facade:
     container_name: vcs-facade-ft-vcs-facade
-    image: ${OCTOPUS_GITHUB_DOCKER_REGISTRY}/octopusden/vcs-facade:${VCS_FACADE_VERSION}
+    image: ${OCTOPUS_GITHUB_DOCKER_REGISTRY}/octopusden/vcs-facade:${VCS_FACADE_IMAGE_TAG}
     depends_on:
       bitbucket:
         condition: service_started
@@ -19,12 +19,11 @@ services:
 
   bitbucket:
     container_name: vcs-facade-ft-bitbucket
-    image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_VERSION}
+    image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_IMAGE_TAG}
     depends_on:
       bitbucket-db:
         condition: service_started
     ports:
-      - "7999:7999"
       - "7990:7990"
     environment:
       SETUP_DISPLAYNAME: Bitbucket
@@ -46,7 +45,7 @@ services:
 
   bitbucket-db:
     container_name: vcs-facade-ft-bitbucket-db
-    image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_VERSION}
+    image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
     environment:
       POSTGRES_USER: bitbucket
       POSTGRES_PASSWORD: bitbucket

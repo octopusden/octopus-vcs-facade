@@ -1,4 +1,6 @@
+import java.net.InetAddress
 import java.time.Duration
+import java.util.zip.CRC32
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -13,6 +15,12 @@ plugins {
 
 allprojects {
     group = "org.octopusden.octopus.vcsfacade"
+    version = "${
+        with(CRC32()) {
+            update(InetAddress.getLocalHost().hostName.toByteArray())
+            value
+        }
+    }-snapshot"
 }
 
 nexusPublishing {
@@ -70,39 +78,69 @@ subprojects {
 
     dependencyManagement {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:${project.properties["spring-boot.version"]}")
-            mavenBom("org.springframework.cloud:spring-cloud-dependencies:${project.properties["spring-cloud.version"]}")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:${properties["spring-boot.version"]}")
+            mavenBom("org.springframework.cloud:spring-cloud-dependencies:${properties["spring-cloud.version"]}")
         }
     }
 
     ext {
         System.getenv().let {
-            set("signingRequired", it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword"))
-            set("testProfile", it.getOrDefault("TEST_PROFILE", project.properties["test.profile"]))
-            set("dockerRegistry", it.getOrDefault("DOCKER_REGISTRY", project.properties["docker.registry"]))
-            set("octopusGithubDockerRegistry", it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
-            set("bitbucketLicense", it.getOrDefault("BITBUCKET_LICENSE", project.properties["bitbucket.license"]))
+            set(
+                "signingRequired",
+                it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword")
+            )
+            set("testPlatform", it.getOrDefault("TEST_PLATFORM", properties["test.platform"]))
+            set("testProfile", it.getOrDefault("TEST_PROFILE", properties["test.profile"]))
+            set("dockerRegistry", it.getOrDefault("DOCKER_REGISTRY", properties["docker.registry"]))
+            set(
+                "octopusGithubDockerRegistry",
+                it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"])
+            )
+            set("okdProject", it.getOrDefault("OKD_PROJECT", properties["okd.project"]))
+            set("okdClusterDomain", it.getOrDefault("OKD_CLUSTER_DOMAIN", properties["okd.cluster-domain"]))
+            set("okdPullSecrets", it.getOrDefault("OKD_PULL_SECRETS", properties["okd.pull-secrets"]))
+            set(
+                "okdWebConsoleUrl",
+                (it.getOrDefault("OKD_WEB_CONSOLE_URL", properties["okd.web-console-url"]) as? String)?.trimEnd('/')
+            )
+            set("bitbucketLicense", it.getOrDefault("BITBUCKET_LICENSE", properties["bitbucket.license"]))
         }
     }
 
-    val supportedTestProfiles = listOf("bitbucket", "gitea", "gitlab")
+    val supportedTestPlatforms = listOf("docker", "okd")
+    if (project.ext["testPlatform"] !in supportedTestPlatforms) {
+        throw IllegalArgumentException("Test platform must be set to one of the following $supportedTestPlatforms. Start gradle build with -Ptest.platform=... or set env variable TEST_PLATFORM")
+    }
+    val supportedTestProfiles = listOf("bitbucket", "gitea")
     if (project.ext["testProfile"] !in supportedTestProfiles) {
         throw IllegalArgumentException("Test profile must be set to one of the following $supportedTestProfiles. Start gradle build with -Ptest.profile=... or set env variable TEST_PROFILE")
     }
-    val mandatoryProperties = listOf("dockerRegistry", "octopusGithubDockerRegistry").plus(
-        if (project.ext["testProfile"] == "bitbucket") listOf("bitbucketLicense") else emptyList()
-    )
-    val emptyProperties = mandatoryProperties.filter { (project.ext[it] as? String).isNullOrBlank() }
-    if (emptyProperties.isNotEmpty()) {
+    val mandatoryProperties = mutableListOf("dockerRegistry", "octopusGithubDockerRegistry")
+    if (project.ext["testPlatform"] == "okd") {
+        mandatoryProperties.add("okdProject")
+        mandatoryProperties.add("okdClusterDomain")
+        mandatoryProperties.add("okdPullSecrets")
+    }
+    if (project.ext["testProfile"] == "bitbucket") {
+        mandatoryProperties.add("bitbucketLicense")
+    }
+    val undefinedProperties = mandatoryProperties.filter { (project.ext[it] as String).isBlank() }
+    if (undefinedProperties.isNotEmpty()) {
         throw IllegalArgumentException(
             "Start gradle build with" +
-                    (if (emptyProperties.contains("dockerRegistry")) " -Pdocker.registry=..." else "") +
-                    (if (emptyProperties.contains("octopusGithubDockerRegistry")) " -Poctopus.github.docker.registry=..." else "") +
-                    (if (emptyProperties.contains("bitbucketLicense")) " -Pbitbucket.license=..." else "") +
+                    (if (undefinedProperties.contains("dockerRegistry")) " -Pdocker.registry=..." else "") +
+                    (if (undefinedProperties.contains("octopusGithubDockerRegistry")) " -Poctopus.github.docker.registry=..." else "") +
+                    (if (undefinedProperties.contains("okdProject")) " -Pokd.project=..." else "") +
+                    (if (undefinedProperties.contains("okdClusterDomain")) " -Pokd.cluster-domain=..." else "") +
+                    (if (undefinedProperties.contains("okdPullSecrets")) " -Pokd.pull-secrets=..." else "") +
+                    (if (undefinedProperties.contains("bitbucketLicense")) " -Pbitbucket.license=..." else "") +
                     " or set env variable(s):" +
-                    (if (emptyProperties.contains("dockerRegistry")) " DOCKER_REGISTRY" else "") +
-                    (if (emptyProperties.contains("octopusGithubDockerRegistry")) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else "") +
-                    (if (emptyProperties.contains("bitbucketLicense")) " BITBUCKET_LICENSE" else "")
+                    (if (undefinedProperties.contains("dockerRegistry")) " DOCKER_REGISTRY" else "") +
+                    (if (undefinedProperties.contains("octopusGithubDockerRegistry")) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else "") +
+                    (if (undefinedProperties.contains("okdProject")) " OKD_PROJECT" else "") +
+                    (if (undefinedProperties.contains("okdClusterDomain")) " OKD_CLUSTER_DOMAIN" else "") +
+                    (if (undefinedProperties.contains("okdPullSecrets")) " OKD_PULL_SECRETS" else "") +
+                    (if (undefinedProperties.contains("bitbucketLicense")) " BITBUCKET_LICENSE" else "")
         )
     }
 }

@@ -1,0 +1,67 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: Opensearch tests instance
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-opensearch
+    labels:
+      app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-opensearch
+  spec:
+    containers:
+      - name: opensearch
+        image: ${DOCKER_REGISTRY}/bitnami/opensearch:${OPENSEARCH_IMAGE_TAG}
+        env:
+          - name: OPENSEARCH_PASSWORD
+            value: admin
+          - name: discovery.type
+            value: single-node
+          - name: plugins.security.disabled
+            value: "true"
+        ports:
+          - containerPort: 9200
+            protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /_cat/health
+            port: 9200
+          periodSeconds: 10
+    imagePullSecrets:
+      - name: ${PULL_SECRETS}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-opensearch-service
+  spec:
+    ports:
+    - port: 9200
+      protocol: TCP
+      targetPort: 9200
+    selector:
+      app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-opensearch
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-opensearch-route
+  spec:
+    port:
+      targetPort: 9200
+    to:
+      kind: Service
+      name: ${DEPLOYMENT_PREFIX}-opensearch-service
+
+parameters:
+- description: Unique deployment prefix
+  name: DEPLOYMENT_PREFIX
+  required: true
+- description: Docker registry
+  name: DOCKER_REGISTRY
+  required: true
+- description: Image pull secrets name
+  name: PULL_SECRETS
+  required: true
+- description: Tag of bitnami/opensearch image
+  name: OPENSEARCH_IMAGE_TAG
+  required: true

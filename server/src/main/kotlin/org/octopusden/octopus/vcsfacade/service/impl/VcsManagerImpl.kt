@@ -210,20 +210,25 @@ class VcsManagerImpl(
     override fun health(): Health {
         log.trace("Run health check")
         val errors = vcsProperties.mapNotNull {
-            try {
-                val commits = getCommits(
-                    it.healthCheck.repo, it.healthCheck.lastRelease, null, it.healthCheck.rootCommit
-                ).map { commit -> commit.hash }.toSet()
-                val expectedCommits = it.healthCheck.expectedCommits
-                if (expectedCommits != commits) {
-                    val diff = (commits - expectedCommits).union(expectedCommits - commits)
-                    "The symmetric difference of response commits with expected commits is $diff, repository ${it.healthCheck.repo}".also { message ->
-                        log.warn(message)
+            if (it.healthCheck == null) {
+                log.warn("Health check for vcs host '${it.host}' is not configured")
+                null
+            } else {
+                try {
+                    val commits = getCommits(
+                        it.healthCheck.repo, it.healthCheck.lastRelease, null, it.healthCheck.rootCommit
+                    ).map { commit -> commit.hash }.toSet()
+                    val expectedCommits = it.healthCheck.expectedCommits
+                    if (expectedCommits != commits) {
+                        val diff = (commits - expectedCommits).union(expectedCommits - commits)
+                        "The symmetric difference of response commits with expected commits is $diff, repository ${it.healthCheck.repo}".also { message ->
+                            log.warn(message)
+                        }
+                    } else null
+                } catch (e: Exception) {
+                    "Health check request to repository ${it.healthCheck.repo} ended with exception".also { message ->
+                        log.warn(message, e)
                     }
-                } else null
-            } catch (e: Exception) {
-                "Health check request to repository ${it.healthCheck.repo} ended with exception".also { message ->
-                    log.warn(message, e)
                 }
             }
         }

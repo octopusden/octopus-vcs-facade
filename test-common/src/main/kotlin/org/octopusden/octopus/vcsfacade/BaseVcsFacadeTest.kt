@@ -591,20 +591,11 @@ abstract class BaseVcsFacadeTest(
 
 
     companion object {
-        const val BITBUCKET_HOST = "localhost:7990"
         const val BITBUCKET_USER = "admin"
         const val BITBUCKET_PASSWORD = "admin"
-        const val BITBUCKET_EXTERNAL_HOST = "bitbucket:7990"
 
-        const val GITEA_HOST = "localhost:3000"
         const val GITEA_USER = "test-admin"
         const val GITEA_PASSWORD = "test-admin"
-        const val GITEA_EXTERNAL_HOST = "gitea:3000"
-
-        const val GITLAB_HOST = "localhost:8990"
-        const val GITLAB_USER = "root"
-        const val GITLAB_PASSWORD = "VomkaEa6PD1OIgY7dQVbPUuO8wi9RMCaZw/i9yPXcI0="
-        const val GITLAB_EXTERNAL_HOST = "gitlab:8990"
 
         const val GROUP = "test"
         const val REPOSITORY = "repository"

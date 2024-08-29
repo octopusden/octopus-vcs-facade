@@ -3,12 +3,11 @@ version: '2.4'
 services:
   bitbucket:
     container_name: vcs-facade-ut-bitbucket
-    image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_VERSION}
+    image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_IMAGE_TAG}
     depends_on:
       bitbucket-db:
         condition: service_started
     ports:
-      - "7999:7999"
       - "7990:7990"
     environment:
       SETUP_DISPLAYNAME: Bitbucket
@@ -30,7 +29,7 @@ services:
 
   bitbucket-db:
     container_name: vcs-facade-ut-bitbucket-db
-    image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_VERSION}
+    image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
     environment:
       POSTGRES_USER: bitbucket
       POSTGRES_PASSWORD: bitbucket

@@ -1,0 +1,137 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: Vcs-facade tests instance
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ${DEPLOYMENT_PREFIX}-vcs-facade-config
+    data:
+      bootstrap-ft.yml: |
+        spring:
+          cloud:
+            config:
+              enabled: false
+      application-ft.yml: |
+        vcs-facade:
+          job:
+            fast-work-timout-secs: 0 #check retry mechanism
+            retry-interval-secs: 1
+      application-gitea.yml: |
+        vcs-facade:
+          vcs:
+            bitbucket:
+              enabled: false
+            gitea:
+              host: http://${VCS_FACADE_VCS_HOST}
+              username: test-admin
+              password: test-admin
+              index:
+                webhook-secret: b59dd966-2445-4c84-b631-49502427477e
+                scan:
+                  delay: 5000
+          opensearch:
+            host: ${VCS_FACADE_OPENSEARCH_HOST}
+            ssl: false
+            username: admin
+            password: admin
+            index:
+              suffix: ft
+      application-bitbucket.yml: |
+        vcs-facade:
+          vcs:
+            bitbucket:
+              host: http://${VCS_FACADE_VCS_HOST}
+              username: admin
+              password: admin
+            gitea:
+              enabled: false
+          opensearch:
+            enabled: false
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: ${DEPLOYMENT_PREFIX}-vcs-facade
+      labels:
+        app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-vcs-facade
+    spec:
+      containers:
+        - name: vcs-facade
+          image: ${DOCKER_REGISTRY}/octopusden/vcs-facade:${VCS_FACADE_IMAGE_TAG}
+          imagePullPolicy: Always
+          env:
+            - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+              value: /app/config/
+            - name: SPRING_PROFILES_ACTIVE
+              value: ft,${VCS_FACADE_VCS_TYPE}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 10
+          volumeMounts:
+            - mountPath: /app/config/
+              name: vcs-facade-config
+      volumes:
+        - name: vcs-facade-config
+          configMap:
+            name: ${DEPLOYMENT_PREFIX}-vcs-facade-config
+            items:
+              - key: bootstrap-ft.yml
+                path: bootstrap-ft.yml
+              - key: application-ft.yml
+                path: application-ft.yml
+              - key: application-gitea.yml
+                path: application-gitea.yml
+              - key: application-bitbucket.yml
+                path: application-bitbucket.yml
+      imagePullSecrets:
+        - name: ${PULL_SECRETS}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${DEPLOYMENT_PREFIX}-vcs-facade-service
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-vcs-facade
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      name: ${DEPLOYMENT_PREFIX}-vcs-facade-route
+    spec:
+      port:
+        targetPort: 8080
+      to:
+        kind: Service
+        name: ${DEPLOYMENT_PREFIX}-vcs-facade-service
+
+parameters:
+  - description: Unique deployment prefix
+    name: DEPLOYMENT_PREFIX
+    required: true
+  - description: Docker registry
+    name: DOCKER_REGISTRY
+    required: true
+  - description: Image pull secrets name
+    name: PULL_SECRETS
+    required: true
+  - description: Tag of octopusden/vcs-facade image
+    name: VCS_FACADE_IMAGE_TAG
+    required: true
+  - description: VCS type (bitbucket/gitea)
+    name: VCS_FACADE_VCS_TYPE
+    required: true
+  - description: VCS host
+    name: VCS_FACADE_VCS_HOST
+    required: true
+  - description: Opensearch host
+    name: VCS_FACADE_OPENSEARCH_HOST
+    required: true

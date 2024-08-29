@@ -1,10 +1,10 @@
 {
   "name": "v1.0",
   "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
-  "link": "http://localhost:8990/test/repository-2/-/tree/v1.0?ref_type=tags",
+  "link": "http://@test.vcs-host@/test/repository-2/-/tree/v1.0?ref_type=tags",
   "repository": {
-    "sshUrl": "ssh://git@localhost:8990:test/repository-2.git",
-    "link": "http://localhost:8990/test/repository-2",
+    "sshUrl": "ssh://git@@test.vcs-host@:test/repository-2.git",
+    "link": "http://@test.vcs-host@/test/repository-2",
     "avatar": null
   },
   "type": "TAG"
