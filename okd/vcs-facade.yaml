@@ -89,8 +89,6 @@ objects:
                 path: application-gitea.yml
               - key: application-bitbucket.yml
                 path: application-bitbucket.yml
-      imagePullSecrets:
-        - name: ${PULL_SECRETS}
   - apiVersion: v1
     kind: Service
     metadata:
@@ -119,9 +117,6 @@ parameters:
     required: true
   - description: Docker registry
     name: DOCKER_REGISTRY
-    required: true
-  - description: Image pull secrets name
-    name: PULL_SECRETS
     required: true
   - description: Tag of octopusden/vcs-facade image
     name: VCS_FACADE_IMAGE_TAG

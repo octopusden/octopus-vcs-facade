@@ -71,8 +71,6 @@ objects:
           items:
             - key: add_admin.sh
               path: add_admin.sh
-    imagePullSecrets:
-      - name: ${PULL_SECRETS}
 - apiVersion: v1
   kind: Service
   metadata:
@@ -100,9 +98,6 @@ parameters:
   required: true
 - description: Docker registry
   name: DOCKER_REGISTRY
-  required: true
-- description: Image pull secrets name
-  name: PULL_SECRETS
   required: true
 - description: Tag of gitea/gitea image
   name: GITEA_IMAGE_TAG

@@ -14,7 +14,6 @@ VCS servers must be configured to use default ports for http(s)/ssh (urls must n
 | octopus.github.docker.registry | Docker registry with octopus images.                                      | **+**     |
 | okd.project                    | OKD project (OpenShift namespace). Mandatory if `test.platform` is `okd`. |           |
 | okd.cluster-domain             | OKD cluster domain. Mandatory if `test.platform` is `okd`.                |           |
-| okd.pull-secrets               | OKD pull secrets name. Mandatory if `test.platform` is `okd`.             |           |
 | okd.web-console-url            | URL of OKD web-console. Used to provide links to OKD pods.                |           |
 | bitbucket.license              | BitBucket DEV licence. Mandatory if `test.profile` is `bitbucket`.        |           |
 

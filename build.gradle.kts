@@ -102,7 +102,6 @@ subprojects {
             )
             set("okdProject", it.getOrDefault("OKD_PROJECT", properties["okd.project"]))
             set("okdClusterDomain", it.getOrDefault("OKD_CLUSTER_DOMAIN", properties["okd.cluster-domain"]))
-            set("okdPullSecrets", it.getOrDefault("OKD_PULL_SECRETS", properties["okd.pull-secrets"]))
             set(
                 "okdWebConsoleUrl",
                 (it.getOrDefault("OKD_WEB_CONSOLE_URL", properties["okd.web-console-url"]) as? String)?.trimEnd('/')
@@ -123,7 +122,6 @@ subprojects {
     if (project.ext["testPlatform"] == "okd") {
         mandatoryProperties.add("okdProject")
         mandatoryProperties.add("okdClusterDomain")
-        mandatoryProperties.add("okdPullSecrets")
     }
     if (project.ext["testProfile"] == "bitbucket") {
         mandatoryProperties.add("bitbucketLicense")
@@ -136,14 +134,12 @@ subprojects {
                     (if (undefinedProperties.contains("octopusGithubDockerRegistry")) " -Poctopus.github.docker.registry=..." else "") +
                     (if (undefinedProperties.contains("okdProject")) " -Pokd.project=..." else "") +
                     (if (undefinedProperties.contains("okdClusterDomain")) " -Pokd.cluster-domain=..." else "") +
-                    (if (undefinedProperties.contains("okdPullSecrets")) " -Pokd.pull-secrets=..." else "") +
                     (if (undefinedProperties.contains("bitbucketLicense")) " -Pbitbucket.license=..." else "") +
                     " or set env variable(s):" +
                     (if (undefinedProperties.contains("dockerRegistry")) " DOCKER_REGISTRY" else "") +
                     (if (undefinedProperties.contains("octopusGithubDockerRegistry")) " OCTOPUS_GITHUB_DOCKER_REGISTRY" else "") +
                     (if (undefinedProperties.contains("okdProject")) " OKD_PROJECT" else "") +
                     (if (undefinedProperties.contains("okdClusterDomain")) " OKD_CLUSTER_DOMAIN" else "") +
-                    (if (undefinedProperties.contains("okdPullSecrets")) " OKD_PULL_SECRETS" else "") +
                     (if (undefinedProperties.contains("bitbucketLicense")) " BITBUCKET_LICENSE" else "")
         )
     }

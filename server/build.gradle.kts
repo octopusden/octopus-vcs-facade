@@ -55,9 +55,8 @@ signing {
 fun String.getExt() = project.ext[this] as String
 
 val commonOkdParameters = mapOf(
-    "DEPLOYMENT_PREFIX" to "vcs-facade-ut-$version",
-    "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
-    "PULL_SECRETS" to "okdPullSecrets".getExt()
+    "DEPLOYMENT_PREFIX" to "vcs-facade-ut-$version".replace("[^-a-z0-9]".toRegex(), "-"),
+    "DOCKER_REGISTRY" to "dockerRegistry".getExt()
 )
 
 fun String.getPort() = when (this) {

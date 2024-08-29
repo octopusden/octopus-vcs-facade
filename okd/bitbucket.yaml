@@ -51,8 +51,6 @@ objects:
       - name: bitbucket-db-data
         persistentVolumeClaim:
           claimName: ${DEPLOYMENT_PREFIX}-bitbucket-db-pvc
-    imagePullSecrets:
-      - name: ${PULL_SECRETS}
 - apiVersion: v1
   kind: Service
   metadata:
@@ -143,8 +141,6 @@ objects:
       - name: bitbucket-data
         persistentVolumeClaim:
           claimName: ${DEPLOYMENT_PREFIX}-bitbucket-pvc
-    imagePullSecrets:
-      - name: ${PULL_SECRETS}
 - apiVersion: v1
   kind: Service
   metadata:
@@ -172,9 +168,6 @@ parameters:
   required: true
 - description: Docker registry
   name: DOCKER_REGISTRY
-  required: true
-- description: Image pull secrets name
-  name: PULL_SECRETS
   required: true
 - description: Bitbucket license (base64 encoded)
   name: BITBUCKET_LICENSE
