@@ -13,14 +13,18 @@ plugins {
     signing
 }
 
+val defaultVersion = "${
+    with(CRC32()) {
+        update(InetAddress.getLocalHost().hostName.toByteArray())
+        value
+    }
+}-snapshot"
+
 allprojects {
     group = "org.octopusden.octopus.vcsfacade"
-    version = "${
-        with(CRC32()) {
-            update(InetAddress.getLocalHost().hostName.toByteArray())
-            value
-        }
-    }-snapshot"
+    if (version == "unspecified") {
+        version = defaultVersion
+    }
 }
 
 nexusPublishing {

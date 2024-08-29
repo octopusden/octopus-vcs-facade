@@ -27,5 +27,5 @@ VCS servers must be configured to use default ports for http(s)/ssh (urls must n
 
 ## Build features
 
-Project version is used as docker image tag and **project-unique identifier** of test environment if `test.platform` is `okd`. By default, it is generated using host name and must be overriden via -PbuildVersion=... on CI/CD.   
+Project version is used as docker image tag and **project-unique identifier** of test environment if `test.platform` is `okd`. By default, it is generated using host name and must be overriden via -Pversion=... on CI/CD.   
 
