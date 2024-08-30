@@ -1,7 +1,7 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: Gitea test instance
+  name: test-gitea
 objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
