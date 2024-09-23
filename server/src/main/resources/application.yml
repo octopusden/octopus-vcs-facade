@@ -1,0 +1,2 @@
+vcs-facade:
+  master: ${VCS_FACADE_MASTER:}
