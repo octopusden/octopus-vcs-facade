@@ -18,5 +18,5 @@ class RepositoryInfoDocument(
     @Field(type = FieldType.Date) var lastScanAt: Date? = null
 ) : BaseDocument(id(repository.id)) {
     override fun toString() =
-        "RepositoryInfoDocument(id=$id, repository=$repository, scanRequired=$scanRequired lastScanAt=$lastScanAt)"
+        "RepositoryInfoDocument(id=$id, repository=$repository, scanRequired=$scanRequired, lastScanAt=$lastScanAt)"
 }
