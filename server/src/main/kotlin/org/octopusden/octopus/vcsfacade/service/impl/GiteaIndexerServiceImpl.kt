@@ -177,8 +177,9 @@ class GiteaIndexerServiceImpl(
     }
 
     private fun scan(repositoryDocument: RepositoryDocument) = try {
-        giteaService.findRepository(repositoryDocument.group, repositoryDocument.name)?.let { foundRepository ->
-            with(RepositoryInfoDocument(foundRepository.toRepositoryDocument(), false, Date())) {
+        val foundRepositoryDocument = giteaService.findRepository(repositoryDocument.group, repositoryDocument.name)?.toRepositoryDocument()
+        if (foundRepositoryDocument == repositoryDocument) { //IMPORTANT: found repository could be renamed one
+            with(RepositoryInfoDocument(foundRepositoryDocument, false, Date())) {
                 log.debug("Save repository info in index for {} {} repository", repository.fullName(), GITEA)
                 openSearchService.saveRepositoriesInfo(sequenceOf(this))
                 val branches = giteaService.getBranches(repository.group, repository.name).map {
@@ -233,7 +234,7 @@ class GiteaIndexerServiceImpl(
                 )
                 openSearchService.savePullRequests(pullRequests)
             }
-        } ?: run {
+        } else {
             log.debug("Remove {} {} repository pull-requests from index", repositoryDocument.fullName(), GITEA)
             openSearchService.deletePullRequestsByRepositoryId(repositoryDocument.id)
             log.debug("Remove {} {} repository commits from index", repositoryDocument.fullName(), GITEA)
