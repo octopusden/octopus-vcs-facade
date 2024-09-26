@@ -4,15 +4,15 @@
   "date": 1716986279000,
   "author": {
     "name": "admin",
-    "avatar": "http://localhost:7990/users/admin/avatar.png?s=48"
+    "avatar": "http://@test.vcs-host@/users/admin/avatar.png?s=48"
   },
   "parents": [
     "49bfe6a125a88cddd90c74b75b196c40fd380685"
   ],
-  "link": "http://localhost:7990/projects/test/repos/repository-2/commits/7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+  "link": "http://@test.vcs-host@/projects/test/repos/repository-2/commits/7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
   "repository": {
-    "sshUrl": "ssh://git@localhost:7990/test/repository-2.git",
-    "link": "http://localhost:7990/projects/test/repos/repository-2/browse",
-    "avatar": "http://localhost:7990/projects/test/avatar.png?s=48"
+    "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+    "link": "http://@test.vcs-host@/projects/test/repos/repository-2/browse",
+    "avatar": "http://@test.vcs-host@/projects/test/avatar.png?s=48"
   }
 }

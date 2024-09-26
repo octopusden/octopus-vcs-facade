@@ -192,6 +192,12 @@ abstract class BaseVcsFacadeUnitTest(
     }
 
     companion object {
+        val vcsFacadeHost: String = System.getProperty("test.vcs-facade-host")
+            ?: throw Exception("System property 'test.vcs-facade-host' must be defined")
+
+        val vcsHost: String = System.getProperty("test.vcs-host")
+            ?: throw Exception("System property 'test.vcs-host' must be defined")
+
         private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
             .withZone(ZoneId.systemDefault())
 

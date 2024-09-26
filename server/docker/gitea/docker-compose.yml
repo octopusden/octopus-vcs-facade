@@ -2,28 +2,27 @@ version: '2.4'
 
 services:
   gitea:
-    image: ${DOCKER_REGISTRY}/gitea/gitea:${GITEA_VERSION}
+    image: ${DOCKER_REGISTRY}/gitea/gitea:${GITEA_IMAGE_TAG}
     container_name: vcs-facade-ut-gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - "GITEA__server__OFFLINE_MODE=false"
+      - "GITEA__security__INSTALL_LOCK=true"
+      - "GITEA__webhook__ALLOWED_HOST_LIST=*"
     restart: always
     volumes:
-      - ./app.ini:/data/gitea/conf/app.ini
-      - ./add_admin.sh:/tmp/add_admin.sh
+      - ./add_admin.sh:/script/add_admin.sh
     ports:
       - "3000:3000"
-      - "222:22"
 
   opensearch:
     container_name: vcs-facade-ut-opensearch
-    image: ${DOCKER_REGISTRY}/opensearchproject/opensearch:${OPENSEARCH_VERSION}
+    image: ${DOCKER_REGISTRY}/opensearchproject/opensearch:${OPENSEARCH_IMAGE_TAG}
     environment:
       - "discovery.type=single-node"
       - "plugins.security.disabled=true"
+      - "OPENSEARCH_PASSWORD=admin"
     ports:
       - "9200:9200"
-      - "9600:9600"
     healthcheck:
       test: curl -s -f opensearch:9200/_cat/health >/dev/null || exit 1
       interval: 30s

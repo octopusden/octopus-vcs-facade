@@ -2,7 +2,6 @@ package org.octopusden.octopus.vcsfacade
 
 import java.util.Date
 import org.octopusden.octopus.infrastructure.common.test.TestClient
-import org.octopusden.octopus.vcsfacade.TestService.Companion.VCS_FACADE_API_URL
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -65,9 +64,21 @@ abstract class BaseVcsFacadeFunctionalTest(
     override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
 
     companion object {
+        val vcsFacadeHost = System.getProperty("test.vcs-facade-host")
+            ?: throw Exception("System property 'test.vcs-facade-host' must be defined")
+
         private val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
-            override fun getApiUrl() = VCS_FACADE_API_URL
+            override fun getApiUrl() = "http://$vcsFacadeHost"
             override fun getTimeRetryInMillis() = 180000
         })
+
+        val vcsFacadeExternalHost = System.getProperty("test.vcs-facade-external-host")
+            ?: throw Exception("System property 'test.vcs-facade-external-host' must be defined")
+
+        val vcsHost: String = System.getProperty("test.vcs-host")
+            ?: throw Exception("System property 'test.vcs-host' must be defined")
+
+        val vcsExternalHost = System.getProperty("test.vcs-external-host")
+            ?: throw Exception("System property 'test.vcs-external-host' must be defined")
     }
 }

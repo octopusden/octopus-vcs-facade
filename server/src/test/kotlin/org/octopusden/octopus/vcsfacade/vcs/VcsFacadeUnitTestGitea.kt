@@ -7,8 +7,8 @@ import org.springframework.test.context.junit.jupiter.EnabledIf
 
 @EnabledIf("#{environment.getActiveProfiles().$[#this == 'gitea'] == 'gitea'}", loadContext = true)
 class VcsFacadeUnitTestGitea : BaseVcsFacadeUnitTest(
-    TestService.Gitea(GITEA_HOST),
-    GiteaTestClient("http://$GITEA_HOST", GITEA_USER, GITEA_PASSWORD)
+    TestService.Gitea(vcsFacadeHost, vcsHost),
+    GiteaTestClient("http://$vcsHost", GITEA_USER, GITEA_PASSWORD)
 ) {
     @BeforeAll
     fun beforeAllVcsFacadeUnitTestGitea() {

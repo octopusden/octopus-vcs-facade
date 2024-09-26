@@ -27,15 +27,6 @@ vcs-facade:
             max-pool-size: 1
             queue-capacity: 10
             pre-start-all-core-threads: true
-    gitlab:
-      enabled: # envFile property
-      host: # envFile property
-      token: # envFile property
-      health-check:
-        repo: # envFile property
-        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
   job:
     fast-work-timout-secs: 0
     retry-interval-secs: 1

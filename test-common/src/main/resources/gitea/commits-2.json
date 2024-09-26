@@ -10,10 +10,10 @@
     "parents": [
       "3df9d9661fd7cd199b300881347c6eba9000d77c"
     ],
-    "link": "http://localhost:3000/test/repository/commit/5fb773dbe6472a87632b1c68ea771decdcd20f1e",
+    "link": "http://@test.vcs-host@/test/repository/commit/5fb773dbe6472a87632b1c68ea771decdcd20f1e",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -29,10 +29,10 @@
       "2cd831abeae867185af1350738da08d80a2324f0",
       "4c781b01fa41b7539a9d7289b3d34803c7a3a782"
     ],
-    "link": "http://localhost:3000/test/repository/commit/3df9d9661fd7cd199b300881347c6eba9000d77c",
+    "link": "http://@test.vcs-host@/test/repository/commit/3df9d9661fd7cd199b300881347c6eba9000d77c",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -47,10 +47,10 @@
     "parents": [
       "df4c133e8872af329e9d28f990d2eda09417ae45"
     ],
-    "link": "http://localhost:3000/test/repository/commit/2cd831abeae867185af1350738da08d80a2324f0",
+    "link": "http://@test.vcs-host@/test/repository/commit/2cd831abeae867185af1350738da08d80a2324f0",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -65,10 +65,10 @@
     "parents": [
       "8dfc9f12e01f775e67f1d18ca2eba39977e3fbd7"
     ],
-    "link": "http://localhost:3000/test/repository/commit/4c781b01fa41b7539a9d7289b3d34803c7a3a782",
+    "link": "http://@test.vcs-host@/test/repository/commit/4c781b01fa41b7539a9d7289b3d34803c7a3a782",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -83,10 +83,10 @@
     "parents": [
       "5c259964e83083c7f2a3e1d324ce456d642a8d9b"
     ],
-    "link": "http://localhost:3000/test/repository/commit/8dfc9f12e01f775e67f1d18ca2eba39977e3fbd7",
+    "link": "http://@test.vcs-host@/test/repository/commit/8dfc9f12e01f775e67f1d18ca2eba39977e3fbd7",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -101,10 +101,10 @@
     "parents": [
       "e4784ccbcddcff4ad43b9636b23a897b9a28ef85"
     ],
-    "link": "http://localhost:3000/test/repository/commit/df4c133e8872af329e9d28f990d2eda09417ae45",
+    "link": "http://@test.vcs-host@/test/repository/commit/df4c133e8872af329e9d28f990d2eda09417ae45",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -120,10 +120,10 @@
       "6a4a1d565e484ff908b8852ac036c976c9427091",
       "9b4b1058ddc9ca8f66f4f1eb515fe41b76487254"
     ],
-    "link": "http://localhost:3000/test/repository/commit/e4784ccbcddcff4ad43b9636b23a897b9a28ef85",
+    "link": "http://@test.vcs-host@/test/repository/commit/e4784ccbcddcff4ad43b9636b23a897b9a28ef85",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -138,10 +138,10 @@
     "parents": [
       "546f41c47988d1ac0a7a43be5d53771f3f363484"
     ],
-    "link": "http://localhost:3000/test/repository/commit/9b4b1058ddc9ca8f66f4f1eb515fe41b76487254",
+    "link": "http://@test.vcs-host@/test/repository/commit/9b4b1058ddc9ca8f66f4f1eb515fe41b76487254",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -156,10 +156,10 @@
     "parents": [
       "46a92ce0118d65e64b6d652b4241703a9707ad74"
     ],
-    "link": "http://localhost:3000/test/repository/commit/5c259964e83083c7f2a3e1d324ce456d642a8d9b",
+    "link": "http://@test.vcs-host@/test/repository/commit/5c259964e83083c7f2a3e1d324ce456d642a8d9b",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -174,10 +174,10 @@
     "parents": [
       "81c56ba3e9d0f3f6a929d8ac5700094900ea0e10"
     ],
-    "link": "http://localhost:3000/test/repository/commit/6a4a1d565e484ff908b8852ac036c976c9427091",
+    "link": "http://@test.vcs-host@/test/repository/commit/6a4a1d565e484ff908b8852ac036c976c9427091",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -192,10 +192,10 @@
     "parents": [
       "538a1f8be0f1a738461c1ffcd2568e99983fce22"
     ],
-    "link": "http://localhost:3000/test/repository/commit/546f41c47988d1ac0a7a43be5d53771f3f363484",
+    "link": "http://@test.vcs-host@/test/repository/commit/546f41c47988d1ac0a7a43be5d53771f3f363484",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -210,10 +210,10 @@
     "parents": [
       "10a22f127828a63db16e2b128aa8e1f922eb7445"
     ],
-    "link": "http://localhost:3000/test/repository/commit/538a1f8be0f1a738461c1ffcd2568e99983fce22",
+    "link": "http://@test.vcs-host@/test/repository/commit/538a1f8be0f1a738461c1ffcd2568e99983fce22",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -228,10 +228,10 @@
     "parents": [
       "512f36722583c58179f54ccbfbad3d351adae81d"
     ],
-    "link": "http://localhost:3000/test/repository/commit/46a92ce0118d65e64b6d652b4241703a9707ad74",
+    "link": "http://@test.vcs-host@/test/repository/commit/46a92ce0118d65e64b6d652b4241703a9707ad74",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -246,10 +246,10 @@
     "parents": [
       "59a2e00fc11df460e60befe95bbc44bdb94187b1"
     ],
-    "link": "http://localhost:3000/test/repository/commit/81c56ba3e9d0f3f6a929d8ac5700094900ea0e10",
+    "link": "http://@test.vcs-host@/test/repository/commit/81c56ba3e9d0f3f6a929d8ac5700094900ea0e10",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -264,10 +264,10 @@
     "parents": [
       "cf1ed77a3b13dc829ea9204f132355a76d4c1741"
     ],
-    "link": "http://localhost:3000/test/repository/commit/10a22f127828a63db16e2b128aa8e1f922eb7445",
+    "link": "http://@test.vcs-host@/test/repository/commit/10a22f127828a63db16e2b128aa8e1f922eb7445",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -282,10 +282,10 @@
     "parents": [
       "59a2e00fc11df460e60befe95bbc44bdb94187b1"
     ],
-    "link": "http://localhost:3000/test/repository/commit/512f36722583c58179f54ccbfbad3d351adae81d",
+    "link": "http://@test.vcs-host@/test/repository/commit/512f36722583c58179f54ccbfbad3d351adae81d",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -300,10 +300,10 @@
     "parents": [
       "9d636c0604cd0059285ebe208840b702b5e0cf53"
     ],
-    "link": "http://localhost:3000/test/repository/commit/59a2e00fc11df460e60befe95bbc44bdb94187b1",
+    "link": "http://@test.vcs-host@/test/repository/commit/59a2e00fc11df460e60befe95bbc44bdb94187b1",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -319,10 +319,10 @@
       "e388f1174f45fe333cdb5061b9d597fb7877a785",
       "f92c7ad50633eec83502d0e8783fb10f7204ec6f"
     ],
-    "link": "http://localhost:3000/test/repository/commit/cf1ed77a3b13dc829ea9204f132355a76d4c1741",
+    "link": "http://@test.vcs-host@/test/repository/commit/cf1ed77a3b13dc829ea9204f132355a76d4c1741",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -337,10 +337,10 @@
     "parents": [
       "917f2ab13b79116615fd7b4fc6fc6b12c6429c3e"
     ],
-    "link": "http://localhost:3000/test/repository/commit/9d636c0604cd0059285ebe208840b702b5e0cf53",
+    "link": "http://@test.vcs-host@/test/repository/commit/9d636c0604cd0059285ebe208840b702b5e0cf53",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -355,10 +355,10 @@
     "parents": [
       "c3132678f4537df982925c795a1acc0c1dd7c7de"
     ],
-    "link": "http://localhost:3000/test/repository/commit/f92c7ad50633eec83502d0e8783fb10f7204ec6f",
+    "link": "http://@test.vcs-host@/test/repository/commit/f92c7ad50633eec83502d0e8783fb10f7204ec6f",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -373,10 +373,10 @@
     "parents": [
       "7df584fa61f3d16b9f9514b4034f5368c5e06410"
     ],
-    "link": "http://localhost:3000/test/repository/commit/e388f1174f45fe333cdb5061b9d597fb7877a785",
+    "link": "http://@test.vcs-host@/test/repository/commit/e388f1174f45fe333cdb5061b9d597fb7877a785",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -391,10 +391,10 @@
     "parents": [
       "2674103e85493d76e45e57a9b5372f8c7926d3a7"
     ],
-    "link": "http://localhost:3000/test/repository/commit/c3132678f4537df982925c795a1acc0c1dd7c7de",
+    "link": "http://@test.vcs-host@/test/repository/commit/c3132678f4537df982925c795a1acc0c1dd7c7de",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -409,10 +409,10 @@
     "parents": [
       "3e48313ba71bc2af8d954a5898f4caea65fe487d"
     ],
-    "link": "http://localhost:3000/test/repository/commit/7df584fa61f3d16b9f9514b4034f5368c5e06410",
+    "link": "http://@test.vcs-host@/test/repository/commit/7df584fa61f3d16b9f9514b4034f5368c5e06410",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -427,10 +427,10 @@
     "parents": [
       "a5ed8ae6f2d60f9a4ceba4924589efe3df3d8981"
     ],
-    "link": "http://localhost:3000/test/repository/commit/917f2ab13b79116615fd7b4fc6fc6b12c6429c3e",
+    "link": "http://@test.vcs-host@/test/repository/commit/917f2ab13b79116615fd7b4fc6fc6b12c6429c3e",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -445,10 +445,10 @@
     "parents": [
       "a5ed8ae6f2d60f9a4ceba4924589efe3df3d8981"
     ],
-    "link": "http://localhost:3000/test/repository/commit/3e48313ba71bc2af8d954a5898f4caea65fe487d",
+    "link": "http://@test.vcs-host@/test/repository/commit/3e48313ba71bc2af8d954a5898f4caea65fe487d",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -463,10 +463,10 @@
     "parents": [
       "7cc6c5e60cc7c7bc4a407e4506fab3b3f39f17f1"
     ],
-    "link": "http://localhost:3000/test/repository/commit/a5ed8ae6f2d60f9a4ceba4924589efe3df3d8981",
+    "link": "http://@test.vcs-host@/test/repository/commit/a5ed8ae6f2d60f9a4ceba4924589efe3df3d8981",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -482,10 +482,10 @@
       "4b2e4e8f7ad69d3ac81d7813fbf9b49bb124bf56",
       "1df2a7d9351745624ff1f0e6bd87b331904507a7"
     ],
-    "link": "http://localhost:3000/test/repository/commit/7cc6c5e60cc7c7bc4a407e4506fab3b3f39f17f1",
+    "link": "http://@test.vcs-host@/test/repository/commit/7cc6c5e60cc7c7bc4a407e4506fab3b3f39f17f1",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -500,10 +500,10 @@
     "parents": [
       "2674103e85493d76e45e57a9b5372f8c7926d3a7"
     ],
-    "link": "http://localhost:3000/test/repository/commit/4b2e4e8f7ad69d3ac81d7813fbf9b49bb124bf56",
+    "link": "http://@test.vcs-host@/test/repository/commit/4b2e4e8f7ad69d3ac81d7813fbf9b49bb124bf56",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -518,10 +518,10 @@
     "parents": [
       "585847a321fcbcdb8f397a155a123aba5a1a1d76"
     ],
-    "link": "http://localhost:3000/test/repository/commit/2674103e85493d76e45e57a9b5372f8c7926d3a7",
+    "link": "http://@test.vcs-host@/test/repository/commit/2674103e85493d76e45e57a9b5372f8c7926d3a7",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -536,10 +536,10 @@
     "parents": [
       "fff2b60ae6a434c31c64c87fb7c044080b1acffb"
     ],
-    "link": "http://localhost:3000/test/repository/commit/1df2a7d9351745624ff1f0e6bd87b331904507a7",
+    "link": "http://@test.vcs-host@/test/repository/commit/1df2a7d9351745624ff1f0e6bd87b331904507a7",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -555,10 +555,10 @@
       "c79babff3c1405618214eba90398c685ac4c0349",
       "fe85e0ed86aba2ff78439ba7f0170fe580ccb54e"
     ],
-    "link": "http://localhost:3000/test/repository/commit/585847a321fcbcdb8f397a155a123aba5a1a1d76",
+    "link": "http://@test.vcs-host@/test/repository/commit/585847a321fcbcdb8f397a155a123aba5a1a1d76",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -574,10 +574,10 @@
       "f6b5e1460f0a3ca1da2778acd54bd005620a0730",
       "949a1bbc2b51817aea7bdf5b34af868a646a20e2"
     ],
-    "link": "http://localhost:3000/test/repository/commit/fe85e0ed86aba2ff78439ba7f0170fe580ccb54e",
+    "link": "http://@test.vcs-host@/test/repository/commit/fe85e0ed86aba2ff78439ba7f0170fe580ccb54e",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -592,10 +592,10 @@
     "parents": [
       "8000baf077ff28405c32c539fa49393363508945"
     ],
-    "link": "http://localhost:3000/test/repository/commit/fff2b60ae6a434c31c64c87fb7c044080b1acffb",
+    "link": "http://@test.vcs-host@/test/repository/commit/fff2b60ae6a434c31c64c87fb7c044080b1acffb",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -610,10 +610,10 @@
     "parents": [
       "6b65fcf8499a8fd51a86664c252196d5133897e6"
     ],
-    "link": "http://localhost:3000/test/repository/commit/8000baf077ff28405c32c539fa49393363508945",
+    "link": "http://@test.vcs-host@/test/repository/commit/8000baf077ff28405c32c539fa49393363508945",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -628,10 +628,10 @@
     "parents": [
       "ad658d2bd406df97a1d519a69fce571182efb03d"
     ],
-    "link": "http://localhost:3000/test/repository/commit/f6b5e1460f0a3ca1da2778acd54bd005620a0730",
+    "link": "http://@test.vcs-host@/test/repository/commit/f6b5e1460f0a3ca1da2778acd54bd005620a0730",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -646,10 +646,10 @@
     "parents": [
       "04208409fae379e977017b6ab54b5b3df3937687"
     ],
-    "link": "http://localhost:3000/test/repository/commit/949a1bbc2b51817aea7bdf5b34af868a646a20e2",
+    "link": "http://@test.vcs-host@/test/repository/commit/949a1bbc2b51817aea7bdf5b34af868a646a20e2",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -664,10 +664,10 @@
     "parents": [
       "5c031dc49e438aacbde0db7a2c80b8edd686ff97"
     ],
-    "link": "http://localhost:3000/test/repository/commit/04208409fae379e977017b6ab54b5b3df3937687",
+    "link": "http://@test.vcs-host@/test/repository/commit/04208409fae379e977017b6ab54b5b3df3937687",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -682,10 +682,10 @@
     "parents": [
       "a57e13ae14cb990b20d249822d1e3ac244311792"
     ],
-    "link": "http://localhost:3000/test/repository/commit/6b65fcf8499a8fd51a86664c252196d5133897e6",
+    "link": "http://@test.vcs-host@/test/repository/commit/6b65fcf8499a8fd51a86664c252196d5133897e6",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -700,10 +700,10 @@
     "parents": [
       "4390e95135234d468dafb4a35cb5f575c0816efd"
     ],
-    "link": "http://localhost:3000/test/repository/commit/a57e13ae14cb990b20d249822d1e3ac244311792",
+    "link": "http://@test.vcs-host@/test/repository/commit/a57e13ae14cb990b20d249822d1e3ac244311792",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -718,10 +718,10 @@
     "parents": [
       "7df83ca4811e125a3e7751df69698c440676606e"
     ],
-    "link": "http://localhost:3000/test/repository/commit/ad658d2bd406df97a1d519a69fce571182efb03d",
+    "link": "http://@test.vcs-host@/test/repository/commit/ad658d2bd406df97a1d519a69fce571182efb03d",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -736,10 +736,10 @@
     "parents": [
       "b23f5546bcb8d90ab4727e0f48fc6b30d610a81b"
     ],
-    "link": "http://localhost:3000/test/repository/commit/5c031dc49e438aacbde0db7a2c80b8edd686ff97",
+    "link": "http://@test.vcs-host@/test/repository/commit/5c031dc49e438aacbde0db7a2c80b8edd686ff97",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -754,10 +754,10 @@
     "parents": [
       "3d6a8e913b125e12f03568a170020b54222ef73b"
     ],
-    "link": "http://localhost:3000/test/repository/commit/b23f5546bcb8d90ab4727e0f48fc6b30d610a81b",
+    "link": "http://@test.vcs-host@/test/repository/commit/b23f5546bcb8d90ab4727e0f48fc6b30d610a81b",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -772,10 +772,10 @@
     "parents": [
       "d9c3b34b70034f05844c99f61af9a0d95f36240d"
     ],
-    "link": "http://localhost:3000/test/repository/commit/4390e95135234d468dafb4a35cb5f575c0816efd",
+    "link": "http://@test.vcs-host@/test/repository/commit/4390e95135234d468dafb4a35cb5f575c0816efd",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -790,10 +790,10 @@
     "parents": [
       "6fe6941d1817df8a76fd888bcf6b2de0cecbe362"
     ],
-    "link": "http://localhost:3000/test/repository/commit/d9c3b34b70034f05844c99f61af9a0d95f36240d",
+    "link": "http://@test.vcs-host@/test/repository/commit/d9c3b34b70034f05844c99f61af9a0d95f36240d",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -808,10 +808,10 @@
     "parents": [
       "dc9967191a376d5c3dc3b657a18f51e0646f47b1"
     ],
-    "link": "http://localhost:3000/test/repository/commit/7df83ca4811e125a3e7751df69698c440676606e",
+    "link": "http://@test.vcs-host@/test/repository/commit/7df83ca4811e125a3e7751df69698c440676606e",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -826,10 +826,10 @@
     "parents": [
       "aa7ffdf45fe7b33f0dff6c8e510daaf181003488"
     ],
-    "link": "http://localhost:3000/test/repository/commit/3d6a8e913b125e12f03568a170020b54222ef73b",
+    "link": "http://@test.vcs-host@/test/repository/commit/3d6a8e913b125e12f03568a170020b54222ef73b",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -844,10 +844,10 @@
     "parents": [
       "ead87b8ec6810a0e44bb73db62a5135c99ce6b9f"
     ],
-    "link": "http://localhost:3000/test/repository/commit/6fe6941d1817df8a76fd888bcf6b2de0cecbe362",
+    "link": "http://@test.vcs-host@/test/repository/commit/6fe6941d1817df8a76fd888bcf6b2de0cecbe362",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -862,10 +862,10 @@
     "parents": [
       "1597eb7c28a2716a8ce95a5459e5e3a1eb2f112d"
     ],
-    "link": "http://localhost:3000/test/repository/commit/ead87b8ec6810a0e44bb73db62a5135c99ce6b9f",
+    "link": "http://@test.vcs-host@/test/repository/commit/ead87b8ec6810a0e44bb73db62a5135c99ce6b9f",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -880,10 +880,10 @@
     "parents": [
       "6ad539160277c0c60fa45ff89e97c2050bf36488"
     ],
-    "link": "http://localhost:3000/test/repository/commit/aa7ffdf45fe7b33f0dff6c8e510daaf181003488",
+    "link": "http://@test.vcs-host@/test/repository/commit/aa7ffdf45fe7b33f0dff6c8e510daaf181003488",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -898,10 +898,10 @@
     "parents": [
       "0090343c8a75a949ddc824f7ea5bea46c96c4e57"
     ],
-    "link": "http://localhost:3000/test/repository/commit/6ad539160277c0c60fa45ff89e97c2050bf36488",
+    "link": "http://@test.vcs-host@/test/repository/commit/6ad539160277c0c60fa45ff89e97c2050bf36488",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -916,10 +916,10 @@
     "parents": [
       "dbd38bc2dfc930068413a3f04722e22dbed2d541"
     ],
-    "link": "http://localhost:3000/test/repository/commit/dc9967191a376d5c3dc3b657a18f51e0646f47b1",
+    "link": "http://@test.vcs-host@/test/repository/commit/dc9967191a376d5c3dc3b657a18f51e0646f47b1",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -934,10 +934,10 @@
     "parents": [
       "215948d99d227c32796ac9f2e554d62e517a97ae"
     ],
-    "link": "http://localhost:3000/test/repository/commit/0090343c8a75a949ddc824f7ea5bea46c96c4e57",
+    "link": "http://@test.vcs-host@/test/repository/commit/0090343c8a75a949ddc824f7ea5bea46c96c4e57",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -952,10 +952,10 @@
     "parents": [
       "0b06165093e26d8548079cf1f2303f39d3d746ed"
     ],
-    "link": "http://localhost:3000/test/repository/commit/215948d99d227c32796ac9f2e554d62e517a97ae",
+    "link": "http://@test.vcs-host@/test/repository/commit/215948d99d227c32796ac9f2e554d62e517a97ae",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -970,10 +970,10 @@
     "parents": [
       "d952287e8c235ee6a2af1e00b7a40b68290026db"
     ],
-    "link": "http://localhost:3000/test/repository/commit/0b06165093e26d8548079cf1f2303f39d3d746ed",
+    "link": "http://@test.vcs-host@/test/repository/commit/0b06165093e26d8548079cf1f2303f39d3d746ed",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   },
@@ -988,10 +988,10 @@
     "parents": [
       "db0e1c52ad53401bd29a744cd81a3a492137bb5e"
     ],
-    "link": "http://localhost:3000/test/repository/commit/d952287e8c235ee6a2af1e00b7a40b68290026db",
+    "link": "http://@test.vcs-host@/test/repository/commit/d952287e8c235ee6a2af1e00b7a40b68290026db",
     "repository": {
-      "sshUrl": "ssh://git@localhost:3000/test/repository.git",
-      "link": "http://localhost:3000/test/repository",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
+      "link": "http://@test.vcs-host@/test/repository",
       "avatar": null
     }
   }

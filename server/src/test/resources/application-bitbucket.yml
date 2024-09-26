@@ -1,17 +1,10 @@
 vcs-facade:
   vcs:
     bitbucket:
-      host: http://localhost:7990/
+      host: http://${test.vcs-host}/
       username: admin
       password: admin
-      health-check:
-        repo: git@localhost:7990/test-data/vcs-facade-healthcheck.git
-        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
     gitea:
-      enabled: false
-    gitlab:
       enabled: false
   opensearch:
     enabled: false

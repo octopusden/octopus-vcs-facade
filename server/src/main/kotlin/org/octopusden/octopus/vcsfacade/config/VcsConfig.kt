@@ -12,7 +12,7 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
         prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
     class BitbucketProperties(
-        host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
+        host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck?
     ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
@@ -30,22 +30,8 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
         token: String?,
         username: String?,
         password: String?,
-        healthCheck: HealthCheck,
+        healthCheck: HealthCheck?,
         val index: GiteaIndexProperties?
-    ) : VcsProperties(
-        host,
-        if (token?.isNotBlank() == true) token else null,
-        if (token?.isNotBlank() == true) null else username,
-        if (token?.isNotBlank() == true) null else password,
-        healthCheck
-    )
-
-    @ConfigurationProperties("vcs-facade.vcs.gitlab")
-    @ConditionalOnProperty(
-        prefix = "vcs-facade.vcs.gitlab", name = ["enabled"], havingValue = "true", matchIfMissing = true
-    )
-    class GitlabProperties(
-        host: String, token: String?, username: String?, password: String?, healthCheck: HealthCheck
     ) : VcsProperties(
         host,
         if (token?.isNotBlank() == true) token else null,
@@ -59,7 +45,11 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
     data class GiteaIndexScanProperties(val cron: String?, val delay: Long?, val executor: ExecutorProperties?)
 
     abstract class VcsProperties(
-        val host: String, val token: String?, val username: String?, val password: String?, val healthCheck: HealthCheck
+        val host: String,
+        val token: String?,
+        val username: String?,
+        val password: String?,
+        val healthCheck: HealthCheck?
     )
 
     data class HealthCheck(
@@ -74,7 +64,10 @@ class VcsConfig(val giteaProperties: GiteaProperties?) {
 
     @Bean
     @ConditionalOnProperty(
-        prefix = "vcs-facade", name = ["vcs.gitea.enabled", "opensearch.enabled"], havingValue = "true", matchIfMissing = true
+        prefix = "vcs-facade",
+        name = ["vcs.gitea.enabled", "opensearch.enabled"],
+        havingValue = "true",
+        matchIfMissing = true
     )
     fun giteaIndexScanExecutor() =
         (giteaProperties?.index?.scan?.executor ?: ExecutorProperties()).buildThreadPoolTaskExecutor()

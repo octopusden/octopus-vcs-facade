@@ -7,6 +7,6 @@ import org.springframework.test.context.junit.jupiter.EnabledIf
 
 @EnabledIf("#{environment.getActiveProfiles().$[#this == 'bitbucket'] == 'bitbucket'}", loadContext = true)
 class VcsFacadeUnitTestBitbucket : BaseVcsFacadeUnitTest(
-    TestService.Bitbucket(BITBUCKET_HOST),
-    BitbucketTestClient("http://$BITBUCKET_HOST", BITBUCKET_USER, BITBUCKET_PASSWORD)
+    TestService.Bitbucket(vcsFacadeHost, vcsHost),
+    BitbucketTestClient("http://$vcsHost", BITBUCKET_USER, BITBUCKET_PASSWORD)
 )

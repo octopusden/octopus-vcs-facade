@@ -17,8 +17,8 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 
 @EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
 class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
-    TestService.Gitea(GITEA_HOST, GITEA_EXTERNAL_HOST, true),
-    GiteaTestClient("http://$GITEA_HOST", GITEA_USER, GITEA_PASSWORD, GITEA_EXTERNAL_HOST)
+    TestService.Gitea(vcsFacadeHost, vcsHost, vcsExternalHost, true),
+    GiteaTestClient("http://$vcsHost", GITEA_USER, GITEA_PASSWORD, vcsExternalHost)
 ) {
     @BeforeAll
     fun beforeAllVcsFacadeFunctionalTestGitea() {
@@ -140,7 +140,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             with(
                 httpClient.send(
                     HttpRequest.newBuilder()
-                        .uri(URI("http://$GITEA_HOST/api/v1/${giteaHttpRequest.path}"))
+                        .uri(URI("http://$vcsHost/api/v1/${giteaHttpRequest.path}"))
                         .header(
                             "Authorization",
                             "Basic " + Base64.getEncoder()
@@ -178,7 +178,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
     "branch_filter": "*",
     "config": {
         "content_type": "json",
-        "url": "http://vcs-facade:8080/rest/api/1/indexer/gitea/webhook",
+        "url": "http://$vcsFacadeExternalHost/rest/api/1/indexer/gitea/webhook",
         "secret": "b59dd966-2445-4c84-b631-49502427477e"
     },
     "events": [
