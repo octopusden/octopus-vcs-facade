@@ -13,7 +13,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesRes
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser.validateIssueKey
@@ -29,8 +29,8 @@ import org.springframework.stereotype.Service
 @Service
 class VcsManagerImpl(
     private val vcsServices: List<VcsService>,
-    private val vcsProperties: List<VcsConfig.VcsProperties>,
-    private val openSearchService: OpenSearchService?
+    private val openSearchService: OpenSearchService?,
+    private val vcsProperties: List<VcsProperties>
 ) : VcsManager, HealthIndicator {
     override fun getTags(sshUrl: String): Sequence<Tag> {
         log.trace("=> getTags({})", sshUrl)
@@ -209,7 +209,7 @@ class VcsManagerImpl(
 
     override fun health(): Health {
         log.trace("Run health check")
-        val errors = vcsProperties.mapNotNull {
+        val errors = vcsProperties.flatMap { it.instances }.mapNotNull {
             if (it.healthCheck == null) {
                 log.warn("Health check for vcs host '${it.host}' is not configured")
                 null

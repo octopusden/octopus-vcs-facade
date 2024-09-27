@@ -1,12 +1,9 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import java.util.Date
-import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBasicCredentialProvider
-import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBearerTokenCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClientParametersProvider
-import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
@@ -36,33 +33,17 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 
-@Service
-@ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true
-)
 class BitbucketService(
-    bitbucketProperties: VcsConfig.BitbucketProperties,
-) : VcsService(bitbucketProperties) {
+    vcsInstanceProperties: VcsProperties.VcsInstanceProperties,
+) : VcsService(vcsInstanceProperties) {
     private val client: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = httpUrl
-
-        override fun getAuth(): BitbucketCredentialProvider {
-            val authException by lazy {
-                IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
-            }
-            return bitbucketProperties.token?.let { BitbucketBearerTokenCredentialProvider(it) }
-                ?: BitbucketBasicCredentialProvider(
-                    bitbucketProperties.username ?: throw authException,
-                    bitbucketProperties.password ?: throw authException
-                )
-        }
+        override fun getAuth() = vcsInstanceProperties.bitbucketCredentialProvider
     })
 
     override val sshUrlRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()

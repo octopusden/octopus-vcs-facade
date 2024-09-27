@@ -6,9 +6,6 @@ import java.net.URISyntaxException
 import java.security.MessageDigest
 import java.util.Date
 import org.octopusden.octopus.infrastructure.client.commons.ClientParametersProvider
-import org.octopusden.octopus.infrastructure.client.commons.CredentialProvider
-import org.octopusden.octopus.infrastructure.client.commons.StandardBasicCredCredentialProvider
-import org.octopusden.octopus.infrastructure.client.commons.StandardBearerTokenCredentialProvider
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClassicClient
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithDefaultReviewers
@@ -43,35 +40,19 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.DateValue
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 
-@Service
-@ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
-)
 class GiteaService(
-    giteaProperties: VcsConfig.GiteaProperties
-) : VcsService(giteaProperties) {
+    vcsInstanceProperties: VcsProperties.VcsInstanceProperties
+) : VcsService(vcsInstanceProperties) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
-
-        override fun getAuth(): CredentialProvider {
-            val authException by lazy {
-                IllegalStateException("Auth Token or username/password must be specified for Gitea access")
-            }
-            return giteaProperties.token?.let {
-                StandardBearerTokenCredentialProvider(it)
-            } ?: StandardBasicCredCredentialProvider(
-                giteaProperties.username ?: throw authException, giteaProperties.password ?: throw authException
-            )
-        }
+        override fun getAuth() = vcsInstanceProperties.standardCredentialProvider
     })
 
     override val sshUrlRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
@@ -269,9 +250,8 @@ class GiteaService(
         return emptySequence()
     }
 
-    fun toRepository(giteaRepository: GiteaRepository): Repository {
-        val repository = giteaRepository.name.lowercase()
-        val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
+    private fun toRepository(giteaRepository: GiteaRepository): Repository {
+        val (organization, repository) = giteaRepository.parseFullName()
         return Repository("ssh://git@$host/$organization/$repository.git", //TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
             //IMPORTANT: see https://github.com/go-gitea/gitea/pull/31187
@@ -290,6 +270,10 @@ class GiteaService(
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)
+
+        fun GiteaRepository.parseFullName() = name.lowercase().let {
+            fullName.lowercase().removeSuffix("/$it") to it
+        }
 
         fun GiteaBranch.toBranch(repository: Repository) = Branch(
             name, commit.id, "${repository.link}/src/branch/$name", repository
@@ -311,8 +295,8 @@ class GiteaService(
             repository
         )
 
-        private fun String.sha1() =
-            BigInteger(1, MessageDigest.getInstance("SHA-1").digest(toByteArray())).toString(16).padStart(32, '0')
+        private fun String.sha1() = BigInteger(1, MessageDigest.getInstance("SHA-1").digest(toByteArray()))
+            .toString(16).padStart(32, '0')
 
         private fun GiteaCommit.toCommitWithFiles(repository: Repository) = with(toCommit(repository)) {
             val fileChanges = files!!.map {

@@ -24,9 +24,10 @@ objects:
             bitbucket:
               enabled: false
             gitea:
-              host: http://${VCS_FACADE_VCS_HOST}
-              username: test-admin
-              password: test-admin
+              instances:
+                - host: http://${VCS_FACADE_VCS_HOST}
+                  username: test-admin
+                  password: test-admin
               index:
                 webhook-secret: b59dd966-2445-4c84-b631-49502427477e
                 scan:
@@ -42,9 +43,10 @@ objects:
         vcs-facade:
           vcs:
             bitbucket:
-              host: http://${VCS_FACADE_VCS_HOST}
-              username: admin
-              password: admin
+              instances:
+                - host: http://${VCS_FACADE_VCS_HOST}
+                  username: admin
+                  password: admin
             gitea:
               enabled: false
           opensearch:

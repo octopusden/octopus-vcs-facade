@@ -12,7 +12,7 @@ class RepositoryDocument(
     @Field(type = FieldType.Keyword) val sshUrl: String,
     @Field(type = FieldType.Keyword) val link: String,
     @Field(type = FieldType.Keyword) val avatar: String?
-) : BaseDocument(id(type, group, name)) {
+) : BaseDocument(id(type, group, name)) { //TODO: use sshUrl as unique identifier!
     override fun toString() =
         "RepositoryDocument(id=$id, type=$type, group=$group, name=$name, sshUrl=$sshUrl, link=$link, avatar=$avatar)"
 }

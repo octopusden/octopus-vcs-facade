@@ -8,11 +8,11 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 
-abstract class VcsService(vcsProperties: VcsConfig.VcsProperties) {
-    protected val httpUrl = vcsProperties.host.lowercase().trimEnd('/')
+abstract class VcsService(vcsInstanceProperties: VcsProperties.VcsInstanceProperties) {
+    protected val httpUrl = vcsInstanceProperties.host.lowercase().trimEnd('/')
     protected val host = httpUrl.replace("^(https|http)://".toRegex(), "")
 
     protected abstract val sshUrlRegex: Regex
@@ -25,8 +25,20 @@ abstract class VcsService(vcsProperties: VcsConfig.VcsProperties) {
     abstract fun createTag(group: String, repository: String, createTag: CreateTag): Tag
     abstract fun getTag(group: String, repository: String, name: String): Tag
     abstract fun deleteTag(group: String, repository: String, name: String)
-    abstract fun getCommits(group: String, repository: String, from: HashOrRefOrDate<String, Date>?, toHashOrRef: String): Sequence<Commit>
-    abstract fun getCommitsWithFiles(group: String, repository: String, from: HashOrRefOrDate<String, Date>?, toHashOrRef: String): Sequence<CommitWithFiles>
+    abstract fun getCommits(
+        group: String,
+        repository: String,
+        from: HashOrRefOrDate<String, Date>?,
+        toHashOrRef: String
+    ): Sequence<Commit>
+
+    abstract fun getCommitsWithFiles(
+        group: String,
+        repository: String,
+        from: HashOrRefOrDate<String, Date>?,
+        toHashOrRef: String
+    ): Sequence<CommitWithFiles>
+
     abstract fun getCommit(group: String, repository: String, hashOrRef: String): Commit
     abstract fun getCommitWithFiles(group: String, repository: String, hashOrRef: String): CommitWithFiles
     abstract fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest): PullRequest

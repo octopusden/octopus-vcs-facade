@@ -3,9 +3,10 @@ vcs-facade:
     bitbucket:
       enabled: false
     gitea:
-      host: http://${test.vcs-host}/
-      username: test-admin
-      password: test-admin
+      instances:
+        - host: http://${test.vcs-host}/
+          username: test-admin
+          password: test-admin
       index:
         scan:
           delay: 5000

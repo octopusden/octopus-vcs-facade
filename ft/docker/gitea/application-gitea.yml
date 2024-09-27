@@ -3,9 +3,10 @@ vcs-facade:
     bitbucket:
       enabled: false
     gitea:
-      host: http://gitea:3000
-      username: test-admin
-      password: test-admin
+      instances:
+        - host: http://gitea:3000
+          username: test-admin
+          password: test-admin
       index:
         webhook-secret: b59dd966-2445-4c84-b631-49502427477e
         scan:

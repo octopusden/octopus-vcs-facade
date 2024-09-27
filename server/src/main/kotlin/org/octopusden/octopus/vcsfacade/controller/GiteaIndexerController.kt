@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.GiteaProperties
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
@@ -25,10 +25,13 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("rest/api/1/indexer/gitea")
 @ConditionalOnProperty(
-    prefix = "vcs-facade", name = ["vcs.gitea.enabled", "opensearch.enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade",
+    name = ["vcs.gitea.enabled", "opensearch.enabled"],
+    havingValue = "true",
+    matchIfMissing = true
 )
 class GiteaIndexerController(
-    giteaProperties: VcsConfig.GiteaProperties,
+    giteaProperties: GiteaProperties,
     private val giteaIndexerService: GiteaIndexerService,
     private val objectMapper: ObjectMapper
 ) {
@@ -69,7 +72,7 @@ class GiteaIndexerController(
                     "Register '{}' {} creation in {} {} repository",
                     ref,
                     refType.jsonValue,
-                    repository.fullName,
+                    repository.fullName.lowercase(),
                     GITEA
                 )
                 giteaIndexerService.registerGiteaCreateRefEvent(this)
@@ -80,14 +83,19 @@ class GiteaIndexerController(
                     "Register '{}' {} deletion in {} {} repository",
                     ref,
                     refType.jsonValue,
-                    repository.fullName,
+                    repository.fullName.lowercase(),
                     GITEA
                 )
                 giteaIndexerService.registerGiteaDeleteRefEvent(this)
             }
         } else if (event == "push" && eventType == "push") {
             with(objectMapper.readValue(payload, GiteaPushEvent::class.java)) {
-                log.info("Register {} commit(s) in {} {} repository", commits.size, repository.fullName, GITEA)
+                log.info(
+                    "Register {} commit(s) in {} {} repository",
+                    commits.size,
+                    repository.fullName.lowercase(),
+                    GITEA
+                )
                 giteaIndexerService.registerGiteaPushEvent(this)
             }
         } else if (
@@ -96,7 +104,13 @@ class GiteaIndexerController(
             (event == "pull_request_rejected" && eventType == "pull_request_review_rejected")
         ) {
             with(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java)) {
-                log.info("Register '{}' action for pull request {} in {} {} repository", action, pullRequest.number, repository.fullName, GITEA)
+                log.info(
+                    "Register '{}' action for pull request {} in {} {} repository",
+                    action,
+                    pullRequest.number,
+                    repository.fullName.lowercase(),
+                    GITEA
+                )
                 giteaIndexerService.registerGiteaPullRequestEvent(this)
             }
         }
