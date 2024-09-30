@@ -55,8 +55,6 @@ class GiteaService(
         override fun getAuth() = vcsInstanceProperties.standardCredentialProvider
     })
 
-    override val sshUrlRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
-
     fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client.getOrganizations().asSequence().flatMap { client.getRepositories(it.name) }
@@ -250,8 +248,9 @@ class GiteaService(
         return emptySequence()
     }
 
-    private fun toRepository(giteaRepository: GiteaRepository): Repository {
-        val (organization, repository) = giteaRepository.parseFullName()
+    fun toRepository(giteaRepository: GiteaRepository): Repository {
+        val repository = giteaRepository.name.lowercase()
+        val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
         return Repository("ssh://git@$host/$organization/$repository.git", //TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
             //IMPORTANT: see https://github.com/go-gitea/gitea/pull/31187
@@ -270,10 +269,6 @@ class GiteaService(
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)
-
-        fun GiteaRepository.parseFullName() = name.lowercase().let {
-            fullName.lowercase().removeSuffix("/$it") to it
-        }
 
         fun GiteaBranch.toBranch(repository: Repository) = Branch(
             name, commit.id, "${repository.link}/src/branch/$name", repository

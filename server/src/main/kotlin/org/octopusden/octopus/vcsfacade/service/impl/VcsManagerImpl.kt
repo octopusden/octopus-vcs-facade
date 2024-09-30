@@ -34,34 +34,30 @@ class VcsManagerImpl(
 ) : VcsManager, HealthIndicator {
     override fun getTags(sshUrl: String): Sequence<Tag> {
         log.trace("=> getTags({})", sshUrl)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getTags(group, repository)
-        }.also { log.trace("<= getTags({}): {}", sshUrl, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).getTags(group, repository)
+            .also { log.trace("<= getTags({}): {}", sshUrl, it) }
     }
 
     override fun createTag(sshUrl: String, createTag: CreateTag): Tag {
         log.trace("=> createTag({}, {})", sshUrl, createTag)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            createTag(group, repository, createTag)
-        }.also { log.trace("<= getTags({}, {}): {}", sshUrl, createTag, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).createTag(group, repository, createTag)
+            .also { log.trace("<= getTags({}, {}): {}", sshUrl, createTag, it) }
     }
 
     override fun getTag(sshUrl: String, name: String): Tag {
         log.trace("=> getTag({}, {})", sshUrl, name)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getTag(group, repository, name)
-        }.also { log.trace("<= getTag({}, {}): {}", sshUrl, name, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).getTag(group, repository, name)
+            .also { log.trace("<= getTag({}, {}): {}", sshUrl, name, it) }
     }
 
     override fun deleteTag(sshUrl: String, name: String) {
         log.trace("=> deleteTag({}, {})", sshUrl, name)
-        getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            deleteTag(group, repository, name)
-        }.also { log.trace("<= deleteTag({}, {}): {}", sshUrl, name, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        getVcsService(host).deleteTag(group, repository, name)
+        log.trace("<= deleteTag({}, {})", sshUrl, name)
     }
 
     override fun getCommits(
@@ -71,10 +67,10 @@ class VcsManagerImpl(
         toHashOrRef: String
     ): Sequence<Commit> {
         log.trace("=> getCommits({}, {}, {}, {})", sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommits(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
-        }.also { log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).getCommits(
+            group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef
+        ).also { log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it) }
     }
 
     override fun getCommitsWithFiles(
@@ -84,36 +80,33 @@ class VcsManagerImpl(
         toHashOrRef: String
     ): Sequence<CommitWithFiles> {
         log.trace("=> getCommitsWithFiles({}, {}, {}, {})", sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommitsWithFiles(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
-        }.also {
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).getCommitsWithFiles(
+            group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef
+        ).also {
             log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it)
         }
     }
 
     override fun getCommit(sshUrl: String, hashOrRef: String): Commit {
         log.trace("=> getCommit({}, {})", sshUrl, hashOrRef)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommit(group, repository, hashOrRef)
-        }.also { log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).getCommit(group, repository, hashOrRef)
+            .also { log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it) }
     }
 
     override fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles {
         log.trace("=> getCommitWithFiles({}, {})", sshUrl, hashOrRef)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommitWithFiles(group, repository, hashOrRef)
-        }.also { log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).getCommitWithFiles(group, repository, hashOrRef)
+            .also { log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it) }
     }
 
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest {
         log.trace("=> createPullRequest({}, {})", sshUrl, createPullRequest)
-        return getVcsService(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            createPullRequest(group, repository, createPullRequest)
-        }.also { log.trace("<= createPullRequest({}, {}): {}", sshUrl, createPullRequest, it) }
+        val (host, group, repository) = VcsService.parseSshUrl(sshUrl)
+        return getVcsService(host).createPullRequest(group, repository, createPullRequest)
+            .also { log.trace("<= createPullRequest({}, {}): {}", sshUrl, createPullRequest, it) }
     }
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
@@ -186,7 +179,7 @@ class VcsManagerImpl(
         val searchSummary = openSearchService?.findByIssueKey(issueKey) ?: run {
             val branchesCommits = vcsServices.flatMap { vcsService ->
                 vcsService.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {
-                    val (group, repository) = vcsService.parse(it.key)
+                    val (_, group, repository) = VcsService.parseSshUrl(it.key)
                     vcsService.findCommits(group, repository, it.value.map { branch -> branch.hash }.toSet())
                 }
             }
@@ -211,7 +204,7 @@ class VcsManagerImpl(
         log.trace("Run health check")
         val errors = vcsProperties.flatMap { it.instances }.mapNotNull {
             if (it.healthCheck == null) {
-                log.warn("Health check for vcs host '${it.host}' is not configured")
+                log.warn("Health check for VcsService(${it.host}) is not configured")
                 null
             } else {
                 try {
@@ -241,8 +234,8 @@ class VcsManagerImpl(
         return health
     }
 
-    private fun getVcsService(sshUrl: String) = vcsServices.firstOrNull { it.isSupport(sshUrl) }
-        ?: throw IllegalStateException("There is no configured VCS service for $sshUrl")
+    private fun getVcsService(host: String) = vcsServices.firstOrNull { it.host == host }
+        ?: throw IllegalStateException("There is no configured VcsService with '$host' host")
 
     companion object {
         private val log = LoggerFactory.getLogger(VcsManagerImpl::class.java)

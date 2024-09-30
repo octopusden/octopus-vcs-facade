@@ -13,12 +13,7 @@ import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 
 abstract class VcsService(vcsInstanceProperties: VcsProperties.VcsInstanceProperties) {
     protected val httpUrl = vcsInstanceProperties.host.lowercase().trimEnd('/')
-    protected val host = httpUrl.replace("^(https|http)://".toRegex(), "")
-
-    protected abstract val sshUrlRegex: Regex
-    fun isSupport(sshUrl: String) = sshUrlRegex.matches(sshUrl.lowercase())
-    fun parse(sshUrl: String) =
-        sshUrlRegex.find(sshUrl.lowercase())!!.destructured.let { it.component1().trimEnd('/') to it.component2() }
+    val host = httpUrl.replace("^(https|http)://".toRegex(), "")
 
     abstract fun getBranches(group: String, repository: String): Sequence<Branch>
     abstract fun getTags(group: String, repository: String): Sequence<Tag>
@@ -49,4 +44,12 @@ abstract class VcsService(vcsInstanceProperties: VcsProperties.VcsInstanceProper
     abstract fun findCommits(issueKey: String): Sequence<Commit>
     abstract fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles>
     abstract fun findPullRequests(issueKey: String): Sequence<PullRequest>
+
+    companion object {
+        private val sshUrlRegex = "(?:ssh://)?git@([^:/]+(?::\\d+)?)[:/]((?:[^/]+/)+)([^/]+).git".toRegex()
+
+        fun parseSshUrl(sshUrl: String) = sshUrlRegex.find(sshUrl.lowercase())?.destructured?.let {
+            Triple(it.component1(), it.component2().trimEnd('/'), it.component3())
+        } ?: throw IllegalArgumentException("$sshUrl is not valid repository SSH URL")
+    }
 }

@@ -46,8 +46,6 @@ class BitbucketService(
         override fun getAuth() = vcsInstanceProperties.bitbucketCredentialProvider
     })
 
-    override val sshUrlRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
-
     override fun getBranches(group: String, repository: String): Sequence<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
         return client.getBranches(group, repository).asSequence().map {

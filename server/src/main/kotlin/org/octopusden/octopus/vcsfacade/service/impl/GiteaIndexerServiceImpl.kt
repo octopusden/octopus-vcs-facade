@@ -3,7 +3,6 @@ package org.octopusden.octopus.vcsfacade.service.impl
 import java.util.Date
 import java.util.concurrent.Future
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaBranch
-import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaShortCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException
@@ -21,7 +20,7 @@ import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDocument
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
-import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.parseFullName
+import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toBranch
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toPullRequest
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService.Companion.toTag
@@ -45,18 +44,9 @@ class GiteaIndexerServiceImpl(
     @Qualifier("giteaIndexScanExecutor") private val giteaIndexScanExecutor: AsyncTaskExecutor,
     @Qualifier("isMaster") private val isMaster: Boolean
 ) : GiteaIndexerService {
-    private fun getRepositoryDocument(giteaRepository: GiteaRepository) = giteaServices.firstNotNullOfOrNull {
-        //TODO: resolve case when some repositories have the same group/name on different hosts!
-        val (organization, repository) = giteaRepository.parseFullName()
-        it.findRepository(organization, repository)?.toRepositoryDocument()
-    } ?: throw IllegalStateException("Gitea repository '${giteaRepository.fullName}' is not found")
-
-    private fun getGiteaService(sshUrl: String) = giteaServices.firstOrNull { it.isSupport(sshUrl) }
-        ?: throw IllegalStateException("There is no configured Gitea service for $sshUrl")
-
-    override fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent) {
-        log.trace("=> registerGiteaCreateRefEvent({})", giteaCreateRefEvent)
-        val repositoryDocument = getRepositoryDocument(giteaCreateRefEvent.repository)
+    override fun registerGiteaCreateRefEvent(host: String, giteaCreateRefEvent: GiteaCreateRefEvent) {
+        log.trace("=> registerGiteaCreateRefEvent({}, {})", host, giteaCreateRefEvent)
+        val repositoryDocument = getGiteaService(host).toRepository(giteaCreateRefEvent.repository).toDocument()
         checkInRepository(repositoryDocument)
         val refDocument = when (giteaCreateRefEvent.refType.refType) {
             RefType.BRANCH -> GiteaBranch(
@@ -68,12 +58,12 @@ class GiteaIndexerServiceImpl(
             ).toDocument(repositoryDocument)
         }
         openSearchService.saveRefs(sequenceOf(refDocument))
-        log.trace("<= registerGiteaCreateRefEvent({})", giteaCreateRefEvent)
+        log.trace("<= registerGiteaCreateRefEvent({}, {})", host, giteaCreateRefEvent)
     }
 
-    override fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent) {
-        log.trace("=> registerGiteaDeleteRefEvent({})", giteaDeleteRefEvent)
-        val repositoryDocument = getRepositoryDocument(giteaDeleteRefEvent.repository)
+    override fun registerGiteaDeleteRefEvent(host: String, giteaDeleteRefEvent: GiteaDeleteRefEvent) {
+        log.trace("=> registerGiteaDeleteRefEvent({}, {})", host, giteaDeleteRefEvent)
+        val repositoryDocument = getGiteaService(host).toRepository(giteaDeleteRefEvent.repository).toDocument()
         checkInRepository(repositoryDocument, true)
         val refDocumentId = when (giteaDeleteRefEvent.refType.refType) {
             RefType.BRANCH -> GiteaBranch(giteaDeleteRefEvent.ref, GiteaBranch.PayloadCommit("unknown")).toBranch(
@@ -85,40 +75,41 @@ class GiteaIndexerServiceImpl(
             ).toTag(repositoryDocument.toDto()).toDocument(repositoryDocument)
         }.id
         openSearchService.deleteRefsByIds(sequenceOf(refDocumentId))
-        log.trace("<= registerGiteaDeleteRefEvent({})", giteaDeleteRefEvent)
+        log.trace("<= registerGiteaDeleteRefEvent({}, {})", host, giteaDeleteRefEvent)
     }
 
-    override fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent) {
-        log.trace("=> registerGiteaPushEvent({})", giteaPushEvent)
-        val repositoryDocument = getRepositoryDocument(giteaPushEvent.repository)
+    override fun registerGiteaPushEvent(host: String, giteaPushEvent: GiteaPushEvent) {
+        log.trace("=> registerGiteaPushEvent({}, {})", host, giteaPushEvent)
+        val giteaService = getGiteaService(host)
+        val repositoryDocument = giteaService.toRepository(giteaPushEvent.repository).toDocument()
         checkInRepository(repositoryDocument)
         openSearchService.saveCommits(giteaPushEvent.commits.asSequence().map {
             //IMPORTANT: commits in push event does not contain all demanded data, so it is required to get it from gitea directly
-            getGiteaService(repositoryDocument.sshUrl).getCommitWithFiles(
-                repositoryDocument.group, repositoryDocument.name, it.id
-            ).toDocument(repositoryDocument)
+            giteaService.getCommitWithFiles(repositoryDocument.group, repositoryDocument.name, it.id)
+                .toDocument(repositoryDocument)
         })
-        log.trace("<= registerGiteaPushEvent({})", giteaPushEvent)
+        log.trace("<= registerGiteaPushEvent({}, {})", host, giteaPushEvent)
     }
 
-    override fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent) {
-        log.trace("=> registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
-        val repositoryDocument = getRepositoryDocument(giteaPullRequestEvent.repository)
+    override fun registerGiteaPullRequestEvent(host: String, giteaPullRequestEvent: GiteaPullRequestEvent) {
+        log.trace("=> registerGiteaPullRequestEvent({}, {})", host, giteaPullRequestEvent)
+        val giteaService = getGiteaService(host)
+        val repositoryDocument = giteaService.toRepository(giteaPullRequestEvent.repository).toDocument()
         checkInRepository(repositoryDocument)
         val pullRequestDocument = giteaPullRequestEvent.pullRequest.toPullRequest(
             repositoryDocument.toDto(),
             //IMPORTANT: to calculate reviewers approves it is required to get pull request reviews from gitea directly
-            getGiteaService(repositoryDocument.sshUrl).getPullRequestReviews(
+            giteaService.getPullRequestReviews(
                 repositoryDocument.group, repositoryDocument.name, giteaPullRequestEvent.pullRequest.number
             )
         ).toDocument(repositoryDocument)
         openSearchService.savePullRequests(sequenceOf(pullRequestDocument))
-        log.trace("<= registerGiteaPullRequestEvent({})", giteaPullRequestEvent)
+        log.trace("<= registerGiteaPullRequestEvent({}, {})", host, giteaPullRequestEvent)
     }
 
     override fun scheduleRepositoryScan(sshUrl: String) {
         log.trace("=> scheduleRepositoryScan({})", sshUrl)
-        checkInRepository(Repository(sshUrl.lowercase(), "unknown").toRepositoryDocument(), true)
+        checkInRepository(Repository(sshUrl.lowercase(), "unknown").toDocument(), true)
         log.trace("<= scheduleRepositoryScan({})", sshUrl)
     }
 
@@ -129,9 +120,9 @@ class GiteaIndexerServiceImpl(
         }).also { log.trace("=> getIndexReport(): {}", it) }
     }
 
-    private fun Repository.toRepositoryDocument(): RepositoryDocument {
-        val (organization, repository) = getGiteaService(sshUrl).parse(sshUrl)
-        return RepositoryDocument(GITEA, organization, repository, sshUrl, link, avatar)
+    private fun Repository.toDocument(): RepositoryDocument {
+        val (host, organization, repository) = VcsService.parseSshUrl(sshUrl)
+        return RepositoryDocument(GITEA, host, organization, repository, sshUrl, link, avatar)
     }
 
     private fun checkInRepository(repositoryDocument: RepositoryDocument, rescan: Boolean = false) {
@@ -148,18 +139,18 @@ class GiteaIndexerServiceImpl(
             val repositoriesInfo = openSearchService.findRepositoriesInfoByRepositoryType(GITEA).map {
                 it.apply { scanRequired = true }
             }.toSet() + giteaServices.flatMap { giteaService ->
-                giteaService.getRepositories().map { RepositoryInfoDocument(it.toRepositoryDocument()) }
+                giteaService.getRepositories().map { RepositoryInfoDocument(it.toDocument()) }
             }
             logIndexActionMessage(
-                "Scheduled ${repositoriesInfo.size} $GITEA repositories for scan",
+                "Scheduled ${repositoriesInfo.size} repositories for scan",
                 repositoriesInfo.asSequence()
             )
             openSearchService.saveRepositoriesInfo(repositoriesInfo.asSequence())
         } catch (e: Exception) {
-            log.error("Unable to schedule $GITEA repositories for rescan", e)
+            log.error("Unable to schedule repositories for rescan", e)
         }
     } else {
-        log.trace("Suppress {} gitea repositories rescan scheduling on non-master instance", GITEA)
+        log.trace("Suppress repositories rescan scheduling on non-master instance")
     }
 
     private val repositoryScanQueue = mutableMapOf<RepositoryInfoDocument, Future<*>>()
@@ -176,23 +167,23 @@ class GiteaIndexerServiceImpl(
                 }
             }
             logIndexActionMessage(
-                "${repositoryScanQueue.size} $GITEA repositories in scan queue", repositoryScanQueue.keys.asSequence()
+                "${repositoryScanQueue.size} repositories in scan queue", repositoryScanQueue.keys.asSequence()
             )
         } catch (e: Exception) {
-            log.error("Unable to submit $GITEA repositories for scan", e)
+            log.error("Unable to submit repositories for scan", e)
         }
     } else {
-        log.trace("Suppress {} repositories scan submitting on non-master instance", GITEA)
+        log.trace("Suppress repositories scan submitting on non-master instance")
     }
 
     private fun scan(repositoryDocument: RepositoryDocument) = try {
-        val giteaService = getGiteaService(repositoryDocument.sshUrl)
+        val giteaService = getGiteaService(repositoryDocument.host)
         val foundRepositoryDocument = giteaService.findRepository(
             repositoryDocument.group, repositoryDocument.name
-        )?.toRepositoryDocument()
+        )?.toDocument()
         if (foundRepositoryDocument == repositoryDocument) { //IMPORTANT: found repository could be renamed one
             with(RepositoryInfoDocument(foundRepositoryDocument, false, Date())) {
-                log.debug("Save repository info in index for {} {} repository", repository.fullName(), GITEA)
+                log.debug("Save repository info in index for {} repository", repository.sshUrl)
                 openSearchService.saveRepositoriesInfo(sequenceOf(this))
                 val branches = giteaService.getBranches(repository.group, repository.name).map {
                     it.toDocument(repository)
@@ -203,16 +194,16 @@ class GiteaIndexerServiceImpl(
                 val orphanedRefsIds = (openSearchService.findRefsIdsByRepositoryId(repository.id) -
                         (branches.map { it.id } + tags.map { it.id }).toSet()).asSequence()
                 logIndexActionMessage(
-                    "Remove orphaned refs from index for ${repository.fullName()} $GITEA repository",
+                    "Remove orphaned refs from index for ${repository.sshUrl} repository",
                     orphanedRefsIds
                 )
                 openSearchService.deleteRefsByIds(orphanedRefsIds)
                 logIndexActionMessage(
-                    "Save branches in index for ${repository.fullName()} $GITEA repository", branches
+                    "Save branches in index for ${repository.sshUrl} repository", branches
                 )
                 openSearchService.saveRefs(branches)
                 logIndexActionMessage(
-                    "Save tags in index for ${repository.fullName()} $GITEA repository", tags
+                    "Save tags in index for ${repository.sshUrl} repository", tags
                 )
                 openSearchService.saveRefs(tags)
                 val commits = giteaService.getBranchesCommitGraph(repository.group, repository.name).map {
@@ -221,12 +212,12 @@ class GiteaIndexerServiceImpl(
                 val orphanedCommitsIds = (openSearchService.findCommitsIdsByRepositoryId(repository.id) -
                         commits.map { it.id }.toSet()).asSequence()
                 logIndexActionMessage(
-                    "Remove orphaned commits from index for ${repository.fullName()} $GITEA repository",
+                    "Remove orphaned commits from index for ${repository.sshUrl} repository",
                     orphanedCommitsIds
                 )
                 openSearchService.deleteCommitsByIds(orphanedCommitsIds)
                 logIndexActionMessage(
-                    "Save commits in index for ${repository.fullName()} $GITEA repository ", commits
+                    "Save commits in index for ${repository.sshUrl} repository ", commits
                 )
                 openSearchService.saveCommits(commits)
                 val pullRequests = try {
@@ -237,35 +228,36 @@ class GiteaIndexerServiceImpl(
                 val orphanedPullRequestsIds = (openSearchService.findPullRequestsIdsByRepositoryId(repository.id) -
                         pullRequests.map { it.id }.toSet()).asSequence()
                 logIndexActionMessage(
-                    "Remove orphaned pull requests from index for ${repository.fullName()} $GITEA repository",
+                    "Remove orphaned pull requests from index for ${repository.sshUrl} repository",
                     orphanedPullRequestsIds
                 )
                 openSearchService.deletePullRequestsByIds(orphanedPullRequestsIds)
                 logIndexActionMessage(
-                    "Save pull requests in index for ${repository.fullName()} $GITEA repository ", pullRequests
+                    "Save pull requests in index for ${repository.sshUrl} repository ", pullRequests
                 )
                 openSearchService.savePullRequests(pullRequests)
             }
         } else {
-            log.debug("Remove {} {} repository pull-requests from index", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove {} repository pull-requests from index", repositoryDocument.sshUrl)
             openSearchService.deletePullRequestsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove {} {} repository commits from index", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove {} repository commits from index", repositoryDocument.sshUrl)
             openSearchService.deleteCommitsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove {} {} repository refs from index", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove {} repository refs from index", repositoryDocument.sshUrl)
             openSearchService.deleteRefsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove repository info from index for {} {} repository", repositoryDocument.fullName(), GITEA)
+            log.debug("Remove repository info from index for {} repository", repositoryDocument.sshUrl)
             openSearchService.deleteRepositoryInfoById(repositoryDocument.id)
         }
-        log.info("Scanning of {} {} repository completed successfully", repositoryDocument.fullName(), GITEA)
+        log.info("Scanning of {} repository completed successfully", repositoryDocument.sshUrl)
     } catch (e: Exception) {
-        log.error("Scanning of ${repositoryDocument.fullName()} $GITEA repository ended in failure", e)
+        log.error("Scanning of ${repositoryDocument.sshUrl} repository ended in failure", e)
         openSearchService.saveRepositoriesInfo(sequenceOf(RepositoryInfoDocument(repositoryDocument)))
     }
 
+    private fun getGiteaService(host: String) = giteaServices.firstOrNull { it.host == host.lowercase() }
+        ?: throw IllegalStateException("There is no configured GiteaService with '$host' host")
+
     companion object {
         private val log = LoggerFactory.getLogger(GiteaIndexerServiceImpl::class.java)
-
-        private fun RepositoryDocument.fullName() = "$group/$name"
 
         private fun logIndexActionMessage(message: String, documents: Sequence<Any>) {
             if (log.isTraceEnabled) {

@@ -178,7 +178,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
     "branch_filter": "*",
     "config": {
         "content_type": "json",
-        "url": "http://$vcsFacadeExternalHost/rest/api/1/indexer/gitea/webhook",
+        "url": "http://$vcsFacadeExternalHost/rest/api/1/indexer/gitea/webhook?host=$vcsExternalHost",
         "secret": "b59dd966-2445-4c84-b631-49502427477e"
     },
     "events": [

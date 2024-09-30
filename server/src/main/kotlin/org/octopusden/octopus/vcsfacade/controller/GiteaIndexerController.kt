@@ -44,12 +44,13 @@ class GiteaIndexerController(
 
     @PostMapping("webhook")
     fun processWebhookEvent(
+        @RequestParam("host") host: String,
         @RequestHeader("x-gitea-event") event: String,
         @RequestHeader("x-gitea-event-type") eventType: String,
         @RequestHeader("x-gitea-signature") signature: String?,
         request: HttpServletRequest
     ) {
-        log.debug("Receive webhook event {}:{}", event, eventType)
+        log.debug("Receive webhook event {}:{} from {}", event, eventType, host)
         val payload = request.inputStream.use { it.readAllBytes() }
         mac?.let {
             if (signature == null) {
@@ -69,34 +70,35 @@ class GiteaIndexerController(
         if (event == "create" && eventType == "create") {
             with(objectMapper.readValue(payload, GiteaCreateRefEvent::class.java)) {
                 log.info(
-                    "Register '{}' {} creation in {} {} repository",
+                    "Register '{}' {} creation in {}:{} repository",
                     ref,
                     refType.jsonValue,
-                    repository.fullName.lowercase(),
-                    GITEA
+                    host,
+                    repository.fullName
+
                 )
-                giteaIndexerService.registerGiteaCreateRefEvent(this)
+                giteaIndexerService.registerGiteaCreateRefEvent(host, this)
             }
         } else if (event == "delete" && eventType == "delete") {
             with(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java)) {
                 log.info(
-                    "Register '{}' {} deletion in {} {} repository",
+                    "Register '{}' {} deletion in {}:{} repository",
                     ref,
                     refType.jsonValue,
-                    repository.fullName.lowercase(),
-                    GITEA
+                    host,
+                    repository.fullName
                 )
-                giteaIndexerService.registerGiteaDeleteRefEvent(this)
+                giteaIndexerService.registerGiteaDeleteRefEvent(host, this)
             }
         } else if (event == "push" && eventType == "push") {
             with(objectMapper.readValue(payload, GiteaPushEvent::class.java)) {
                 log.info(
-                    "Register {} commit(s) in {} {} repository",
+                    "Register {} commit(s) in {}:{} repository",
                     commits.size,
-                    repository.fullName.lowercase(),
-                    GITEA
+                    host,
+                    repository.fullName
                 )
-                giteaIndexerService.registerGiteaPushEvent(this)
+                giteaIndexerService.registerGiteaPushEvent(host, this)
             }
         } else if (
             (event == "pull_request" && (eventType == "pull_request" || eventType == "pull_request_assign" || eventType == "pull_request_review_request")) ||
@@ -105,13 +107,13 @@ class GiteaIndexerController(
         ) {
             with(objectMapper.readValue(payload, GiteaPullRequestEvent::class.java)) {
                 log.info(
-                    "Register '{}' action for pull request {} in {} {} repository",
+                    "Register '{}' action for pull request {} in {}:{} repository",
                     action,
                     pullRequest.number,
-                    repository.fullName.lowercase(),
-                    GITEA
+                    host,
+                    repository.fullName
                 )
-                giteaIndexerService.registerGiteaPullRequestEvent(this)
+                giteaIndexerService.registerGiteaPullRequestEvent(host, this)
             }
         }
     }
