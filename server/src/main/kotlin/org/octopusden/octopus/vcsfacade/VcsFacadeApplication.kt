@@ -13,10 +13,12 @@ import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDa
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.context.properties.bind.Binder
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.scheduling.annotation.EnableScheduling
 
 @SpringBootApplication(exclude = [ElasticsearchDataAutoConfiguration::class])
+@Configuration(proxyBeanMethods=false)
 @ConfigurationPropertiesScan
 @EnableScheduling
 class VcsFacadeApplication {
