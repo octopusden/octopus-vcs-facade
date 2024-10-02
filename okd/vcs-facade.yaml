@@ -18,20 +18,24 @@ objects:
           job:
             fast-work-timout-secs: 0 #check retry mechanism
             retry-interval-secs: 1
+      application-bitbucket.yml: |
+        vcs-facade:
+          vcs:
+            services:
+              - type: BITBUCKET
+                host: http://${VCS_FACADE_VCS_HOST}
+                username: admin
+                password: admin
+          opensearch:
+            enabled: false
       application-gitea.yml: |
         vcs-facade:
           vcs:
-            bitbucket:
-              enabled: false
-            gitea:
-              instances:
-                - host: http://${VCS_FACADE_VCS_HOST}
-                  username: test-admin
-                  password: test-admin
-              index:
-                webhook-secret: b59dd966-2445-4c84-b631-49502427477e
-                scan:
-                  delay: 5000
+            services:
+              - type: GITEA
+                host: http://${VCS_FACADE_VCS_HOST}
+                username: test-admin
+                password: test-admin
           opensearch:
             host: ${VCS_FACADE_OPENSEARCH_HOST}
             ssl: false
@@ -39,18 +43,9 @@ objects:
             password: admin
             index:
               suffix: ft
-      application-bitbucket.yml: |
-        vcs-facade:
-          vcs:
-            bitbucket:
-              instances:
-                - host: http://${VCS_FACADE_VCS_HOST}
-                  username: admin
-                  password: admin
-            gitea:
-              enabled: false
-          opensearch:
-            enabled: false
+              webhook-secret: b59dd966-2445-4c84-b631-49502427477e
+              scan:
+                delay: 5000
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -87,10 +82,10 @@ objects:
                 path: bootstrap-ft.yml
               - key: application-ft.yml
                 path: application-ft.yml
-              - key: application-gitea.yml
-                path: application-gitea.yml
               - key: application-bitbucket.yml
                 path: application-bitbucket.yml
+              - key: application-gitea.yml
+                path: application-gitea.yml
   - apiVersion: v1
     kind: Service
     metadata:

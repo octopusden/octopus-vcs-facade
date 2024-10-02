@@ -1,11 +1,9 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      instances:
-        - host: http://bitbucket:7990
-          username: admin
-          password: admin
-    gitea:
-      enabled: false
+    services:
+      - type: BITBUCKET
+        host: http://bitbucket:7990
+        username: admin
+        password: admin
   opensearch:
     enabled: false

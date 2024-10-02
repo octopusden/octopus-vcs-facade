@@ -4,15 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import org.octopusden.octopus.vcsfacade.config.GiteaProperties
+import org.octopusden.octopus.vcsfacade.config.OpenSearchConfig
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 import org.octopusden.octopus.vcsfacade.dto.IndexReport
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType.GITEA
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
-import org.octopusden.octopus.vcsfacade.service.GiteaIndexerService
+import org.octopusden.octopus.vcsfacade.service.IndexerService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,27 +22,24 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("rest/api/1/indexer/gitea")
+@RequestMapping("rest/api/1/indexer")
 @ConditionalOnProperty(
-    prefix = "vcs-facade",
-    name = ["vcs.gitea.enabled", "opensearch.enabled"],
-    havingValue = "true",
-    matchIfMissing = true
+    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
-class GiteaIndexerController(
-    giteaProperties: GiteaProperties,
-    private val giteaIndexerService: GiteaIndexerService,
+class IndexerController(
+    openSearchProperties: OpenSearchConfig.OpenSearchProperties,
+    private val indexerService: IndexerService,
     private val objectMapper: ObjectMapper
-) {
-    private val mac = giteaProperties.index?.webhookSecret?.let {
+) { //TODO: support BitBucket webhooks
+    private val mac = openSearchProperties.index.webhookSecret?.let {
         Mac.getInstance(MAC_ALGORITHM).apply {
             init(SecretKeySpec(it.toByteArray(), MAC_ALGORITHM))
         }
     }
         get() = field?.clone() as Mac?
 
-    @PostMapping("webhook")
-    fun processWebhookEvent(
+    @PostMapping("gitea/webhook")
+    fun processGiteaWebhookEvent(
         @RequestParam("host") host: String,
         @RequestHeader("x-gitea-event") event: String,
         @RequestHeader("x-gitea-event-type") eventType: String,
@@ -77,7 +73,7 @@ class GiteaIndexerController(
                     repository.fullName
 
                 )
-                giteaIndexerService.registerGiteaCreateRefEvent(host, this)
+                indexerService.registerGiteaCreateRefEvent(host, this)
             }
         } else if (event == "delete" && eventType == "delete") {
             with(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java)) {
@@ -88,7 +84,7 @@ class GiteaIndexerController(
                     host,
                     repository.fullName
                 )
-                giteaIndexerService.registerGiteaDeleteRefEvent(host, this)
+                indexerService.registerGiteaDeleteRefEvent(host, this)
             }
         } else if (event == "push" && eventType == "push") {
             with(objectMapper.readValue(payload, GiteaPushEvent::class.java)) {
@@ -98,7 +94,7 @@ class GiteaIndexerController(
                     host,
                     repository.fullName
                 )
-                giteaIndexerService.registerGiteaPushEvent(host, this)
+                indexerService.registerGiteaPushEvent(host, this)
             }
         } else if (
             (event == "pull_request" && (eventType == "pull_request" || eventType == "pull_request_assign" || eventType == "pull_request_review_request")) ||
@@ -113,25 +109,26 @@ class GiteaIndexerController(
                     host,
                     repository.fullName
                 )
-                giteaIndexerService.registerGiteaPullRequestEvent(host, this)
+                indexerService.registerGiteaPullRequestEvent(host, this)
             }
         }
     }
 
     @PostMapping("scan")
     fun scanRepository(@RequestParam("sshUrl") sshUrl: String) {
-        log.info("Schedule scan of {}", sshUrl)
-        giteaIndexerService.scheduleRepositoryScan(sshUrl)
+        log.info("Schedule scan of {} repository", sshUrl)
+        indexerService.scheduleRepositoryScan(sshUrl)
     }
 
     @GetMapping("report")
     fun getIndexReport(): IndexReport {
-        log.info("Get {} repositories index report", GITEA)
-        return giteaIndexerService.getIndexReport()
+        log.info("Get repositories index report")
+        return indexerService.getIndexReport()
     }
 
     companion object {
         private const val MAC_ALGORITHM = "HmacSHA256"
-        private val log = LoggerFactory.getLogger(GiteaIndexerController::class.java)
+
+        private val log = LoggerFactory.getLogger(IndexerController::class.java)
     }
 }

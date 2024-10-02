@@ -1,15 +1,10 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      enabled: false
-    gitea:
-      instances:
-        - host: http://${test.vcs-host}/
-          username: test-admin
-          password: test-admin
-      index:
-        scan:
-          delay: 5000
+    services:
+      - type: GITEA
+        host: http://${test.vcs-host}/
+        username: test-admin
+        password: test-admin
   opensearch:
     host: ${test.opensearch-host}
     ssl: false
@@ -17,3 +12,5 @@ vcs-facade:
     password: admin
     index:
       suffix: ut
+      scan:
+        delay: 5000

@@ -40,7 +40,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsProperties
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.DateValue
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
@@ -48,32 +48,29 @@ import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 
 class GiteaService(
-    vcsInstanceProperties: VcsProperties.VcsInstanceProperties
-) : VcsService(vcsInstanceProperties) {
+    vcsServiceProperties: VcsConfig.VcsServiceProperties
+) : VcsService(vcsServiceProperties) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
-        override fun getAuth() = vcsInstanceProperties.standardCredentialProvider
+        override fun getAuth() = vcsServiceProperties.getCredentialProvider()
     })
 
-    fun getRepositories(): Sequence<Repository> {
+    override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client.getOrganizations().asSequence().flatMap { client.getRepositories(it.name) }
             .map { toRepository(it) }.also { log.trace("<= getRepositories(): {}", it) }
     }
 
-    fun findRepository(group: String, repository: String): Repository? {
+    private fun getRepository(group: String, repository: String) =
+        toRepository(client.getRepository(group, repository))
+
+    override fun findRepository(group: String, repository: String): Repository? {
         log.trace("=> findRepository({}, {})", group, repository)
         return try {
-            toRepository(client.getRepository(group, repository))
+            getRepository(group, repository)
         } catch (e: NotFoundException) {
             null
         }.also { log.trace("<= findRepository({}, {}): {}", group, repository, it) }
-    }
-
-    fun getRepository(group: String, repository: String): Repository {
-        log.trace("=> getRepository({}, {})", group, repository)
-        return toRepository(client.getRepository(group, repository))
-            .also { log.trace("<= getRepository({}, {}): {}", group, repository, it) }
     }
 
     override fun getBranches(group: String, repository: String): Sequence<Branch> {
@@ -140,7 +137,7 @@ class GiteaService(
         }.also { log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
     }
 
-    fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
+    override fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
         log.trace("=> getBranchesCommitGraph({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getBranchesCommitGraph(group, repository, true).asSequence().map { it.toCommitWithFiles(this) }
@@ -165,10 +162,14 @@ class GiteaService(
             .also { log.trace("<= getPullRequestReviews({}, {}, {}): {}", group, repository, number, it) }
     }
 
-    fun getPullRequests(group: String, repository: String): Sequence<PullRequest> {
+    override fun getPullRequests(group: String, repository: String): Sequence<PullRequest> {
         log.trace("=> getPullRequests({}, {})", group, repository)
         return with(getRepository(group, repository)) {
-            client.getPullRequests(group, repository).asSequence().map {
+            try {
+                client.getPullRequests(group, repository)
+            } catch (e: NotFoundException) {
+                emptyList() //for some reason Gitea returns 404 in case of empty repository
+            }.asSequence().map {
                 it.toPullRequest(this, getPullRequestReviews(group, repository, it.number))
             }
         }.also { log.trace("<= getPullRequests({}, {}): {}", group, repository, it) }

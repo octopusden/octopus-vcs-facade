@@ -1,7 +1,6 @@
 package org.octopusden.octopus.vcsfacade.repository
 
 import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.repository.CrudRepository
 
@@ -9,5 +8,5 @@ import org.springframework.data.repository.CrudRepository
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
 )
 interface RepositoryInfoRepository : CrudRepository<RepositoryInfoDocument, String> {
-    fun searchFirst100ByRepositoryTypeAndIdAfterOrderByIdAsc(type: VcsServiceType, id: String): List<RepositoryInfoDocument>
+    fun searchFirst100ByIdAfterOrderByIdAsc(id: String): List<RepositoryInfoDocument>
 }

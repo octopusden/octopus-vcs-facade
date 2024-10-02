@@ -8,7 +8,6 @@ import org.octopusden.octopus.vcsfacade.document.CommitDocument
 import org.octopusden.octopus.vcsfacade.document.PullRequestDocument
 import org.octopusden.octopus.vcsfacade.document.RefDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
-import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.repository.CommitRepository
 import org.octopusden.octopus.vcsfacade.repository.PullRequestRepository
@@ -29,10 +28,10 @@ class OpenSearchServiceImpl(
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
 ) : OpenSearchService {
-    override fun findRepositoriesInfoByRepositoryType(type: VcsServiceType): Set<RepositoryInfoDocument> {
-        log.trace("=> findRepositoriesInfoByRepositoryType({})", type)
-        return fetchAll { repositoryInfoRepository.searchFirst100ByRepositoryTypeAndIdAfterOrderByIdAsc(type, it) }
-            .also { log.trace("<= findRepositoriesInfoByRepositoryType({}): {}", type, it) }
+    override fun getRepositoriesInfo(): Set<RepositoryInfoDocument> {
+        log.trace("=> getRepositoriesInfo()")
+        return fetchAll { repositoryInfoRepository.searchFirst100ByIdAfterOrderByIdAsc(it) }
+            .also { log.trace("<= getRepositoriesInfo(): {}", it) }
     }
 
     override fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument? {

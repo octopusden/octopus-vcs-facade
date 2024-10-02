@@ -4,6 +4,7 @@ import java.util.Date
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClientParametersProvider
+import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
@@ -11,6 +12,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommi
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCreateTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequest
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
+import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketRepository
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketUser
 import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException
@@ -18,6 +20,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommitChanges
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
+import org.octopusden.octopus.infrastructure.bitbucket.client.getRepositories
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
@@ -33,18 +36,33 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsProperties
+import org.octopusden.octopus.vcsfacade.config.VcsConfig
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 
 class BitbucketService(
-    vcsInstanceProperties: VcsProperties.VcsInstanceProperties,
-) : VcsService(vcsInstanceProperties) {
+    vcsServiceProperties: VcsConfig.VcsServiceProperties
+) : VcsService(vcsServiceProperties) {
     private val client: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = httpUrl
-        override fun getAuth() = vcsInstanceProperties.bitbucketCredentialProvider
+        override fun getAuth() = vcsServiceProperties.getCredentialProvider() as BitbucketCredentialProvider
     })
+
+    override fun getRepositories(): Sequence<Repository> {
+        log.trace("=> getRepositories()")
+        return client.getRepositories().asSequence().map { it.toRepository() }
+            .also { log.trace("<= getRepositories(): {}", it) }
+    }
+
+    override fun findRepository(group: String, repository: String): Repository? {
+        log.trace("=> findRepository({}, {})", group, repository)
+        return try {
+            client.getRepository(group, repository).toRepository()
+        } catch (e: NotFoundException) {
+            null
+        }.also { log.trace("<= findRepository({}, {}): {}", group, repository, it) }
+    }
 
     override fun getBranches(group: String, repository: String): Sequence<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
@@ -125,6 +143,14 @@ class BitbucketService(
             val fileChanges = getCommitChanges(group, repository, this)
             CommitWithFiles(this, fileChanges.size, fileChanges)
         }.also { log.trace("<= getCommitWithFiles({}, {}, {}): {}", group, repository, hashOrRef, it) }
+    }
+
+    override fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
+        TODO("Indexing of BitBucket repositories is not supported yet")
+    }
+
+    override fun getPullRequests(group: String, repository: String): Sequence<PullRequest> {
+        TODO("Indexing of BitBucket repositories is not supported yet")
     }
 
     override fun createPullRequest(
@@ -234,6 +260,8 @@ class BitbucketService(
         "$httpUrl/projects/$project/repos/$repository/browse",
         "$httpUrl/projects/$project/avatar.png?s=48"
     )
+
+    private fun BitbucketRepository.toRepository() = getRepository(project.key.lowercase(), slug.lowercase())
 
     private fun BitbucketBranch.toBranch(project: String, repository: String) = Branch(
         displayId,

@@ -9,9 +9,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
+
 @Configuration
-class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
-    data class OpenSearchIndexProperties(val suffix: String)
+class OpenSearchConfig(private val openSearchProperties: OpenSearchProperties?) {
+    data class OpenSearchIndexScanProperties(
+        val cron: String?,
+        val delay: Long?,
+        val executor: ExecutorProperties?
+    )
+
+    data class OpenSearchIndexProperties(
+        val suffix: String,
+        val webhookSecret: String?,
+        val scan: OpenSearchIndexScanProperties?
+    )
 
     @ConfigurationProperties("vcs-facade.opensearch")
     @ConditionalOnProperty(
@@ -25,15 +36,12 @@ class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
         val index: OpenSearchIndexProperties
     )
 
-    @Bean //dedicated bean to simplify SpEL expression
-    fun opensearchIndexSuffix() = openSearchProperties?.index?.suffix
-
     @Configuration
     @ConditionalOnProperty(
         prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
     )
-    class OpenSearchClient(
-        val openSearchProperties: OpenSearchProperties
+    class OpenSearchEnabledConfig(
+        private val openSearchProperties: OpenSearchProperties
     ) : AbstractOpenSearchConfiguration() {
         override fun opensearchClient(): RestHighLevelClient {
             val clientConfigurationBuilder = if (openSearchProperties.ssl) {
@@ -47,5 +55,18 @@ class OpenSearchConfig(val openSearchProperties: OpenSearchProperties?) {
                 ).build()
             ).rest()
         }
+
+        @Bean
+        fun opensearchIndexScanExecutor() =
+            (openSearchProperties.index.scan?.executor ?: ExecutorProperties()).buildThreadPoolTaskExecutor()
     }
+
+    @Bean //dedicated bean to simplify SpEL expression
+    fun opensearchIndexSuffix() = openSearchProperties?.index?.suffix ?: "undefined"
+
+    @Bean //dedicated bean to simplify SpEL expression
+    fun opensearchIndexScheduleRepositoriesRescanCron() = openSearchProperties?.index?.scan?.cron ?: "-"
+
+    @Bean //dedicated bean to simplify SpEL expression
+    fun opensearchIndexSubmitScheduledRepositoriesScanFixedDelay() = openSearchProperties?.index?.scan?.delay ?: 60000
 }
