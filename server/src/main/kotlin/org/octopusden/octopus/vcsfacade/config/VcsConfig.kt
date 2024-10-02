@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.env.ConfigurableEnvironment
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 class VcsConfig {
     data class VcsServiceHealthCheckProperties(
         val repo: String,
