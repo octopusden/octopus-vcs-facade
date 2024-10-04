@@ -9,13 +9,19 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 
-abstract class VcsService(vcsServiceProperties: VcsConfig.VcsServiceProperties) {
+abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
+    val id = vcsServiceProperties.id
     val type = vcsServiceProperties.type
-    protected val httpUrl = vcsServiceProperties.host.lowercase().trimEnd('/')
-    val host = httpUrl.replace("^(https|http)://".toRegex(), "")
+    protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
+    protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
+    private val sshUrlRegex = "$sshUrl[:/]((?:[^/]+/)+)([^/]+).git".toRegex()
+    fun isSupported(sshUrl: String) = sshUrlRegex.matches(sshUrl.lowercase())
+    fun parse(sshUrl: String) = sshUrlRegex.find(sshUrl.lowercase())!!.destructured.let {
+        it.component1().trimEnd('/') to it.component2()
+    }
 
     abstract fun getRepositories(): Sequence<Repository>
     abstract fun findRepository(group: String, repository: String): Repository?
@@ -38,12 +44,4 @@ abstract class VcsService(vcsServiceProperties: VcsConfig.VcsServiceProperties) 
     abstract fun findCommits(issueKey: String): Sequence<Commit>
     abstract fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles>
     abstract fun findPullRequests(issueKey: String): Sequence<PullRequest>
-
-    companion object {
-        private val sshUrlRegex = "(?:ssh://)?git@([^:/]+(?::\\d+)?)[:/]((?:[^/]+/)+)([^/]+).git".toRegex()
-
-        fun parseSshUrl(sshUrl: String) = sshUrlRegex.find(sshUrl.lowercase())?.destructured?.let {
-            Triple(it.component1(), it.component2().trimEnd('/'), it.component3())
-        } ?: throw IllegalArgumentException("$sshUrl is not valid repository SSH URL")
-    }
 }

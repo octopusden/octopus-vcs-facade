@@ -17,7 +17,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 
 @EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
 class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
-    TestService.Gitea(vcsFacadeHost, vcsHost, vcsExternalHost, true),
+    TestService.Gitea(vcsFacadeHost, vcsExternalHost, true),
     GiteaTestClient("http://$vcsHost", GITEA_USER, GITEA_PASSWORD, vcsExternalHost)
 ) {
     @BeforeAll
@@ -178,7 +178,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
     "branch_filter": "*",
     "config": {
         "content_type": "json",
-        "url": "http://$vcsFacadeExternalHost/rest/api/1/indexer/gitea/webhook?host=$vcsExternalHost",
+        "url": "http://$vcsFacadeExternalHost/rest/api/1/indexer/gitea/webhook?vcsServiceId=test-gitea",
         "secret": "b59dd966-2445-4c84-b631-49502427477e"
     },
     "events": [

@@ -12,18 +12,6 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenSearchConfig(private val openSearchProperties: OpenSearchProperties?) {
-    data class OpenSearchIndexScanProperties(
-        val cron: String?,
-        val delay: Long?,
-        val executor: ExecutorProperties?
-    )
-
-    data class OpenSearchIndexProperties(
-        val suffix: String,
-        val webhookSecret: String?,
-        val scan: OpenSearchIndexScanProperties?
-    )
-
     @ConfigurationProperties("vcs-facade.opensearch")
     @ConditionalOnProperty(
         prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
@@ -33,8 +21,20 @@ class OpenSearchConfig(private val openSearchProperties: OpenSearchProperties?) 
         val ssl: Boolean = true,
         val username: String,
         val password: String,
-        val index: OpenSearchIndexProperties
-    )
+        val index: Index
+    ) {
+        data class Index(
+            val suffix: String,
+            val webhookSecret: String?,
+            val scan: Scan?
+        ) {
+            data class Scan(
+                val cron: String?,
+                val delay: Long?,
+                val executor: ExecutorProperties?
+            )
+        }
+    }
 
     @Configuration
     @ConditionalOnProperty(

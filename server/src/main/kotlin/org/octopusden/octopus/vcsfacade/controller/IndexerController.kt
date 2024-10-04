@@ -40,13 +40,13 @@ class IndexerController(
 
     @PostMapping("gitea/webhook")
     fun processGiteaWebhookEvent(
-        @RequestParam("host") host: String,
+        @RequestParam("vcsServiceId") vcsServiceId: String,
         @RequestHeader("x-gitea-event") event: String,
         @RequestHeader("x-gitea-event-type") eventType: String,
         @RequestHeader("x-gitea-signature") signature: String?,
         request: HttpServletRequest
     ) {
-        log.debug("Receive webhook event {}:{} from {}", event, eventType, host)
+        log.debug("Receive webhook event {}:{} from {}", event, eventType, vcsServiceId)
         val payload = request.inputStream.use { it.readAllBytes() }
         mac?.let {
             if (signature == null) {
@@ -69,11 +69,11 @@ class IndexerController(
                     "Register '{}' {} creation in {}:{} repository",
                     ref,
                     refType.jsonValue,
-                    host,
+                    vcsServiceId,
                     repository.fullName
 
                 )
-                indexerService.registerGiteaCreateRefEvent(host, this)
+                indexerService.registerGiteaCreateRefEvent(vcsServiceId, this)
             }
         } else if (event == "delete" && eventType == "delete") {
             with(objectMapper.readValue(payload, GiteaDeleteRefEvent::class.java)) {
@@ -81,20 +81,20 @@ class IndexerController(
                     "Register '{}' {} deletion in {}:{} repository",
                     ref,
                     refType.jsonValue,
-                    host,
+                    vcsServiceId,
                     repository.fullName
                 )
-                indexerService.registerGiteaDeleteRefEvent(host, this)
+                indexerService.registerGiteaDeleteRefEvent(vcsServiceId, this)
             }
         } else if (event == "push" && eventType == "push") {
             with(objectMapper.readValue(payload, GiteaPushEvent::class.java)) {
                 log.info(
                     "Register {} commit(s) in {}:{} repository",
                     commits.size,
-                    host,
+                    vcsServiceId,
                     repository.fullName
                 )
-                indexerService.registerGiteaPushEvent(host, this)
+                indexerService.registerGiteaPushEvent(vcsServiceId, this)
             }
         } else if (
             (event == "pull_request" && (eventType == "pull_request" || eventType == "pull_request_assign" || eventType == "pull_request_review_request")) ||
@@ -106,10 +106,10 @@ class IndexerController(
                     "Register '{}' action for pull request {} in {}:{} repository",
                     action,
                     pullRequest.number,
-                    host,
+                    vcsServiceId,
                     repository.fullName
                 )
-                indexerService.registerGiteaPullRequestEvent(host, this)
+                indexerService.registerGiteaPullRequestEvent(vcsServiceId, this)
             }
         }
     }

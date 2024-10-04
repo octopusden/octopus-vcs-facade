@@ -22,8 +22,10 @@ objects:
         vcs-facade:
           vcs:
             services:
-              - type: BITBUCKET
-                host: http://${VCS_FACADE_VCS_HOST}
+              - id: test-bitbucket
+                type: BITBUCKET
+                http-url: http://${VCS_FACADE_VCS_HOST}
+                ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
                 username: admin
                 password: admin
           opensearch:
@@ -32,8 +34,10 @@ objects:
         vcs-facade:
           vcs:
             services:
-              - type: GITEA
-                host: http://${VCS_FACADE_VCS_HOST}
+              - id: test-gitea
+                type: GITEA
+                http-url: http://${VCS_FACADE_VCS_HOST}
+                ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
                 username: test-admin
                 password: test-admin
           opensearch:

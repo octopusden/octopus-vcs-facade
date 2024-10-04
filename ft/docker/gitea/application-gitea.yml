@@ -1,8 +1,10 @@
 vcs-facade:
   vcs:
     services:
-      - type: GITEA
-        host: http://gitea:3000
+      - id: test-gitea
+        type: GITEA
+        http-url: http://gitea:3000
+        ssh-url: ssh://git@gitea:3000
         username: test-admin
         password: test-admin
   opensearch:

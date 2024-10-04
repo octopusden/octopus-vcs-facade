@@ -36,13 +36,13 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 
 class BitbucketService(
-    vcsServiceProperties: VcsConfig.VcsServiceProperties
+    vcsServiceProperties: VcsProperties.Service
 ) : VcsService(vcsServiceProperties) {
     private val client: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = httpUrl
@@ -256,7 +256,7 @@ class BitbucketService(
     }
 
     private fun getRepository(project: String, repository: String) = Repository(
-        "ssh://git@$host/$project/$repository.git",
+        "$sshUrl/$project/$repository.git",
         "$httpUrl/projects/$project/repos/$repository/browse",
         "$httpUrl/projects/$project/avatar.png?s=48"
     )

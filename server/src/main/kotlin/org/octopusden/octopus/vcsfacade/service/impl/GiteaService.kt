@@ -40,7 +40,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.DateValue
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
@@ -48,7 +48,7 @@ import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
 
 class GiteaService(
-    vcsServiceProperties: VcsConfig.VcsServiceProperties
+    vcsServiceProperties: VcsProperties.Service
 ) : VcsService(vcsServiceProperties) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
@@ -252,7 +252,7 @@ class GiteaService(
     fun toRepository(giteaRepository: GiteaRepository): Repository {
         val repository = giteaRepository.name.lowercase()
         val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
-        return Repository("ssh://git@$host/$organization/$repository.git", //TODO: add "useColon" parameter?
+        return Repository("$sshUrl/$organization/$repository.git", //TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
             //IMPORTANT: see https://github.com/go-gitea/gitea/pull/31187
             //Gitea versions 1.22.0 and 1.22.1 return host url instead of empty string as avatar_url for repository with no avatar
