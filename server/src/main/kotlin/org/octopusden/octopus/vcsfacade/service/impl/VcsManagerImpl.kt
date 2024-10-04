@@ -229,7 +229,7 @@ class VcsManagerImpl(
         log.trace("Run health check")
         val errors = vcsProperties.services.mapNotNull {
             if (it.healthCheck == null) {
-                log.warn("Health is not configured for VCS service with id '${it.id}'")
+                log.warn("Health check is not configured for VCS service with id '${it.id}'")
                 null
             } else {
                 try {
@@ -247,7 +247,7 @@ class VcsManagerImpl(
                 } catch (e: Exception) {
                     "Unexpected exception"
                 }
-            }?.let { error -> "Health check request for VCS service with id '${it.id}' has failed. $error" }
+            }?.let { error -> "Health check for VCS service with id '${it.id}' has failed. $error" }
         }
         val health = if (errors.isEmpty()) {
             Health.up().build()

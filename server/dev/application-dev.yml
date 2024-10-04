@@ -1,32 +1,11 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      enabled: # envFile property
-      host: # envFile property
-      token: # envFile property
-      health-check:
-        repo: # envFile property
-        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-    gitea:
-      enabled: # envFile property
-      host: # envFile property
-      token: # envFile property
-      health-check:
-        repo: # envFile property
-        root-commit: 9320183f5d5f5868fdb82b36e3abd6f9d1424114
-        last-release: 321d4908aef10bafa1488f9b053270acc29f3d78
-        expected-commits: 9320183f5d5f5868fdb82b36e3abd6f9d1424114,00cc61dd4c3eca64d12e6beceff1a40a436962f5
-      index:
-        scan:
-          cron: "-"
-          delay: 60000
-          executor:
-            core-pool-size: 1
-            max-pool-size: 1
-            queue-capacity: 10
-            pre-start-all-core-threads: true
+    services:
+      - id: dev-vcs-service
+        type: ${VCS_FACADE_VCS_TYPE}
+        http-url: ${VCS_FACADE_VCS_HTTP_URL}
+        ssh-url: ${VCS_FACADE_VCS_SSH_URL}
+        token: ${VCS_FACADE_VCS_TOKEN}
   job:
     fast-work-timout-secs: 0
     retry-interval-secs: 1
@@ -36,13 +15,21 @@ vcs-facade:
       queue-capacity: 500
       pre-start-all-core-threads: true
   opensearch:
-    enabled: # envFile property
-    host: # envFile property
-    ssl: # envFile property
-    username: # envFile property
-    password: # envFile property
+    enabled: ${VCS_FACADE_OPENSEARCH_ENABLED:false}
+    host: ${VCS_FACADE_OPENSEARCH_HOST:}
+    ssl: ${VCS_FACADE_OPENSEARCH_SSL:false}
+    username: ${VCS_FACADE_OPENSEARCH_USERNAME:}
+    password: ${VCS_FACADE_OPENSEARCH_PASSWORD:}
     index:
       suffix: dev
+      scan:
+        cron: "-"
+        delay: 60000
+        executor:
+          core-pool-size: 1
+          max-pool-size: 1
+          queue-capacity: 10
+          pre-start-all-core-threads: true
 
 logging:
   level:
