@@ -58,7 +58,8 @@ class GiteaService(
     override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client.getOrganizations().asSequence().flatMap { client.getRepositories(it.name) }
-            .map { toRepository(it) }.also { log.trace("<= getRepositories(): {}", it) }
+            .map { toRepository(it) }
+            .also { if (log.isTraceEnabled) log.trace("<= getRepositories(): {}", it.toList()) }
     }
 
     private fun getRepository(group: String, repository: String) =
@@ -77,14 +78,14 @@ class GiteaService(
         log.trace("=> getBranches({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getBranches(group, repository).asSequence().map { it.toBranch(this) }
-        }.also { log.trace("<= getBranches({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getBranches({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getTags(group, repository).asSequence().map { it.toTag(this) }
-        }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
@@ -120,7 +121,16 @@ class GiteaService(
                 client.getCommits(group, repository, toHashOrRef, (from as? DateValue)?.value)
             }
             commits.asSequence().map { it.toCommit(this) }
-        }.also { log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommits({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommitsWithFiles(
@@ -134,14 +144,30 @@ class GiteaService(
                 client.getCommits(group, repository, toHashOrRef, (from as? DateValue)?.value, true)
             }
             commits.asSequence().map { it.toCommitWithFiles(this) }
-        }.also { log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommitsWithFiles({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
     override fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
         log.trace("=> getBranchesCommitGraph({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getBranchesCommitGraph(group, repository, true).asSequence().map { it.toCommitWithFiles(this) }
-        }.also { log.trace("<= getBranchesCommitGraph({}, {}): {}", group, repository, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getBranchesCommitGraph({}, {}): {}",
+                group,
+                repository,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
@@ -172,7 +198,7 @@ class GiteaService(
             }.asSequence().map {
                 it.toPullRequest(this, getPullRequestReviews(group, repository, it.number))
             }
-        }.also { log.trace("<= getPullRequests({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getPullRequests({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun createPullRequest(
@@ -212,7 +238,15 @@ class GiteaService(
                     null
                 }
             }.asSequence()
-        }.also { log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= findCommits({}, {}, {}): {}",
+                group,
+                repository,
+                hashes,
+                it.toList()
+            )
+        }
     }
 
     override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): Sequence<PullRequest> {
@@ -226,7 +260,15 @@ class GiteaService(
                     null
                 }
             }.asSequence()
-        }.also { log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= findPullRequests({}, {}, {}): {}",
+                group,
+                repository,
+                indexes,
+                it.toList()
+            )
+        }
     }
 
     override fun findBranches(issueKey: String): Sequence<Branch> {

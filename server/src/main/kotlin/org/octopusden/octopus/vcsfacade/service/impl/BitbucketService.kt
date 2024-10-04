@@ -52,7 +52,7 @@ class BitbucketService(
     override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client.getRepositories().asSequence().map { it.toRepository() }
-            .also { log.trace("<= getRepositories(): {}", it) }
+            .also { if (log.isTraceEnabled) log.trace("<= getRepositories(): {}", it.toList()) }
     }
 
     override fun findRepository(group: String, repository: String): Repository? {
@@ -68,14 +68,14 @@ class BitbucketService(
         log.trace("=> getBranches({}, {})", group, repository)
         return client.getBranches(group, repository).asSequence().map {
             it.toBranch(group, repository)
-        }.also { log.trace("<= getBranches({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getBranches({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
         return client.getTags(group, repository).asSequence().map {
             it.toTag(group, repository)
-        }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
@@ -113,7 +113,14 @@ class BitbucketService(
             client.getCommits(group, repository, toHashOrRef, (from as? HashOrRefOrDate.DateValue)?.value)
         }
         return commits.asSequence().map { it.toCommit(group, repository) }.also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it)
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommits({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
         }
     }
 
@@ -127,7 +134,16 @@ class BitbucketService(
         return getCommits(group, repository, from, toHashOrRef).map {
             val fileChanges = getCommitChanges(group, repository, it)
             CommitWithFiles(it, fileChanges.size, fileChanges)
-        }.also { log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommitsWithFiles({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
@@ -185,7 +201,7 @@ class BitbucketService(
                 null
             }
         }.asSequence().also {
-            log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it)
+            if (log.isTraceEnabled) log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it.toList())
         }
     }
 
@@ -198,7 +214,13 @@ class BitbucketService(
                 null
             }
         }.asSequence().also {
-            log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it)
+            if (log.isTraceEnabled) log.trace(
+                "<= findPullRequests({}, {}, {}): {}",
+                group,
+                repository,
+                indexes,
+                it.toList()
+            )
         }
     }
 
@@ -211,7 +233,7 @@ class BitbucketService(
         log.trace("=> findCommits({})", issueKey)
         return client.getCommits(issueKey).asSequence().map {
             it.toCommit.toCommit(it.repository.project.key.lowercase(), it.repository.slug.lowercase())
-        }.also { log.trace("<= findCommits({}): {}", issueKey, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= findCommits({}): {}", issueKey, it.toList()) }
     }
 
     override fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles> {
@@ -222,7 +244,7 @@ class BitbucketService(
             val commit = it.toCommit.toCommit(group, repository)
             val fileChanges = getCommitChanges(group, repository, commit)
             CommitWithFiles(commit, fileChanges.size, fileChanges)
-        }.also { log.trace("<= findCommitsWithFiles({}): {}", issueKey, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= findCommitsWithFiles({}): {}", issueKey, it.toList()) }
     }
 
     override fun findPullRequests(issueKey: String): Sequence<PullRequest> {

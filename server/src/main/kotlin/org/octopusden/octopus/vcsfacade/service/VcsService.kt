@@ -13,7 +13,7 @@ import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 
 abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
-    val id = vcsServiceProperties.id
+    val id = vcsServiceProperties.id.lowercase()
     val type = vcsServiceProperties.type
     protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
@@ -30,8 +30,20 @@ abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
     abstract fun createTag(group: String, repository: String, createTag: CreateTag): Tag
     abstract fun getTag(group: String, repository: String, name: String): Tag
     abstract fun deleteTag(group: String, repository: String, name: String)
-    abstract fun getCommits(group: String, repository: String, from: HashOrRefOrDate<String, Date>?, toHashOrRef: String): Sequence<Commit>
-    abstract fun getCommitsWithFiles(group: String, repository: String, from: HashOrRefOrDate<String, Date>?, toHashOrRef: String): Sequence<CommitWithFiles>
+    abstract fun getCommits(
+        group: String,
+        repository: String,
+        from: HashOrRefOrDate<String, Date>?,
+        toHashOrRef: String
+    ): Sequence<Commit>
+
+    abstract fun getCommitsWithFiles(
+        group: String,
+        repository: String,
+        from: HashOrRefOrDate<String, Date>?,
+        toHashOrRef: String
+    ): Sequence<CommitWithFiles>
+
     abstract fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles>
     abstract fun getCommit(group: String, repository: String, hashOrRef: String): Commit
     abstract fun getCommitWithFiles(group: String, repository: String, hashOrRef: String): CommitWithFiles

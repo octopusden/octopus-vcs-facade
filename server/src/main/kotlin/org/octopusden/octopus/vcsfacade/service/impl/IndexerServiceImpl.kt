@@ -132,7 +132,7 @@ class IndexerServiceImpl(
 
     private fun Repository.toDocument(vcsService: VcsService): RepositoryDocument {
         val (group, repository) = vcsService.parse(sshUrl)
-        return RepositoryDocument(vcsService.type, vcsService.id, group, repository, sshUrl, link, avatar)
+        return RepositoryDocument(vcsService.id, group, repository, sshUrl, link, avatar)
     }
 
     private fun checkInRepository(repositoryDocument: RepositoryDocument, rescan: Boolean = false) {

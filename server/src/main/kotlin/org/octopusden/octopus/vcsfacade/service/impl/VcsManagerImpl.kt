@@ -37,13 +37,13 @@ class VcsManagerImpl(
             VcsServiceType.GITEA -> GiteaService(it)
         }
     }.groupBy { it.id }.mapValues {
-        if (it.value.size > 1) throw IllegalStateException("${it.value.size} VCS services have the same id '${it.key}'")
+        if (it.value.size > 1) throw IllegalStateException("${it.value.size} VCS services have similar id '${it.key}'")
         else it.value.first()
     }
 
     override val vcsServices = vcsServiceMap.values
 
-    override fun getVcsServiceById(id: String) = vcsServiceMap.getOrElse(id) {
+    override fun getVcsServiceById(id: String) = vcsServiceMap.getOrElse(id.lowercase()) {
         throw IllegalStateException("There is no configured VCS service with id '$id'")
     }
 
@@ -55,7 +55,7 @@ class VcsManagerImpl(
         return getVcsServiceForSshUrl(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             getTags(group, repository)
-        }.also { log.trace("<= getTags({}): {}", sshUrl, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}): {}", sshUrl, it.toList()) }
     }
 
     override fun createTag(sshUrl: String, createTag: CreateTag): Tag {
@@ -79,7 +79,7 @@ class VcsManagerImpl(
         getVcsServiceForSshUrl(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             deleteTag(group, repository, name)
-        }.also { log.trace("<= deleteTag({}, {}): {}", sshUrl, name, it) }
+        }.also { log.trace("<= deleteTag({}, {})", sshUrl, name) }
     }
 
     override fun getCommits(
@@ -92,7 +92,16 @@ class VcsManagerImpl(
         return getVcsServiceForSshUrl(sshUrl).run {
             val (group, repository) = parse(sshUrl)
             getCommits(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
-        }.also { log.trace("<= getCommits({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommits({}, {}, {}, {}): {}",
+                sshUrl,
+                fromHashOrRef,
+                fromDate,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommitsWithFiles(
@@ -106,7 +115,14 @@ class VcsManagerImpl(
             val (group, repository) = parse(sshUrl)
             getCommitsWithFiles(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
         }.also {
-            log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", sshUrl, fromHashOrRef, fromDate, toHashOrRef, it)
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommitsWithFiles({}, {}, {}, {}): {}",
+                sshUrl,
+                fromHashOrRef,
+                fromDate,
+                toHashOrRef,
+                it.toList()
+            )
         }
     }
 
@@ -167,7 +183,7 @@ class VcsManagerImpl(
         validateIssueKey(issueKey)
         val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.map { it.toDto() as Branch }
             ?: vcsServices.flatMap { it.findBranches(issueKey) }.asSequence()
-        log.trace("<= findBranches({}): {}", issueKey, branches)
+        if (log.isTraceEnabled) log.trace("<= findBranches({}): {}", issueKey, branches.toList())
         return branches
     }
 
@@ -176,7 +192,7 @@ class VcsManagerImpl(
         validateIssueKey(issueKey)
         val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto().commit }
             ?: vcsServices.flatMap { it.findCommits(issueKey) }.asSequence()
-        log.trace("<= findCommits({}): {}", issueKey, commits)
+        if (log.isTraceEnabled) log.trace("<= findCommits({}): {}", issueKey, commits.toList())
         return commits
     }
 
@@ -185,7 +201,7 @@ class VcsManagerImpl(
         validateIssueKey(issueKey)
         val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto() }
             ?: vcsServices.flatMap { it.findCommitsWithFiles(issueKey) }.asSequence()
-        log.trace("<= findCommitsWithFiles({}): {}", issueKey, commits)
+        if (log.isTraceEnabled) log.trace("<= findCommitsWithFiles({}): {}", issueKey, commits.toList())
         return commits
     }
 
@@ -194,7 +210,7 @@ class VcsManagerImpl(
         validateIssueKey(issueKey)
         val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.map { it.toDto() }
             ?: vcsServices.flatMap { it.findPullRequests(issueKey) }.asSequence()
-        log.trace("<= findPullRequests({}): {}", issueKey, pullRequests)
+        if (log.isTraceEnabled) log.trace("<= findPullRequests({}): {}", issueKey, pullRequests.toList())
         return pullRequests
     }
 
