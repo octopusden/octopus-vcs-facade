@@ -1,9 +1,5 @@
 # VCS Facade
 
-## Features / limitations
-
-VCS servers must be configured to use default ports for http(s)/ssh (urls must not contain port specified).
-
 ## Properties
 
 | Name                           | Description                                                               | Mandatory |
@@ -27,4 +23,3 @@ VCS servers must be configured to use default ports for http(s)/ssh (urls must n
 ## Build features
 
 Project version is used as docker image tag and **project-unique identifier** of test environment if `test.platform` is `okd`. By default, it is generated using host name and must be overriden via -Pversion=... on CI/CD.   
-
