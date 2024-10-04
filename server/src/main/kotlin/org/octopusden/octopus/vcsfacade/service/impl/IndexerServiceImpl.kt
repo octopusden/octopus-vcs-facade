@@ -117,7 +117,7 @@ class IndexerServiceImpl(
     override fun scheduleRepositoryScan(sshUrl: String) {
         log.trace("=> scheduleRepositoryScan({})", sshUrl)
         checkInRepository(
-            Repository(sshUrl, "undefined").toDocument(vcsManager.getVcsServiceForSshUrl(sshUrl)),
+            Repository(sshUrl.lowercase(), "undefined").toDocument(vcsManager.getVcsServiceForSshUrl(sshUrl)),
             true
         )
         log.trace("<= scheduleRepositoryScan({})", sshUrl)
