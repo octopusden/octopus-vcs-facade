@@ -75,8 +75,8 @@ class RepositoryControllerV1(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info(
-            "Find issue keys in commits ({},{}] in {} repository",
+        log.warn(
+            "Deprecated call! Find issue keys in commits ({},{}] in {} repository",
             (from ?: fromDate?.toString()).orEmpty(), to, sshUrl
         )
         RepositoryResponse(
@@ -112,8 +112,8 @@ class RepositoryControllerV1(
     fun createPullRequest(
         @RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest
     ): PullRequest {
-        log.info(
-            "Create pull request ({} -> {}) in {} repository",
+        log.warn(
+            "Deprecated call! Create pull request ({} -> {}) in {} repository",
             sshUrl,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch

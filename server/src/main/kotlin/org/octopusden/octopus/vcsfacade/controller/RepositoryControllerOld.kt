@@ -94,8 +94,8 @@ class RepositoryControllerOld(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processJob(requestId ?: UUID.randomUUID().toString()) {
-        log.info(
-            "Find issue keys in commits ({},{}] in {} repository",
+        log.warn(
+            "Deprecated call! Find issue keys in commits ({},{}] in {} repository",
             (from ?: fromDate?.toString()).orEmpty(), to, vcsPath
         )
         RepositoryResponse(
@@ -142,8 +142,8 @@ class RepositoryControllerOld(
         @RequestParam("vcsPath") vcsPath: String,
         @RequestBody createPullRequest: CreatePullRequest
     ): PullRequestResponse {
-        log.info(
-            "Create pull request ({} -> {}) in {} repository",
+        log.warn(
+            "Deprecated call! Create pull request ({} -> {}) in {} repository",
             vcsPath,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch
