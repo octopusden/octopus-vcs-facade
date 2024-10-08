@@ -12,7 +12,10 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRe
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
-interface VcsManager {
+interface VcsManager { //TODO: allow to use both http and ssh repository url (renaming `sshUrl` to `repositoryUrl`)
+    val vcsServices: Collection<VcsService>
+    fun getVcsServiceById(id: String): VcsService
+    fun getVcsServiceForSshUrl(sshUrl: String): VcsService
     fun getTags(sshUrl: String): Sequence<Tag>
     fun createTag(sshUrl: String, createTag: CreateTag): Tag
     fun getTag(sshUrl: String, name: String): Tag

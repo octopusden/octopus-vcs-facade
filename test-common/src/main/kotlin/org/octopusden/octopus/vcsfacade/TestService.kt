@@ -21,36 +21,45 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 
 sealed class TestService(
-    protected val vcsFacadeHost: String,
-    vcsHost: String,
-    vcsExternalHost: String?
+    private val vcsFacadeHost: String,
+    protected val vcsHost: String
 ) {
     protected abstract val type: String
 
     abstract fun sshUrl(group: String, repository: String): String
 
-    protected val vcsEffectiveHost = vcsExternalHost ?: vcsHost
+    fun scan(group: String, repository: String) {
+        val query = "sshUrl=${URLEncoder.encode(sshUrl(group, repository), StandardCharsets.UTF_8)}"
+        val url = URI("http://$vcsFacadeHost/rest/api/1/indexer/scan?$query").toURL()
+        with(url.openConnection() as HttpURLConnection) {
+            setRequestMethod("POST")
+            if (getResponseCode() / 100 != 2) {
+                throw RuntimeException("Unable to schedule '$group:$repository' scan")
+            }
+        }
+        Thread.sleep(10000) //vcs-facade.opensearch.index.scan.delay * 2
+    }
 
     fun getCommits(resource: String): List<Commit> = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<List<Commit>>() {}
-    ).map { it.replaceHost(vcsEffectiveHost) }
+    ).map { it.replaceHost(vcsHost) }
 
 
     fun getCommitsWithFiles(resource: String): List<CommitWithFiles> = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<List<CommitWithFiles>>() {}
-    ).map { it.replaceHost(vcsEffectiveHost) }
+    ).map { it.replaceHost(vcsHost) }
 
     fun getCommit(resource: String): Commit = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<Commit>() {}
-    ).replaceHost(vcsEffectiveHost)
+    ).replaceHost(vcsHost)
 
     fun getCommitWithFiles(resource: String): CommitWithFiles = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<CommitWithFiles>() {}
-    ).replaceHost(vcsEffectiveHost)
+    ).replaceHost(vcsHost)
 
 
     fun getIssuesFromCommits(resource: String): List<String> = OBJECT_MAPPER.readValue(
@@ -61,17 +70,17 @@ sealed class TestService(
     fun getTags(resource: String): List<Tag> = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<List<Tag>>() {}
-    ).map { it.replaceHost(vcsEffectiveHost) }
+    ).map { it.replaceHost(vcsHost) }
 
     fun getTag(resource: String): Tag = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<Tag>() {}
-    ).replaceHost(vcsEffectiveHost)
+    ).replaceHost(vcsHost)
 
     fun getSearchIssueInRangesResponse(resource: String): SearchIssueInRangesResponse = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<SearchIssueInRangesResponse>() {}
-    ).replaceHost(vcsEffectiveHost)
+    ).replaceHost(vcsHost)
 
     fun getSearchSummary(resource: String): SearchSummary = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
@@ -81,41 +90,26 @@ sealed class TestService(
     fun getBranches(resource: String): List<Branch> = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<List<Branch>>() {}
-    ).map { it.replaceHost(vcsEffectiveHost) }
+    ).map { it.replaceHost(vcsHost) }
 
     fun getPullRequests(resource: String): List<PullRequest> = OBJECT_MAPPER.readValue(
         TestService::class.java.classLoader.getResourceAsStream("$type/$resource"),
         object : TypeReference<List<PullRequest>>() {}
-    ).map { it.replaceHost(vcsEffectiveHost) }
+    ).map { it.replaceHost(vcsHost) }
 
-    class Bitbucket(
-        vcsFacadeHost: String, vcsHost: String, vcsExternalHost: String? = null
-    ) : TestService(vcsFacadeHost, vcsHost, vcsExternalHost) {
+    class Bitbucket(vcsFacadeHost: String, vcsHost: String) : TestService(vcsFacadeHost, vcsHost) {
         override val type = "bitbucket"
 
         override fun sshUrl(group: String, repository: String) =
-            "ssh://git@$vcsEffectiveHost/$group/$repository.git"
+            "ssh://git@$vcsHost/$group/$repository.git"
     }
 
-    class Gitea(
-        vcsFacadeHost: String, vcsHost: String, vcsExternalHost: String? = null, private val useColon: Boolean = false
-    ) : TestService(vcsFacadeHost, vcsHost, vcsExternalHost) {
+    class Gitea(vcsFacadeHost: String, vcsHost: String, private val useColon: Boolean = false) :
+        TestService(vcsFacadeHost, vcsHost) {
         override val type = "gitea"
 
         override fun sshUrl(group: String, repository: String) =
-            "ssh://git@$vcsEffectiveHost${if (useColon) ":" else "/"}$group/$repository.git"
-
-        fun scan(group: String, repository: String) {
-            val query = "sshUrl=${URLEncoder.encode(sshUrl(group, repository), StandardCharsets.UTF_8)}"
-            val url = URI("http://$vcsFacadeHost/rest/api/1/indexer/gitea/scan?$query").toURL()
-            with(url.openConnection() as HttpURLConnection) {
-                setRequestMethod("POST")
-                if (getResponseCode() / 100 != 2) {
-                    throw RuntimeException("Unable to schedule '$group:$repository' scan")
-                }
-            }
-            Thread.sleep(10000) //vcs-facade.vcs.gitea.index.scan.delay * 2
-        }
+            "ssh://git@$vcsHost${if (useColon) ":" else "/"}$group/$repository.git"
     }
 
     companion object {

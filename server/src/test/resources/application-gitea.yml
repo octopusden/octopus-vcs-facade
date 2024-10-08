@@ -1,14 +1,12 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      enabled: false
-    gitea:
-      host: http://${test.vcs-host}/
-      username: test-admin
-      password: test-admin
-      index:
-        scan:
-          delay: 5000
+    services:
+      - id: test-gitea
+        type: GITEA
+        http-url: http://${test.vcs-host}/
+        ssh-url: ssh://git@${test.vcs-host}/
+        username: test-admin
+        password: test-admin
   opensearch:
     host: ${test.opensearch-host}
     ssl: false
@@ -16,3 +14,5 @@ vcs-facade:
     password: admin
     index:
       suffix: ut
+      scan:
+        delay: 5000

@@ -57,13 +57,13 @@ class RepositoryControllerV1(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get commits ({},{}] in {} repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
+        log.warn("Deprecated call! Get commits ({},{}] in {} repository", (from ?: fromDate?.toString()).orEmpty(), to, sshUrl)
         RepositoryResponse(vcsManager.getCommits(sshUrl, from, fromDate, to))
     }.data.sorted().map { it.toV1() }
 
     @GetMapping("commit", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommit(@RequestParam("sshUrl") sshUrl: String, @RequestParam("commitId") commitId: String): CommitV1 {
-        log.info("Get commit {} in {} repository", commitId, sshUrl)
+        log.warn("Deprecated call! Get commit {} in {} repository", commitId, sshUrl)
         return vcsManager.getCommit(sshUrl, commitId).toV1()
     }
 
@@ -75,8 +75,8 @@ class RepositoryControllerV1(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info(
-            "Find issue keys in commits ({},{}] in {} repository",
+        log.warn(
+            "Deprecated call! Find issue keys in commits ({},{}] in {} repository",
             (from ?: fromDate?.toString()).orEmpty(), to, sshUrl
         )
         RepositoryResponse(
@@ -91,7 +91,7 @@ class RepositoryControllerV1(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get tags in {} repository", sshUrl)
+        log.warn("Deprecated call! Get tags in {} repository", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl))
     }.data.sorted().map { it.toV1() }
 
@@ -104,7 +104,7 @@ class RepositoryControllerV1(
         @RequestBody searchRequest: SearchIssuesInRangesRequestV1,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Search issue keys {} in specified commit ranges", searchRequest.issues)
+        log.warn("Deprecated call! Search issue keys {} in specified commit ranges", searchRequest.issues)
         vcsManager.searchIssuesInRanges(searchRequest.toNew()).toV1()
     }
 
@@ -112,8 +112,8 @@ class RepositoryControllerV1(
     fun createPullRequest(
         @RequestParam("sshUrl") sshUrl: String, @RequestBody createPullRequest: CreatePullRequest
     ): PullRequest {
-        log.info(
-            "Create pull request ({} -> {}) in {} repository",
+        log.warn(
+            "Deprecated call! Create pull request ({} -> {}) in {} repository",
             sshUrl,
             createPullRequest.sourceBranch,
             createPullRequest.targetBranch
@@ -126,7 +126,7 @@ class RepositoryControllerV1(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get search summary for issue key {}", issueKey)
+        log.warn("Deprecated call! Get search summary for issue key {}", issueKey)
         vcsManager.find(issueKey)
     }
 
@@ -135,7 +135,7 @@ class RepositoryControllerV1(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find branches by issue key {}", issueKey)
+        log.warn("Deprecated call! Find branches by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findBranches(issueKey))
     }.data.sorted().map { it.toV1() }
 
@@ -144,7 +144,7 @@ class RepositoryControllerV1(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find commits by issue key {}", issueKey)
+        log.warn("Deprecated call! Find commits by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findCommits(issueKey))
     }.data.sorted().map { it.toV1() }
 
@@ -153,7 +153,7 @@ class RepositoryControllerV1(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find pull requests by issue key {}", issueKey)
+        log.warn("Deprecated call! Find pull requests by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findPullRequests(issueKey))
     }.data.sorted()
 

@@ -1,15 +1,12 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      enabled: false
-    gitea:
-      host: http://gitea:3000
-      username: test-admin
-      password: test-admin
-      index:
-        webhook-secret: b59dd966-2445-4c84-b631-49502427477e
-        scan:
-          delay: 5000
+    services:
+      - id: test-gitea
+        type: GITEA
+        http-url: http://gitea:3000
+        ssh-url: ssh://git@gitea:3000
+        username: test-admin
+        password: test-admin
   opensearch:
     host: opensearch:9200
     ssl: false
@@ -17,3 +14,6 @@ vcs-facade:
     password: admin
     index:
       suffix: ft
+      webhook-secret: b59dd966-2445-4c84-b631-49502427477e
+      scan:
+        delay: 5000

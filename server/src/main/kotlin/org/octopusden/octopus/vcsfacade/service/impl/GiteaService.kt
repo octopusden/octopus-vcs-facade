@@ -6,9 +6,6 @@ import java.net.URISyntaxException
 import java.security.MessageDigest
 import java.util.Date
 import org.octopusden.octopus.infrastructure.client.commons.ClientParametersProvider
-import org.octopusden.octopus.infrastructure.client.commons.CredentialProvider
-import org.octopusden.octopus.infrastructure.client.commons.StandardBasicCredCredentialProvider
-import org.octopusden.octopus.infrastructure.client.commons.StandardBearerTokenCredentialProvider
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClassicClient
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.createPullRequestWithDefaultReviewers
@@ -43,72 +40,52 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.DateValue
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 
-@Service
-@ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.gitea", name = ["enabled"], havingValue = "true", matchIfMissing = true
-)
 class GiteaService(
-    giteaProperties: VcsConfig.GiteaProperties
-) : VcsService(giteaProperties) {
+    vcsServiceProperties: VcsProperties.Service
+) : VcsService(vcsServiceProperties) {
     private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
         override fun getApiUrl() = httpUrl
-
-        override fun getAuth(): CredentialProvider {
-            val authException by lazy {
-                IllegalStateException("Auth Token or username/password must be specified for Gitea access")
-            }
-            return giteaProperties.token?.let {
-                StandardBearerTokenCredentialProvider(it)
-            } ?: StandardBasicCredCredentialProvider(
-                giteaProperties.username ?: throw authException, giteaProperties.password ?: throw authException
-            )
-        }
+        override fun getAuth() = vcsServiceProperties.getCredentialProvider()
     })
 
-    override val sshUrlRegex = "(?:ssh://)?git@$host[:/]([^:/]+)/([^:/]+).git".toRegex()
-
-    fun getRepositories(): Sequence<Repository> {
+    override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client.getOrganizations().asSequence().flatMap { client.getRepositories(it.name) }
-            .map { toRepository(it) }.also { log.trace("<= getRepositories(): {}", it) }
+            .map { toRepository(it) }
+            .also { if (log.isTraceEnabled) log.trace("<= getRepositories(): {}", it.toList()) }
     }
 
-    fun findRepository(group: String, repository: String): Repository? {
+    private fun getRepository(group: String, repository: String) =
+        toRepository(client.getRepository(group, repository))
+
+    override fun findRepository(group: String, repository: String): Repository? {
         log.trace("=> findRepository({}, {})", group, repository)
         return try {
-            toRepository(client.getRepository(group, repository))
+            getRepository(group, repository)
         } catch (e: NotFoundException) {
             null
         }.also { log.trace("<= findRepository({}, {}): {}", group, repository, it) }
-    }
-
-    fun getRepository(group: String, repository: String): Repository {
-        log.trace("=> getRepository({}, {})", group, repository)
-        return toRepository(client.getRepository(group, repository))
-            .also { log.trace("<= getRepository({}, {}): {}", group, repository, it) }
     }
 
     override fun getBranches(group: String, repository: String): Sequence<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getBranches(group, repository).asSequence().map { it.toBranch(this) }
-        }.also { log.trace("<= getBranches({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getBranches({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getTags(group, repository).asSequence().map { it.toTag(this) }
-        }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
@@ -144,7 +121,16 @@ class GiteaService(
                 client.getCommits(group, repository, toHashOrRef, (from as? DateValue)?.value)
             }
             commits.asSequence().map { it.toCommit(this) }
-        }.also { log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommits({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommitsWithFiles(
@@ -158,14 +144,30 @@ class GiteaService(
                 client.getCommits(group, repository, toHashOrRef, (from as? DateValue)?.value, true)
             }
             commits.asSequence().map { it.toCommitWithFiles(this) }
-        }.also { log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommitsWithFiles({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
-    fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
+    override fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
         log.trace("=> getBranchesCommitGraph({}, {})", group, repository)
         return with(getRepository(group, repository)) {
             client.getBranchesCommitGraph(group, repository, true).asSequence().map { it.toCommitWithFiles(this) }
-        }.also { log.trace("<= getBranchesCommitGraph({}, {}): {}", group, repository, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getBranchesCommitGraph({}, {}): {}",
+                group,
+                repository,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
@@ -186,13 +188,17 @@ class GiteaService(
             .also { log.trace("<= getPullRequestReviews({}, {}, {}): {}", group, repository, number, it) }
     }
 
-    fun getPullRequests(group: String, repository: String): Sequence<PullRequest> {
+    override fun getPullRequests(group: String, repository: String): Sequence<PullRequest> {
         log.trace("=> getPullRequests({}, {})", group, repository)
         return with(getRepository(group, repository)) {
-            client.getPullRequests(group, repository).asSequence().map {
+            try {
+                client.getPullRequests(group, repository)
+            } catch (e: NotFoundException) {
+                emptyList() //for some reason Gitea returns 404 in case of empty repository
+            }.asSequence().map {
                 it.toPullRequest(this, getPullRequestReviews(group, repository, it.number))
             }
-        }.also { log.trace("<= getPullRequests({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getPullRequests({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun createPullRequest(
@@ -232,7 +238,15 @@ class GiteaService(
                     null
                 }
             }.asSequence()
-        }.also { log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= findCommits({}, {}, {}): {}",
+                group,
+                repository,
+                hashes,
+                it.toList()
+            )
+        }
     }
 
     override fun findPullRequests(group: String, repository: String, indexes: Set<Long>): Sequence<PullRequest> {
@@ -246,7 +260,15 @@ class GiteaService(
                     null
                 }
             }.asSequence()
-        }.also { log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= findPullRequests({}, {}, {}): {}",
+                group,
+                repository,
+                indexes,
+                it.toList()
+            )
+        }
     }
 
     override fun findBranches(issueKey: String): Sequence<Branch> {
@@ -272,7 +294,7 @@ class GiteaService(
     fun toRepository(giteaRepository: GiteaRepository): Repository {
         val repository = giteaRepository.name.lowercase()
         val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
-        return Repository("ssh://git@$host/$organization/$repository.git", //TODO: add "useColon" parameter?
+        return Repository("$sshUrl/$organization/$repository.git", //TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
             //IMPORTANT: see https://github.com/go-gitea/gitea/pull/31187
             //Gitea versions 1.22.0 and 1.22.1 return host url instead of empty string as avatar_url for repository with no avatar
@@ -311,8 +333,8 @@ class GiteaService(
             repository
         )
 
-        private fun String.sha1() =
-            BigInteger(1, MessageDigest.getInstance("SHA-1").digest(toByteArray())).toString(16).padStart(32, '0')
+        private fun String.sha1() = BigInteger(1, MessageDigest.getInstance("SHA-1").digest(toByteArray()))
+            .toString(16).padStart(32, '0')
 
         private fun GiteaCommit.toCommitWithFiles(repository: Repository) = with(toCommit(repository)) {
             val fileChanges = files!!.map {

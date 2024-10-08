@@ -1,8 +1,6 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import java.util.Date
-import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBasicCredentialProvider
-import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketBearerTokenCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClientParametersProvider
@@ -14,6 +12,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommi
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCreateTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequest
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketPullRequestState
+import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketRepository
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketUser
 import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException
@@ -21,6 +20,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.getBranches
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommit
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommitChanges
 import org.octopusden.octopus.infrastructure.bitbucket.client.getCommits
+import org.octopusden.octopus.infrastructure.bitbucket.client.getRepositories
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTag
 import org.octopusden.octopus.infrastructure.bitbucket.client.getTags
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
@@ -36,49 +36,46 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
-import org.octopusden.octopus.vcsfacade.config.VcsConfig
+import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 
-@Service
-@ConditionalOnProperty(
-    prefix = "vcs-facade.vcs.bitbucket", name = ["enabled"], havingValue = "true", matchIfMissing = true
-)
 class BitbucketService(
-    bitbucketProperties: VcsConfig.BitbucketProperties,
-) : VcsService(bitbucketProperties) {
+    vcsServiceProperties: VcsProperties.Service
+) : VcsService(vcsServiceProperties) {
     private val client: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = httpUrl
-
-        override fun getAuth(): BitbucketCredentialProvider {
-            val authException by lazy {
-                IllegalStateException("Auth Token or username/password must be specified for Bitbucket access")
-            }
-            return bitbucketProperties.token?.let { BitbucketBearerTokenCredentialProvider(it) }
-                ?: BitbucketBasicCredentialProvider(
-                    bitbucketProperties.username ?: throw authException,
-                    bitbucketProperties.password ?: throw authException
-                )
-        }
+        override fun getAuth() = vcsServiceProperties.getCredentialProvider() as BitbucketCredentialProvider
     })
 
-    override val sshUrlRegex = "(?:ssh://)?git@$host/([^/]+)/([^/]+).git".toRegex()
+    override fun getRepositories(): Sequence<Repository> {
+        log.trace("=> getRepositories()")
+        return client.getRepositories().asSequence().map { it.toRepository() }
+            .also { if (log.isTraceEnabled) log.trace("<= getRepositories(): {}", it.toList()) }
+    }
+
+    override fun findRepository(group: String, repository: String): Repository? {
+        log.trace("=> findRepository({}, {})", group, repository)
+        return try {
+            client.getRepository(group, repository).toRepository()
+        } catch (e: NotFoundException) {
+            null
+        }.also { log.trace("<= findRepository({}, {}): {}", group, repository, it) }
+    }
 
     override fun getBranches(group: String, repository: String): Sequence<Branch> {
         log.trace("=> getBranches({}, {})", group, repository)
         return client.getBranches(group, repository).asSequence().map {
             it.toBranch(group, repository)
-        }.also { log.trace("<= getBranches({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getBranches({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun getTags(group: String, repository: String): Sequence<Tag> {
         log.trace("=> getTags({}, {})", group, repository)
         return client.getTags(group, repository).asSequence().map {
             it.toTag(group, repository)
-        }.also { log.trace("<= getTags({}, {}): {}", group, repository, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", group, repository, it.toList()) }
     }
 
     override fun createTag(group: String, repository: String, createTag: CreateTag): Tag {
@@ -116,7 +113,14 @@ class BitbucketService(
             client.getCommits(group, repository, toHashOrRef, (from as? HashOrRefOrDate.DateValue)?.value)
         }
         return commits.asSequence().map { it.toCommit(group, repository) }.also {
-            log.trace("<= getCommits({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it)
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommits({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
         }
     }
 
@@ -130,7 +134,16 @@ class BitbucketService(
         return getCommits(group, repository, from, toHashOrRef).map {
             val fileChanges = getCommitChanges(group, repository, it)
             CommitWithFiles(it, fileChanges.size, fileChanges)
-        }.also { log.trace("<= getCommitsWithFiles({}, {}, {}, {}): {}", group, repository, from, toHashOrRef, it) }
+        }.also {
+            if (log.isTraceEnabled) log.trace(
+                "<= getCommitsWithFiles({}, {}, {}, {}): {}",
+                group,
+                repository,
+                from,
+                toHashOrRef,
+                it.toList()
+            )
+        }
     }
 
     override fun getCommit(group: String, repository: String, hashOrRef: String): Commit {
@@ -146,6 +159,14 @@ class BitbucketService(
             val fileChanges = getCommitChanges(group, repository, this)
             CommitWithFiles(this, fileChanges.size, fileChanges)
         }.also { log.trace("<= getCommitWithFiles({}, {}, {}): {}", group, repository, hashOrRef, it) }
+    }
+
+    override fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
+        TODO("Indexing of BitBucket repositories is not supported yet")
+    }
+
+    override fun getPullRequests(group: String, repository: String): Sequence<PullRequest> {
+        TODO("Indexing of BitBucket repositories is not supported yet")
     }
 
     override fun createPullRequest(
@@ -180,7 +201,7 @@ class BitbucketService(
                 null
             }
         }.asSequence().also {
-            log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it)
+            if (log.isTraceEnabled) log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it.toList())
         }
     }
 
@@ -193,7 +214,13 @@ class BitbucketService(
                 null
             }
         }.asSequence().also {
-            log.trace("<= findPullRequests({}, {}, {}): {}", group, repository, indexes, it)
+            if (log.isTraceEnabled) log.trace(
+                "<= findPullRequests({}, {}, {}): {}",
+                group,
+                repository,
+                indexes,
+                it.toList()
+            )
         }
     }
 
@@ -206,7 +233,7 @@ class BitbucketService(
         log.trace("=> findCommits({})", issueKey)
         return client.getCommits(issueKey).asSequence().map {
             it.toCommit.toCommit(it.repository.project.key.lowercase(), it.repository.slug.lowercase())
-        }.also { log.trace("<= findCommits({}): {}", issueKey, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= findCommits({}): {}", issueKey, it.toList()) }
     }
 
     override fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles> {
@@ -217,7 +244,7 @@ class BitbucketService(
             val commit = it.toCommit.toCommit(group, repository)
             val fileChanges = getCommitChanges(group, repository, commit)
             CommitWithFiles(commit, fileChanges.size, fileChanges)
-        }.also { log.trace("<= findCommitsWithFiles({}): {}", issueKey, it) }
+        }.also { if (log.isTraceEnabled) log.trace("<= findCommitsWithFiles({}): {}", issueKey, it.toList()) }
     }
 
     override fun findPullRequests(issueKey: String): Sequence<PullRequest> {
@@ -251,10 +278,12 @@ class BitbucketService(
     }
 
     private fun getRepository(project: String, repository: String) = Repository(
-        "ssh://git@$host/$project/$repository.git",
+        "$sshUrl/$project/$repository.git",
         "$httpUrl/projects/$project/repos/$repository/browse",
         "$httpUrl/projects/$project/avatar.png?s=48"
     )
+
+    private fun BitbucketRepository.toRepository() = getRepository(project.key.lowercase(), slug.lowercase())
 
     private fun BitbucketBranch.toBranch(project: String, repository: String) = Branch(
         displayId,

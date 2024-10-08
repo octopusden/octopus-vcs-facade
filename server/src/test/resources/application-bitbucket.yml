@@ -1,10 +1,11 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      host: http://${test.vcs-host}/
-      username: admin
-      password: admin
-    gitea:
-      enabled: false
+    services:
+      - id: test-bitbucket
+        type: BITBUCKET
+        http-url: http://${test.vcs-host}/
+        ssh-url: ssh://git@${test.vcs-host}/
+        username: admin
+        password: admin
   opensearch:
     enabled: false

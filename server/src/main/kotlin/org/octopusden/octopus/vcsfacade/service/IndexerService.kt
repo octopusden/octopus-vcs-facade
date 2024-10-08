@@ -6,11 +6,11 @@ import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
 import org.octopusden.octopus.vcsfacade.dto.IndexReport
 
-interface GiteaIndexerService {
-    fun registerGiteaCreateRefEvent(giteaCreateRefEvent: GiteaCreateRefEvent)
-    fun registerGiteaDeleteRefEvent(giteaDeleteRefEvent: GiteaDeleteRefEvent)
-    fun registerGiteaPushEvent(giteaPushEvent: GiteaPushEvent)
-    fun registerGiteaPullRequestEvent(giteaPullRequestEvent: GiteaPullRequestEvent)
+interface IndexerService {
+    fun registerGiteaCreateRefEvent(vcsServiceId: String, createRefEvent: GiteaCreateRefEvent)
+    fun registerGiteaDeleteRefEvent(vcsServiceId: String, deleteRefEvent: GiteaDeleteRefEvent)
+    fun registerGiteaPushEvent(vcsServiceId: String, pushEvent: GiteaPushEvent)
+    fun registerGiteaPullRequestEvent(vcsServiceId: String, pullRequestEvent: GiteaPullRequestEvent)
     fun scheduleRepositoryScan(sshUrl: String)
     fun getIndexReport(): IndexReport
 }

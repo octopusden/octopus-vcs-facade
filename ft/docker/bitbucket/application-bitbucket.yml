@@ -1,10 +1,11 @@
 vcs-facade:
   vcs:
-    bitbucket:
-      host: http://bitbucket:7990
-      username: admin
-      password: admin
-    gitea:
-      enabled: false
+    services:
+      - id: test-bitbucket
+        type: BITBUCKET
+        http-url: http://bitbucket:7990
+        ssh-url: ssh://git@bitbucket:7990
+        username: admin
+        password: admin
   opensearch:
     enabled: false
