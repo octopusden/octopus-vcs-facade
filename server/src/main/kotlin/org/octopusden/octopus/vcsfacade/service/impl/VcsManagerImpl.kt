@@ -43,9 +43,10 @@ class VcsManagerImpl(
 
     override val vcsServices = vcsServiceMap.values
 
-    override fun getVcsServiceById(id: String) = vcsServiceMap.getOrElse(id.lowercase()) {
-        throw IllegalStateException("There is no configured VCS service with id '$id'")
-    }
+    override fun findVcsServiceById(id: String) = vcsServiceMap[id.lowercase()]
+
+    override fun getVcsServiceById(id: String) = findVcsServiceById(id)
+        ?: throw IllegalStateException("There is no configured VCS service with id '$id'")
 
     override fun getVcsServiceForSshUrl(sshUrl: String) = vcsServices.firstOrNull { it.isSupported(sshUrl) }
         ?: throw IllegalStateException("There is no configured VCS service for '$sshUrl'")

@@ -15,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
     val id = vcsServiceProperties.id.lowercase()
     val type = vcsServiceProperties.type
+    val indexing = vcsServiceProperties.indexing
     protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
     private val sshUrlRegex = "$sshUrl[:/]((?:[^/]+/)+)([^/]+).git".toRegex()

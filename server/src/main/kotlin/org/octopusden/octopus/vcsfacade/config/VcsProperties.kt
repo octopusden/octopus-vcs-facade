@@ -19,7 +19,8 @@ data class VcsProperties(
         val token: String?,
         val username: String?,
         val password: String?,
-        val healthCheck: HealthCheck?
+        val healthCheck: HealthCheck?,
+        val indexing: Boolean = true
     ) {
         fun getCredentialProvider() = if (token != null) {
             if (type == VcsServiceType.BITBUCKET) {
