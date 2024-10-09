@@ -41,17 +41,14 @@ class IndexerServiceImpl(
     @Qualifier("opensearchIndexScanExecutor") private val opensearchIndexScanExecutor: AsyncTaskExecutor,
     @Qualifier("isMaster") private val isMaster: Boolean
 ) : IndexerService {
-    private fun getGiteaService(id: String) = with(vcsManager.getVcsServiceById(id)) {
-        if (type == VcsServiceType.GITEA) {
-            this as GiteaService
-        } else {
-            throw IllegalStateException("There is no configured Gitea service with id '$id'")
-        }
-    }
+    private fun getIndexingGiteaService(id: String) = vcsManager.findVcsServiceById(id)?.let {
+        if (it.indexing && it.type == VcsServiceType.GITEA) it as GiteaService
+        else null
+    } ?: throw IllegalStateException("There is no configured Gitea service with id '$id' and enabled indexing")
 
     override fun registerGiteaCreateRefEvent(vcsServiceId: String, createRefEvent: GiteaCreateRefEvent) {
         log.trace("=> registerGiteaCreateRefEvent({}, {})", vcsServiceId, createRefEvent)
-        val giteaService = getGiteaService(vcsServiceId)
+        val giteaService = getIndexingGiteaService(vcsServiceId)
         val repositoryDocument = giteaService.toRepository(createRefEvent.repository).toDocument(giteaService)
         checkInRepository(repositoryDocument)
         val refDocument = when (createRefEvent.refType.refType) {
@@ -69,9 +66,9 @@ class IndexerServiceImpl(
 
     override fun registerGiteaDeleteRefEvent(vcsServiceId: String, deleteRefEvent: GiteaDeleteRefEvent) {
         log.trace("=> registerGiteaDeleteRefEvent({}, {})", vcsServiceId, deleteRefEvent)
-        val giteaService = getGiteaService(vcsServiceId)
+        val giteaService = getIndexingGiteaService(vcsServiceId)
         val repositoryDocument = giteaService.toRepository(deleteRefEvent.repository).toDocument(giteaService)
-        checkInRepository(repositoryDocument, true)
+        checkInRepository(repositoryDocument, deleteRefEvent.refType.refType == RefType.BRANCH)
         val refDocumentId = when (deleteRefEvent.refType.refType) {
             RefType.BRANCH -> GiteaBranch(deleteRefEvent.ref, GiteaBranch.PayloadCommit("unknown")).toBranch(
                 repositoryDocument.toDto()
@@ -87,7 +84,7 @@ class IndexerServiceImpl(
 
     override fun registerGiteaPushEvent(vcsServiceId: String, pushEvent: GiteaPushEvent) {
         log.trace("=> registerGiteaPushEvent({}, {})", vcsServiceId, pushEvent)
-        val giteaService = getGiteaService(vcsServiceId)
+        val giteaService = getIndexingGiteaService(vcsServiceId)
         val repositoryDocument = giteaService.toRepository(pushEvent.repository).toDocument(giteaService)
         checkInRepository(repositoryDocument)
         openSearchService.saveCommits(pushEvent.commits.asSequence().map {
@@ -100,7 +97,7 @@ class IndexerServiceImpl(
 
     override fun registerGiteaPullRequestEvent(vcsServiceId: String, pullRequestEvent: GiteaPullRequestEvent) {
         log.trace("=> registerGiteaPullRequestEvent({}, {})", vcsServiceId, pullRequestEvent)
-        val giteaService = getGiteaService(vcsServiceId)
+        val giteaService = getIndexingGiteaService(vcsServiceId)
         val repositoryDocument = giteaService.toRepository(pullRequestEvent.repository).toDocument(giteaService)
         checkInRepository(repositoryDocument)
         val pullRequestDocument = pullRequestEvent.pullRequest.toPullRequest(
@@ -148,7 +145,7 @@ class IndexerServiceImpl(
         try {
             val repositoriesInfo = openSearchService.getRepositoriesInfo().map {
                 it.apply { scanRequired = true }
-            }.toSet() + vcsManager.vcsServices.flatMap { vcsService ->
+            }.toSet() + vcsManager.vcsServices.filter { it.indexing }.flatMap { vcsService ->
                 vcsService.getRepositories().map { RepositoryInfoDocument(it.toDocument(vcsService)) }
             }
             logIndexActionMessage(
@@ -187,10 +184,11 @@ class IndexerServiceImpl(
     }
 
     private fun scan(repositoryDocument: RepositoryDocument) = try {
-        val vcsService = vcsManager.getVcsServiceById(repositoryDocument.vcsServiceId)
-        val foundRepositoryDocument = vcsService.findRepository(
-            repositoryDocument.group, repositoryDocument.name
-        )?.toDocument(vcsService)
+        val vcsService = vcsManager.findVcsServiceById(repositoryDocument.vcsServiceId)
+        val foundRepositoryDocument = vcsService?.let {
+            if (it.indexing) it.findRepository(repositoryDocument.group, repositoryDocument.name)?.toDocument(it)
+            else null
+        }
         if (foundRepositoryDocument == repositoryDocument) { //IMPORTANT: found repository could be renamed one
             with(RepositoryInfoDocument(foundRepositoryDocument, false, Date())) {
                 log.debug("Save repository info in index for {} repository", repository.sshUrl)

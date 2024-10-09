@@ -14,6 +14,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 
 interface VcsManager { //TODO: allow to use both http and ssh repository url (renaming `sshUrl` to `repositoryUrl`)
     val vcsServices: Collection<VcsService>
+    fun findVcsServiceById(id: String): VcsService?
     fun getVcsServiceById(id: String): VcsService
     fun getVcsServiceForSshUrl(sshUrl: String): VcsService
     fun getTags(sshUrl: String): Sequence<Tag>
