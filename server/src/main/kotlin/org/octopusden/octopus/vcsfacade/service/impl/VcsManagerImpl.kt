@@ -24,6 +24,7 @@ import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.slf4j.LoggerFactory
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
+import org.springframework.boot.actuate.health.Status
 import org.springframework.stereotype.Service
 
 @Service
@@ -244,32 +245,50 @@ class VcsManagerImpl(
 
     override fun health(): Health {
         log.trace("Run health check")
+        var status = Status.UNKNOWN
+
+        fun updateStatus(newStatus: Status) {
+            if (status != Status.DOWN) {
+                status = newStatus
+            }
+        }
+
         val errors = vcsProperties.services.mapNotNull {
-            if (it.healthCheck == null) {
+            val healthCheck = it.healthCheck
+            if (healthCheck == null) {
                 log.warn("Health check is not configured for VCS service with id '${it.id}'")
                 null
             } else {
                 try {
                     val commits = getVcsServiceById(it.id).getCommits(
-                        it.healthCheck.group,
-                        it.healthCheck.repository,
-                        HashOrRefOrDate.create(it.healthCheck.fromCommit, null),
-                        it.healthCheck.toCommit
+                        healthCheck.group,
+                        healthCheck.repository,
+                        HashOrRefOrDate.create(healthCheck.fromCommit, null),
+                        healthCheck.toCommit
                     ).map { commit -> commit.hash }.toSet()
-                    if (commits != it.healthCheck.expectedCommits) {
-                        val diffCommits = (commits - it.healthCheck.expectedCommits)
-                            .union(it.healthCheck.expectedCommits - commits)
+                    if (commits != healthCheck.expectedCommits) {
+                        val diffCommits = (commits - healthCheck.expectedCommits)
+                            .union(healthCheck.expectedCommits - commits)
+                        updateStatus(Status.DOWN)
                         "The symmetric difference of response commits with expected commits is $diffCommits"
-                    } else null
+                    } else {
+                        updateStatus(Status.UP)
+                        null
+                    }
                 } catch (e: Exception) {
-                    "Unexpected exception"
+                    log.error("Health check for VCS service with id '${it.id}' has failed", e)
+                    updateStatus(Status.DOWN)
+                    e.javaClass.name + ": " + e.message
                 }
             }?.let { error -> "Health check for VCS service with id '${it.id}' has failed. $error" }
         }
+        val healthBuilder = Health.status(status)
         val health = if (errors.isEmpty()) {
-            Health.up().build()
+            healthBuilder.build()
         } else {
-            Health.down().withDetail("errors", errors.joinToString(separator = ". ")).build()
+            healthBuilder.withDetail("errors", buildString {
+                errors.joinTo(this, separator = ". ")
+            }).build()
         }
         log.trace("Health check status is {}", health.status)
         return health
