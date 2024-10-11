@@ -904,27 +904,27 @@ abstract class BaseVcsFacadeTest(
             Arguments.of(
                 "ISSUE",
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue key 'ISSUE'"
+                "Invalid issue keys: [ISSUE]"
             ),
             Arguments.of(
                 "ISSUE-2A",
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue key 'ISSUE-2A'"
+                "Invalid issue keys: [ISSUE-2A]"
             ),
             Arguments.of(
                 " ISSUE-3",
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue key ' ISSUE-3'"
+                "Invalid issue keys: [ ISSUE-3]"
             ),
             Arguments.of(
                 "ISSUE+4",
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue key 'ISSUE+4'"
+                "Invalid issue keys: [ISSUE+4]"
             ),
             Arguments.of(
                 "0ISSUE-5",
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue key '0ISSUE-5'"
+                "Invalid issue keys: [0ISSUE-5]"
             ),
         )
 
