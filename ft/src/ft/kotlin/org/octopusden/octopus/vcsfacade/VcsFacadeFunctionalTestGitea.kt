@@ -50,7 +50,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             "master"
         )
         check("Commit and branch for $issue have not been registered") {
-            with(findByIssueKey(issue)) {
+            with(findByIssueKeys(listOf(issue))) {
                 branches.size == 1 && commits.size == 1 && pullRequests.size == 0
             }
         }
@@ -59,19 +59,19 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
             CreatePullRequest(issue, "master", "Webhook test PR", "Description $issue")
         )
         check("Pull request for $issue has not been registered") {
-            with(findByIssueKey(issue)) {
+            with(findByIssueKeys(listOf(issue))) {
                 branches.size == 1 && commits.size == 1 && pullRequests.size == 1
             }
         }
-        val pullRequestIndex = findPullRequestsByIssueKey(issue)[0].index
+        val pullRequestIndex = findPullRequestsByIssueKeys(listOf(issue))[0].index
         check("Creation of pull request $pullRequestIndex has not been registered") {
-            with(findPullRequestsByIssueKey(issue)) {
+            with(findPullRequestsByIssueKeys(listOf(issue))) {
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN
             }
         }
         doHttpRequest(setPullRequestAssigneeRequest(GROUP, repository, pullRequestIndex, ASSIGNEE))
         check("Assigning of pull request $pullRequestIndex has not been registered") {
-            with(findPullRequestsByIssueKey(issue)) {
+            with(findPullRequestsByIssueKeys(listOf(issue))) {
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
                         this[0].assignees.size == 1 && this[0].assignees[0].name == ASSIGNEE
             }
@@ -79,7 +79,7 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         doHttpRequest(addPullRequestReviewerRequest(GROUP, repository, pullRequestIndex, REVIEWER))
         doHttpRequest(addPullRequestReviewerRequest(GROUP, repository, pullRequestIndex, APPROVER))
         check("Addition of review requests for pull request $pullRequestIndex has not been registered") {
-            with(findPullRequestsByIssueKey(issue)) {
+            with(findPullRequestsByIssueKeys(listOf(issue))) {
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
                         this[0].reviewers.size == 2 && this[0].reviewers.none { it.approved } &&
                         this[0].reviewers.any { it.user.name == REVIEWER } && this[0].reviewers.any { it.user.name == APPROVER }
@@ -87,21 +87,21 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         }
         doHttpRequest(deletePullRequestReviewerRequest(GROUP, repository, pullRequestIndex, REVIEWER))
         check("Deletion of review request for pull request $pullRequestIndex has not been registered") {
-            with(findPullRequestsByIssueKey(issue)) {
+            with(findPullRequestsByIssueKeys(listOf(issue))) {
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
                         this[0].reviewers.size == 1 && this[0].reviewers[0].user.name == APPROVER && !this[0].reviewers[0].approved
             }
         }
         doHttpRequest(approvePullRequestRequest(GROUP, repository, pullRequestIndex, APPROVER))
         check("Approval of pull request $pullRequestIndex has not been registered") {
-            with(findPullRequestsByIssueKey(issue)) {
+            with(findPullRequestsByIssueKeys(listOf(issue))) {
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.OPEN &&
                         this[0].reviewers.size == 1 && this[0].reviewers[0].user.name == APPROVER && this[0].reviewers[0].approved
             }
         }
         doHttpRequest(mergePullRequestRequest(GROUP, repository, pullRequestIndex))
         check("Merging of pull request $pullRequestIndex has not been registered") {
-            with(findPullRequestsByIssueKey(issue)) {
+            with(findPullRequestsByIssueKeys(listOf(issue))) {
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.MERGED
             }
         }

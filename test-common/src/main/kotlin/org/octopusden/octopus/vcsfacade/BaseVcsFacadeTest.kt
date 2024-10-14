@@ -411,7 +411,7 @@ abstract class BaseVcsFacadeTest(
     @MethodSource("findByIssueKeyArguments")
     fun findByIssueKeyTest(issueKey: String, searchSummaryFile: String) = Assertions.assertEquals(
         testService.getSearchSummary(searchSummaryFile),
-        findByIssueKey(issueKey).let { searchSummary ->
+        findByIssueKeys(listOf(issueKey)).let { searchSummary ->
             SearchSummary(
                 searchSummary.branches,
                 searchSummary.commits,
@@ -430,7 +430,7 @@ abstract class BaseVcsFacadeTest(
     @MethodSource("findByIssueKeyFailsArguments")
     fun findByIssueKeyFailsTest(issueKey: String, exceptionClass: Class<out Throwable>, exceptionMessage: String?) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findByIssueKey(issueKey)
+            findByIssueKeys(listOf(issueKey))
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -441,7 +441,7 @@ abstract class BaseVcsFacadeTest(
     @MethodSource("findBranchesByIssueKeyArguments")
     fun findBranchesByIssueKeyTest(issueKey: String, branchesByIssueKeyFile: String) = Assertions.assertEquals(
         testService.getBranches(branchesByIssueKeyFile),
-        findBranchesByIssueKey(issueKey)
+        findBranchesByIssueKeys(listOf(issueKey))
     )
 
     @ParameterizedTest
@@ -452,7 +452,7 @@ abstract class BaseVcsFacadeTest(
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findBranchesByIssueKey(issueKey)
+            findBranchesByIssueKeys(listOf( issueKey))
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -463,7 +463,7 @@ abstract class BaseVcsFacadeTest(
     @MethodSource("findCommitsByIssueKeyArguments")
     fun findCommitsByIssueKeyTest(issueKey: String, commitsByIssueKeyFile: String) = Assertions.assertEquals(
         testService.getCommits(commitsByIssueKeyFile),
-        findCommitsByIssueKey(issueKey)
+        findCommitsByIssueKeys(listOf(issueKey))
     )
 
     @ParameterizedTest
@@ -474,7 +474,7 @@ abstract class BaseVcsFacadeTest(
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findCommitsByIssueKey(issueKey)
+            findCommitsByIssueKeys(listOf(issueKey))
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -489,7 +489,7 @@ abstract class BaseVcsFacadeTest(
         commitsWithFilesByIssueKeyFile: String
     ) = Assertions.assertEquals(
         testService.getCommitsWithFiles(commitsWithFilesByIssueKeyFile),
-        findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
+        findCommitsWithFilesByIssueKeys(listOf(issueKey), commitFilesLimit)
     )
 
     @ParameterizedTest
@@ -500,7 +500,7 @@ abstract class BaseVcsFacadeTest(
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findCommitsWithFilesByIssueKey(issueKey, null)
+            findCommitsWithFilesByIssueKeys(listOf(issueKey), null)
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -511,7 +511,7 @@ abstract class BaseVcsFacadeTest(
     @MethodSource("findPullRequestsByIssueKeyArguments")
     fun findPullRequestsByIssueKeyTest(issueKey: String, pullRequestsByIssueKeyFile: String) = Assertions.assertEquals(
         testService.getPullRequests(pullRequestsByIssueKeyFile),
-        findPullRequestsByIssueKey(issueKey).map { pullRequest ->
+        findPullRequestsByIssueKeys(listOf(issueKey)).map { pullRequest ->
             PullRequest(
                 pullRequest.index, pullRequest.title,
                 pullRequest.description,
@@ -537,7 +537,7 @@ abstract class BaseVcsFacadeTest(
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findPullRequestsByIssueKey(issueKey)
+            findPullRequestsByIssueKeys(listOf(issueKey))
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -576,18 +576,18 @@ abstract class BaseVcsFacadeTest(
 
     protected abstract fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
 
-    protected abstract fun findByIssueKey(issueKey: String): SearchSummary
+    protected abstract fun findByIssueKeys(issueKeys: List<String>): SearchSummary
 
-    protected abstract fun findBranchesByIssueKey(issueKey: String): List<Branch>
+    protected abstract fun findBranchesByIssueKeys(issueKeys: List<String>): List<Branch>
 
-    protected abstract fun findCommitsByIssueKey(issueKey: String): List<Commit>
+    protected abstract fun findCommitsByIssueKeys(issueKeys: List<String>): List<Commit>
 
-    protected abstract fun findCommitsWithFilesByIssueKey(
-        issueKey: String,
+    protected abstract fun findCommitsWithFilesByIssueKeys(
+        issueKeys: List<String>,
         commitFilesLimit: Int?
     ): List<CommitWithFiles>
 
-    protected abstract fun findPullRequestsByIssueKey(issueKey: String): List<PullRequest>
+    protected abstract fun findPullRequestsByIssueKeys(issueKeys: List<String>): List<PullRequest>
 
 
     companion object {

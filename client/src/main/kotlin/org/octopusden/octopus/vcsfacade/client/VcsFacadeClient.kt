@@ -72,21 +72,21 @@ interface VcsFacadeClient {
     @Headers("Content-Type: application/json")
     fun createPullRequest(@Param("sshUrl") sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
 
-    @RequestLine("GET rest/api/2/repository/find/{issueKey}")
-    fun findByIssueKey(@Param("issueKey") issueKey: String): SearchSummary
+    @RequestLine("GET rest/api/2/repository/find?issueKeys={issueKeys}")
+    fun findByIssueKeys(@Param("issueKeys") issueKeys: List<String>): SearchSummary
 
-    @RequestLine("GET rest/api/2/repository/find/{issueKey}/branches")
-    fun findBranchesByIssueKey(@Param("issueKey") issueKey: String): List<Branch>
+    @RequestLine("GET rest/api/2/repository/branches/find?issueKeys={issueKeys}")
+    fun findBranchesByIssueKeys(@Param("issueKeys") issueKeys: List<String>): List<Branch>
 
-    @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits")
-    fun findCommitsByIssueKey(@Param("issueKey") issueKey: String): List<Commit>
+    @RequestLine("GET rest/api/2/repository/commits/find?issueKeys={issueKeys}")
+    fun findCommitsByIssueKeys(@Param("issueKeys") issueKeys: List<String>): List<Commit>
 
-    @RequestLine("GET rest/api/2/repository/find/{issueKey}/commits/files?commitFilesLimit={commitFilesLimit}")
-    fun findCommitsWithFilesByIssueKey(
-        @Param("issueKey") issueKey: String,
+    @RequestLine("GET rest/api/2/repository/commits/files/find?issueKeys={issueKeys}&commitFilesLimit={commitFilesLimit}")
+    fun findCommitsWithFilesByIssueKeys(
+        @Param("issueKeys") issueKeys: List<String>,
         @Param("commitFilesLimit") commitFilesLimit: Int?
     ): List<CommitWithFiles>
 
-    @RequestLine("GET rest/api/2/repository/find/{issueKey}/pull-requests")
-    fun findPullRequestsByIssueKey(@Param("issueKey") issueKey: String): List<PullRequest>
+    @RequestLine("GET rest/api/2/repository/pull-requests/find?issueKeys={issueKeys}")
+    fun findPullRequestsByIssueKeys(@Param("issueKeys") issueKeys: List<String>): List<PullRequest>
 }

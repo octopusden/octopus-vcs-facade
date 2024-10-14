@@ -148,29 +148,34 @@ abstract class BaseVcsFacadeUnitTest(
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<SearchIssueInRangesResponse>() {})
 
-    override fun findByIssueKey(issueKey: String) = mvc.perform(
-        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey")
+    override fun findByIssueKeys(issueKeys: List<String>) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/find")
+            .param("issueKeys", *issueKeys.toTypedArray())
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<SearchSummary>() {})
 
-    override fun findBranchesByIssueKey(issueKey: String) = mvc.perform(
-        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/branches")
+    override fun findBranchesByIssueKeys(issueKeys: List<String>) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/branches/find")
+            .param("issueKeys", *issueKeys.toTypedArray())
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<Branch>>() {})
 
-    override fun findCommitsByIssueKey(issueKey: String) = mvc.perform(
-        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits")
+    override fun findCommitsByIssueKeys(issueKeys: List<String>) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commits/find")
+            .param("issueKeys", *issueKeys.toTypedArray())
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<Commit>>() {})
 
-    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) = mvc.perform(
-        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/commits/files")
+    override fun findCommitsWithFilesByIssueKeys(issueKeys: List<String>, commitFilesLimit: Int?) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/commits/files/find")
+            .param("issueKeys", *issueKeys.toTypedArray())
             .param("commitFilesLimit", commitFilesLimit?.toString())
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<CommitWithFiles>>() {})
 
-    override fun findPullRequestsByIssueKey(issueKey: String) = mvc.perform(
-        MockMvcRequestBuilders.get("/rest/api/2/repository/find/$issueKey/pull-requests")
+    override fun findPullRequestsByIssueKeys(issueKeys: List<String>) = mvc.perform(
+        MockMvcRequestBuilders.get("/rest/api/2/repository/pull-requests/find")
+            .param("issueKeys", *issueKeys.toTypedArray())
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<PullRequest>>() {})
 

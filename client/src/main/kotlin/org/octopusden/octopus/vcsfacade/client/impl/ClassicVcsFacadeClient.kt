@@ -12,9 +12,9 @@ import feign.jackson.JacksonEncoder
 import feign.slf4j.Slf4jLogger
 import java.util.Date
 import java.util.concurrent.TimeUnit
-import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
+import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetryer
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
@@ -64,16 +64,16 @@ class ClassicVcsFacadeClient(
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
         client.createPullRequest(sshUrl, createPullRequest)
 
-    override fun findByIssueKey(issueKey: String) = client.findByIssueKey(issueKey)
+    override fun findByIssueKeys(issueKeys: List<String>) = client.findByIssueKeys(issueKeys)
 
-    override fun findBranchesByIssueKey(issueKey: String) = client.findBranchesByIssueKey(issueKey)
+    override fun findBranchesByIssueKeys(issueKeys: List<String>) = client.findBranchesByIssueKeys(issueKeys)
 
-    override fun findCommitsByIssueKey(issueKey: String) = client.findCommitsByIssueKey(issueKey)
+    override fun findCommitsByIssueKeys(issueKeys: List<String>) = client.findCommitsByIssueKeys(issueKeys)
 
-    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) =
-        client.findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
+    override fun findCommitsWithFilesByIssueKeys(issueKeys: List<String>, commitFilesLimit: Int?) =
+        client.findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
 
-    override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
+    override fun findPullRequestsByIssueKeys(issueKeys: List<String>) = client.findPullRequestsByIssueKeys(issueKeys)
 
     fun setUrl(apiUrl: String, timeRetryInMillis: Int) {
         client = createClient(apiUrl, mapper, timeRetryInMillis)
@@ -91,7 +91,8 @@ class ClassicVcsFacadeClient(
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
                 .logger(Slf4jLogger(VcsFacadeClient::class.java)).logLevel(Logger.Level.FULL)
                 .encoder(JacksonEncoder(objectMapper))
-                .responseInterceptor(VcsFacadeResponseInterceptor(objectMapper)).retryer(VcsFacadeRetryer(timeRetryInMillis))
+                .responseInterceptor(VcsFacadeResponseInterceptor(objectMapper))
+                .retryer(VcsFacadeRetryer(timeRetryInMillis))
                 .decoder(JacksonDecoder(objectMapper)).errorDecoder(VcsFacadeErrorDecoder(objectMapper))
                 .target(VcsFacadeClient::class.java, apiUrl)
         }

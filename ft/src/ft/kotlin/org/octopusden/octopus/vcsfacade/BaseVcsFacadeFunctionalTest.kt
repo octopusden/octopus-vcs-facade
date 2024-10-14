@@ -52,16 +52,16 @@ abstract class BaseVcsFacadeFunctionalTest(
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
         client.searchIssuesInRanges(searchRequest)
 
-    override fun findByIssueKey(issueKey: String) = client.findByIssueKey(issueKey)
+    override fun findByIssueKeys(issueKeys: List<String>) = client.findByIssueKeys(issueKeys)
 
-    override fun findBranchesByIssueKey(issueKey: String) = client.findBranchesByIssueKey(issueKey)
+    override fun findBranchesByIssueKeys(issueKeys: List<String>) = client.findBranchesByIssueKeys(issueKeys)
 
-    override fun findCommitsByIssueKey(issueKey: String) = client.findCommitsByIssueKey(issueKey)
+    override fun findCommitsByIssueKeys(issueKeys: List<String>) = client.findCommitsByIssueKeys(issueKeys)
 
-    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) =
-        client.findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
+    override fun findCommitsWithFilesByIssueKeys(issueKeys: List<String>, commitFilesLimit: Int?) =
+        client.findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
 
-    override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
+    override fun findPullRequestsByIssueKeys(issueKeys: List<String>) = client.findPullRequestsByIssueKeys(issueKeys)
 
     companion object {
         val vcsFacadeHost = System.getProperty("test.vcs-facade-host")
