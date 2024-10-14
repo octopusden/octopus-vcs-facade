@@ -54,6 +54,10 @@ abstract class BaseVcsFacadeTest(
             testService.sshUrl(GROUP, REPOSITORY_2),
             CreatePullRequest("feature/ISSUE-4", "master", "[ISSUE-4] test PR", "Test PR description")
         )
+        createPullRequest(
+            testService.sshUrl(GROUP, REPOSITORY_2),
+            CreatePullRequest("ISSUE-6-and-ISSUE-7", "master", "ISSUE-6, ISSUE-7 test PR 2", "Test PR 2 description")
+        )
     }
 
     @AfterAll
@@ -250,36 +254,6 @@ abstract class BaseVcsFacadeTest(
         getTag(testService.sshUrl(GROUP, REPOSITORY_2), "v1.0")
     )
 
-    @Test
-    fun tagsTestScenario() {
-        val repository = "repository-2-tags"
-        testClient.importRepository(
-            testService.sshUrl(GROUP, repository),
-            File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$repository").apply {
-                outputStream().use {
-                    BaseVcsFacadeTest::class.java.classLoader.getResourceAsStream("$GROUP-$REPOSITORY_2.zip")!!
-                        .copyTo(it)
-                }
-            }
-        )
-        createTag(
-            testService.sshUrl(GROUP, repository),
-            CreateTag("test-0.1", "v1.0", "tagsTestScenario")
-        )
-        createTag(
-            testService.sshUrl(GROUP, repository),
-            CreateTag("test-0.2", "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7", "tagsTestScenario")
-        )
-        createTag(
-            testService.sshUrl(GROUP, repository),
-            CreateTag("test-0.3", "feature/ISSUE-4", "tagsTestScenario")
-        )
-        deleteTag(testService.sshUrl(GROUP, repository), "v1.0")
-        Assertions.assertEquals(
-            testService.getTags("tags-2.json"), getTags(testService.sshUrl(GROUP, repository))
-        )
-    }
-
     @ParameterizedTest
     @MethodSource("createTagFailsArguments")
     fun createTagFailsTest(group: String, repository: String, hashOrRef: String, exceptionClass: Class<out Throwable>) {
@@ -369,16 +343,16 @@ abstract class BaseVcsFacadeTest(
     }
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyFailsArguments")
+    @MethodSource("findByIssueKeysFailsArguments")
     fun searchIssueInRangesFailsTest2(
-        issueKey: String,
+        issueKeys: Set<String>,
         exceptionClass: Class<out Throwable>,
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(ArgumentsNotCompatibleException::class.java) {
             searchIssuesInRanges(
                 SearchIssuesInRangesRequest(
-                    setOf("ISSUE-1", issueKey, "ISSUE-3"),
+                    issueKeys,
                     setOf(
                         RepositoryRange(
                             testService.sshUrl(GROUP, REPOSITORY_2),
@@ -408,10 +382,10 @@ abstract class BaseVcsFacadeTest(
     }
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyArguments")
-    fun findByIssueKeyTest(issueKey: String, searchSummaryFile: String) = Assertions.assertEquals(
+    @MethodSource("findByIssueKeysArguments")
+    fun findByIssueKeysTest(issueKeys: Set<String>, searchSummaryFile: String) = Assertions.assertEquals(
         testService.getSearchSummary(searchSummaryFile),
-        findByIssueKeys(listOf(issueKey)).let { searchSummary ->
+        findByIssueKeys(issueKeys).let { searchSummary ->
             SearchSummary(
                 searchSummary.branches,
                 searchSummary.commits,
@@ -427,10 +401,14 @@ abstract class BaseVcsFacadeTest(
     )
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyFailsArguments")
-    fun findByIssueKeyFailsTest(issueKey: String, exceptionClass: Class<out Throwable>, exceptionMessage: String?) {
+    @MethodSource("findByIssueKeysFailsArguments")
+    fun findByIssueKeysFailsTest(
+        issueKeys: Set<String>,
+        exceptionClass: Class<out Throwable>,
+        exceptionMessage: String?
+    ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findByIssueKeys(listOf(issueKey))
+            findByIssueKeys(issueKeys)
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -438,21 +416,21 @@ abstract class BaseVcsFacadeTest(
     }
 
     @ParameterizedTest
-    @MethodSource("findBranchesByIssueKeyArguments")
-    fun findBranchesByIssueKeyTest(issueKey: String, branchesByIssueKeyFile: String) = Assertions.assertEquals(
+    @MethodSource("findBranchesByIssueKeysArguments")
+    fun findBranchesByIssueKeysTest(issueKeys: Set<String>, branchesByIssueKeyFile: String) = Assertions.assertEquals(
         testService.getBranches(branchesByIssueKeyFile),
-        findBranchesByIssueKeys(listOf(issueKey))
+        findBranchesByIssueKeys(issueKeys)
     )
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyFailsArguments")
-    fun findBranchesByIssueKeyFailsTest(
-        issueKey: String,
+    @MethodSource("findByIssueKeysFailsArguments")
+    fun findBranchesByIssueKeysFailsTest(
+        issueKeys: Set<String>,
         exceptionClass: Class<out Throwable>,
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findBranchesByIssueKeys(listOf( issueKey))
+            findBranchesByIssueKeys(issueKeys)
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -460,21 +438,21 @@ abstract class BaseVcsFacadeTest(
     }
 
     @ParameterizedTest
-    @MethodSource("findCommitsByIssueKeyArguments")
-    fun findCommitsByIssueKeyTest(issueKey: String, commitsByIssueKeyFile: String) = Assertions.assertEquals(
+    @MethodSource("findCommitsByIssueKeysArguments")
+    fun findCommitsByIssueKeysTest(issueKeys: Set<String>, commitsByIssueKeyFile: String) = Assertions.assertEquals(
         testService.getCommits(commitsByIssueKeyFile),
-        findCommitsByIssueKeys(listOf(issueKey))
+        findCommitsByIssueKeys(issueKeys)
     )
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyFailsArguments")
-    fun findCommitsByIssueKeyFailsTest(
-        issueKey: String,
+    @MethodSource("findByIssueKeysFailsArguments")
+    fun findCommitsByIssueKeysFailsTest(
+        issueKeys: Set<String>,
         exceptionClass: Class<out Throwable>,
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findCommitsByIssueKeys(listOf(issueKey))
+            findCommitsByIssueKeys(issueKeys)
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -482,25 +460,25 @@ abstract class BaseVcsFacadeTest(
     }
 
     @ParameterizedTest
-    @MethodSource("findCommitsWithFilesByIssueKeyArguments")
-    fun findCommitsWithFilesByIssueKeyTest(
-        issueKey: String,
+    @MethodSource("findCommitsWithFilesByIssueKeysArguments")
+    fun findCommitsWithFilesByIssueKeysTest(
+        issueKeys: Set<String>,
         commitFilesLimit: Int?,
         commitsWithFilesByIssueKeyFile: String
     ) = Assertions.assertEquals(
         testService.getCommitsWithFiles(commitsWithFilesByIssueKeyFile),
-        findCommitsWithFilesByIssueKeys(listOf(issueKey), commitFilesLimit)
+        findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
     )
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyFailsArguments")
-    fun findCommitsWithFilesByIssueKeyFailsTest(
-        issueKey: String,
+    @MethodSource("findByIssueKeysFailsArguments")
+    fun findCommitsWithFilesByIssueKeysFailsTest(
+        issueKeys: Set<String>,
         exceptionClass: Class<out Throwable>,
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findCommitsWithFilesByIssueKeys(listOf(issueKey), null)
+            findCommitsWithFilesByIssueKeys(issueKeys, null)
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -508,36 +486,37 @@ abstract class BaseVcsFacadeTest(
     }
 
     @ParameterizedTest
-    @MethodSource("findPullRequestsByIssueKeyArguments")
-    fun findPullRequestsByIssueKeyTest(issueKey: String, pullRequestsByIssueKeyFile: String) = Assertions.assertEquals(
-        testService.getPullRequests(pullRequestsByIssueKeyFile),
-        findPullRequestsByIssueKeys(listOf(issueKey)).map { pullRequest ->
-            PullRequest(
-                pullRequest.index, pullRequest.title,
-                pullRequest.description,
-                pullRequest.author,
-                pullRequest.source,
-                pullRequest.target,
-                pullRequest.assignees,
-                pullRequest.reviewers,
-                pullRequest.status,
-                Date(1698062284000L),
-                Date(1698062284000L),
-                pullRequest.link,
-                pullRequest.repository
-            )
-        }
-    )
+    @MethodSource("findPullRequestsByIssueKeysArguments")
+    fun findPullRequestsByIssueKeysTest(issueKeys: Set<String>, pullRequestsByIssueKeyFile: String) =
+        Assertions.assertEquals(
+            testService.getPullRequests(pullRequestsByIssueKeyFile),
+            findPullRequestsByIssueKeys(issueKeys).map { pullRequest ->
+                PullRequest(
+                    pullRequest.index, pullRequest.title,
+                    pullRequest.description,
+                    pullRequest.author,
+                    pullRequest.source,
+                    pullRequest.target,
+                    pullRequest.assignees,
+                    pullRequest.reviewers,
+                    pullRequest.status,
+                    Date(1698062284000L),
+                    Date(1698062284000L),
+                    pullRequest.link,
+                    pullRequest.repository
+                )
+            }
+        )
 
     @ParameterizedTest
-    @MethodSource("findByIssueKeyFailsArguments")
-    fun findPullRequestsByIssueKeyFailsTest(
-        issueKey: String,
+    @MethodSource("findByIssueKeysFailsArguments")
+    fun findPullRequestsByIssueKeysFailsTest(
+        issueKeys: Set<String>,
         exceptionClass: Class<out Throwable>,
         exceptionMessage: String?
     ) {
         val exception = Assertions.assertThrows(exceptionClass) {
-            findPullRequestsByIssueKeys(listOf(issueKey))
+            findPullRequestsByIssueKeys(issueKeys)
         }
         if (exceptionMessage != null) {
             Assertions.assertEquals(exceptionMessage, exception.message)
@@ -576,18 +555,18 @@ abstract class BaseVcsFacadeTest(
 
     protected abstract fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
 
-    protected abstract fun findByIssueKeys(issueKeys: List<String>): SearchSummary
+    protected abstract fun findByIssueKeys(issueKeys: Set<String>): SearchSummary
 
-    protected abstract fun findBranchesByIssueKeys(issueKeys: List<String>): List<Branch>
+    protected abstract fun findBranchesByIssueKeys(issueKeys: Set<String>): List<Branch>
 
-    protected abstract fun findCommitsByIssueKeys(issueKeys: List<String>): List<Commit>
+    protected abstract fun findCommitsByIssueKeys(issueKeys: Set<String>): List<Commit>
 
     protected abstract fun findCommitsWithFilesByIssueKeys(
-        issueKeys: List<String>,
+        issueKeys: Set<String>,
         commitFilesLimit: Int?
     ): List<CommitWithFiles>
 
-    protected abstract fun findPullRequestsByIssueKeys(issueKeys: List<String>): List<PullRequest>
+    protected abstract fun findPullRequestsByIssueKeys(issueKeys: Set<String>): List<PullRequest>
 
 
     companion object {
@@ -876,159 +855,94 @@ abstract class BaseVcsFacadeTest(
         )
 
         @JvmStatic
-        private fun findByIssueKeyArguments() = Stream.of(
+        private fun findByIssueKeysArguments() = Stream.of(
+            Arguments.of(setOf("ISSUE-1"), "search-summary.json"),
+            Arguments.of(setOf("ISSUE-2"), "search-summary-2.json"),
+            Arguments.of(setOf("ISSUE-3"), "search-summary-3.json"),
+            Arguments.of(setOf("ISSUE-4"), "search-summary-4.json"),
+            Arguments.of(setOf("ISSUE-5"), "search-summary-5.json"),
+            Arguments.of(setOf("ISSUE-6"), "search-summary-6.json"),
+            Arguments.of(setOf("ISSUE-7"), "search-summary-7.json"),
             Arguments.of(
-                "ISSUE-1",
-                "search-summary.json"
-            ),
-            Arguments.of(
-                "ISSUE-2",
-                "search-summary-2.json"
-            ),
-            Arguments.of(
-                "ISSUE-3",
-                "search-summary-3.json"
-            ),
-            Arguments.of(
-                "ISSUE-4",
-                "search-summary-4.json"
-            ),
-            Arguments.of(
-                "ISSUE-5",
-                "search-summary-5.json"
-            ),
+                setOf("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5", "ISSUE-6", "ISSUE-7"),
+                "search-summary-8.json"
+            )
         )
 
         @JvmStatic
-        private fun findByIssueKeyFailsArguments() = Stream.of(
+        private fun findByIssueKeysFailsArguments() = Stream.of(
             Arguments.of(
-                "ISSUE",
+                setOf("ISSUE"),
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue keys: [ISSUE]"
+                "Invalid issue keys: 'ISSUE'"
             ),
             Arguments.of(
-                "ISSUE-2A",
+                setOf("ISSUE-1", "ISSUE-2A", " ISSUE-3", "ISSUE+4", "0ISSUE-5"),
                 ArgumentsNotCompatibleException::class.java,
-                "Invalid issue keys: [ISSUE-2A]"
-            ),
-            Arguments.of(
-                " ISSUE-3",
-                ArgumentsNotCompatibleException::class.java,
-                "Invalid issue keys: [ ISSUE-3]"
-            ),
-            Arguments.of(
-                "ISSUE+4",
-                ArgumentsNotCompatibleException::class.java,
-                "Invalid issue keys: [ISSUE+4]"
-            ),
-            Arguments.of(
-                "0ISSUE-5",
-                ArgumentsNotCompatibleException::class.java,
-                "Invalid issue keys: [0ISSUE-5]"
-            ),
+                "Invalid issue keys: ' ISSUE-3', '0ISSUE-5', 'ISSUE+4', 'ISSUE-2A'"
+            )
         )
 
         @JvmStatic
-        private fun findBranchesByIssueKeyArguments() = Stream.of(
+        private fun findBranchesByIssueKeysArguments() = Stream.of(
+            Arguments.of(setOf("ISSUE-1"), "branches-by-issue-keys.json"),
+            Arguments.of(setOf("ISSUE-2"), "branches-by-issue-keys-2.json"),
+            Arguments.of(setOf("ISSUE-3"), "branches-by-issue-keys-3.json"),
+            Arguments.of(setOf("ISSUE-4"), "branches-by-issue-keys-4.json"),
+            Arguments.of(setOf("ISSUE-5"), "branches-by-issue-keys-5.json"),
+            Arguments.of(setOf("ISSUE-6"), "branches-by-issue-keys-6.json"),
+            Arguments.of(setOf("ISSUE-7"), "branches-by-issue-keys-7.json"),
             Arguments.of(
-                "ISSUE-1",
-                "branches-by-issue-key.json"
-            ),
-            Arguments.of(
-                "ISSUE-2",
-                "branches-by-issue-key-2.json"
-            ),
-            Arguments.of(
-                "ISSUE-3",
-                "branches-by-issue-key-3.json"
-            ),
-            Arguments.of(
-                "ISSUE-4",
-                "branches-by-issue-key-4.json"
-            ),
-            Arguments.of(
-                "ISSUE-5",
-                "branches-by-issue-key-5.json"
-            ),
+                setOf("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5", "ISSUE-6", "ISSUE-7"),
+                "branches-by-issue-keys-8.json"
+            )
         )
 
         @JvmStatic
-        private fun findCommitsByIssueKeyArguments() = Stream.of(
+        private fun findCommitsByIssueKeysArguments() = Stream.of(
+            Arguments.of(setOf("ISSUE-1"), "commits-by-issue-keys.json"),
+            Arguments.of(setOf("ISSUE-2"), "commits-by-issue-keys-2.json"),
+            Arguments.of(setOf("ISSUE-3"), "commits-by-issue-keys-3.json"),
+            Arguments.of(setOf("ISSUE-4"), "commits-by-issue-keys-4.json"),
+            Arguments.of(setOf("ISSUE-5"), "commits-by-issue-keys-5.json"),
+            Arguments.of(setOf("ISSUE-6"), "commits-by-issue-keys-6.json"),
+            Arguments.of(setOf("ISSUE-7"), "commits-by-issue-keys-7.json"),
             Arguments.of(
-                "ISSUE-1",
-                "commits-by-issue-key.json"
-            ),
-            Arguments.of(
-                "ISSUE-2",
-                "commits-by-issue-key-2.json"
-            ),
-            Arguments.of(
-                "ISSUE-3",
-                "commits-by-issue-key-3.json"
-            ),
-            Arguments.of(
-                "ISSUE-4",
-                "commits-by-issue-key-4.json"
-            ),
-            Arguments.of(
-                "ISSUE-5",
-                "commits-by-issue-key-5.json"
-            ),
+                setOf("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5", "ISSUE-6", "ISSUE-7"),
+                "commits-by-issue-keys-8.json"
+            )
         )
 
         @JvmStatic
-        private fun findCommitsWithFilesByIssueKeyArguments() = Stream.of(
+        private fun findCommitsWithFilesByIssueKeysArguments() = Stream.of(
+            Arguments.of(setOf("ISSUE-1"), null, "commits-with-files-by-issue-keys.json"),
+            Arguments.of(setOf("ISSUE-2"), -1, "commits-with-files-by-issue-keys-2.json"),
+            Arguments.of(setOf("ISSUE-3"), 1, "commits-with-files-by-issue-keys-3.json"),
+            Arguments.of(setOf("ISSUE-4"), 2, "commits-with-files-by-issue-keys-4.json"),
+            Arguments.of(setOf("ISSUE-5"), 0, "commits-with-files-by-issue-keys-5.json"),
+            Arguments.of(setOf("ISSUE-6"), 0, "commits-with-files-by-issue-keys-6.json"),
+            Arguments.of(setOf("ISSUE-7"), 0, "commits-with-files-by-issue-keys-7.json"),
             Arguments.of(
-                "ISSUE-1",
-                null,
-                "commits-with-files-by-issue-key.json"
-            ),
-            Arguments.of(
-                "ISSUE-2",
-                -1,
-                "commits-with-files-by-issue-key-2.json"
-            ),
-            Arguments.of(
-                "ISSUE-3",
-                1,
-                "commits-with-files-by-issue-key-3.json"
-            ),
-            Arguments.of(
-                "ISSUE-4",
-                2,
-                "commits-with-files-by-issue-key-4.json"
-            ),
-            Arguments.of(
-                "ISSUE-5",
+                setOf("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5", "ISSUE-6", "ISSUE-7"),
                 0,
-                "commits-with-files-by-issue-key-5.json"
-            ),
+                "commits-with-files-by-issue-keys-8.json"
+            )
         )
 
         @JvmStatic
-        private fun findPullRequestsByIssueKeyArguments() = Stream.of(
+        private fun findPullRequestsByIssueKeysArguments() = Stream.of(
+            Arguments.of(setOf("ISSUE-1"), "pull-requests-by-issue-keys.json"),
+            Arguments.of(setOf("ISSUE-2"), "pull-requests-by-issue-keys-2.json"),
+            Arguments.of(setOf("ISSUE-3"), "pull-requests-by-issue-keys-3.json"),
+            Arguments.of(setOf("ISSUE-4"), "pull-requests-by-issue-keys-4.json"),
+            Arguments.of(setOf("ISSUE-5"), "pull-requests-by-issue-keys-5.json"),
+            Arguments.of(setOf("ISSUE-6"), "pull-requests-by-issue-keys-6.json"),
+            Arguments.of(setOf("ISSUE-7"), "pull-requests-by-issue-keys-7.json"),
             Arguments.of(
-                "ISSUE-1",
-                "pull-requests-by-issue-key.json"
-            ),
-            Arguments.of(
-                "ISSUE-2",
-                "pull-requests-by-issue-key-2.json"
-            ),
-            Arguments.of(
-                "ISSUE-3",
-                "pull-requests-by-issue-key-3.json"
-            ),
-            Arguments.of(
-                "ISSUE-4",
-                "pull-requests-by-issue-key-4.json"
-            ),
-            Arguments.of(
-                "ISSUE-5",
-                "pull-requests-by-issue-key-5.json"
-            ),
+                setOf("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5", "ISSUE-6", "ISSUE-7"),
+                "pull-requests-by-issue-keys-8.json"
+            )
         )
         //</editor-fold>
     }
 }
-

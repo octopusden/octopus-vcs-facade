@@ -130,7 +130,7 @@ class OpenSearchServiceImpl(
         log.trace("<= deletePullRequestsByRepositoryId({})", repositoryId)
     }
 
-    override fun findBranchesByIssueKeys(issueKeys: List<String>): Set<RefDocument> {
+    override fun findBranchesByIssueKeys(issueKeys: Set<String>): Set<RefDocument> {
         log.trace("=> findBranchesByIssueKeys({})", issueKeys)
         return issueKeys.flatMap { issueKey ->
             val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
@@ -141,7 +141,7 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun findCommitsByIssueKeys(issueKeys: List<String>): Set<CommitDocument> {
+    override fun findCommitsByIssueKeys(issueKeys: Set<String>): Set<CommitDocument> {
         log.trace("=> findCommitsByIssueKeys({})", issueKeys)
         return issueKeys.flatMap { issueKey ->
             val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
@@ -152,7 +152,7 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun findPullRequestsByIssueKeys(issueKeys: List<String>): Set<PullRequestDocument> {
+    override fun findPullRequestsByIssueKeys(issueKeys: Set<String>): Set<PullRequestDocument> {
         log.trace("=> findPullRequestsByIssueKeys({})", issueKeys)
         return issueKeys.flatMap { issueKey ->
             val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
@@ -163,7 +163,7 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun findByIssueKeys(issueKeys: List<String>): SearchSummary {
+    override fun findByIssueKeys(issueKeys: Set<String>): SearchSummary {
         log.trace("=> findByIssueKeys({})", issueKeys)
         val issueKeysToRegex = issueKeys.map { it to IssueKeyParser.getIssueKeyRegex(it) }
         val branchesCommits = issueKeysToRegex.flatMap { (issueKey, regex) ->

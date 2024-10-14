@@ -196,7 +196,7 @@ class RepositoryController(
 
     @GetMapping("find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findByIssueKeys(
-        @RequestParam("issueKeys") issueKeys: List<String>,
+        @RequestParam("issueKeys") issueKeys: Set<String>,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get search summary for issue keys {}", issueKeys)
@@ -205,7 +205,7 @@ class RepositoryController(
 
     @GetMapping("branches/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findBranchesByIssueKeys(
-        @RequestParam("issueKeys") issueKeys: List<String>,
+        @RequestParam("issueKeys") issueKeys: Set<String>,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find branches by issue keys {}", issueKeys)
@@ -214,7 +214,7 @@ class RepositoryController(
 
     @GetMapping("commits/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsByIssueKeys(
-        @RequestParam("issueKeys") issueKeys: List<String>,
+        @RequestParam("issueKeys") issueKeys: Set<String>,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue keys {}", issueKeys)
@@ -223,7 +223,7 @@ class RepositoryController(
 
     @GetMapping("commits/files/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsWithFilesByIssueKeys(
-        @RequestParam("issueKeys") issueKeys: List<String>,
+        @RequestParam("issueKeys") issueKeys: Set<String>,
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
@@ -235,7 +235,7 @@ class RepositoryController(
 
     @GetMapping("pull-requests/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findPullRequestsByIssueKeys(
-        @RequestParam("issueKeys") issueKeys: List<String>,
+        @RequestParam("issueKeys") issueKeys: Set<String>,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find pull requests by issue keys {}", issueKeys)
@@ -252,7 +252,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Get search summary for issue key {}", issueKey)
-        vcsManager.find(listOf(issueKey))
+        vcsManager.find(setOf(issueKey))
     }
 
     @Deprecated(
@@ -265,7 +265,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find branches by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findBranches(listOf(issueKey)))
+        RepositoryResponse(vcsManager.findBranches(setOf(issueKey)))
     }.data.sorted()
 
     @Deprecated(
@@ -278,7 +278,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find commits by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findCommits(listOf(issueKey)))
+        RepositoryResponse(vcsManager.findCommits(setOf(issueKey)))
     }.data.sorted()
 
     @Deprecated(
@@ -293,7 +293,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(listOf(issueKey)).map { it.mapFilesList(commitFilesLimit) }
+            vcsManager.findCommitsWithFiles(setOf(issueKey)).map { it.mapFilesList(commitFilesLimit) }
         )
     }.data.sorted()
 
@@ -307,7 +307,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find pull requests by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findPullRequests(listOf(issueKey)))
+        RepositoryResponse(vcsManager.findPullRequests(setOf(issueKey)))
     }.data.sorted()
 
     private fun <T> processRequest(requestId: String, func: () -> T): T {

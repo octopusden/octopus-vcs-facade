@@ -179,7 +179,7 @@ class VcsManagerImpl(
         ).also { log.trace("<= searchIssuesInRanges({}): {}", searchRequest, it) }
     }
 
-    override fun findBranches(issueKeys: List<String>): Sequence<Branch> {
+    override fun findBranches(issueKeys: Set<String>): Sequence<Branch> {
         log.trace("=> findBranches({})", issueKeys)
         validateIssueKeys(issueKeys)
         val branches = openSearchService?.findBranchesByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() as Branch }
@@ -189,7 +189,7 @@ class VcsManagerImpl(
         return branches
     }
 
-    override fun findCommits(issueKeys: List<String>): Sequence<Commit> {
+    override fun findCommits(issueKeys: Set<String>): Sequence<Commit> {
         log.trace("=> findCommits({})", issueKeys)
         validateIssueKeys(issueKeys)
         val commits = openSearchService?.findCommitsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto().commit }
@@ -199,7 +199,7 @@ class VcsManagerImpl(
         return commits
     }
 
-    override fun findCommitsWithFiles(issueKeys: List<String>): Sequence<CommitWithFiles> {
+    override fun findCommitsWithFiles(issueKeys: Set<String>): Sequence<CommitWithFiles> {
         log.trace("=> findCommitsWithFiles({})", issueKeys)
         validateIssueKeys(issueKeys)
         val commitsWithFiles = openSearchService?.findCommitsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() }
@@ -209,7 +209,7 @@ class VcsManagerImpl(
         return commitsWithFiles
     }
 
-    override fun findPullRequests(issueKeys: List<String>): Sequence<PullRequest> {
+    override fun findPullRequests(issueKeys: Set<String>): Sequence<PullRequest> {
         log.trace("=> findPullRequests({})", issueKeys)
         validateIssueKeys(issueKeys)
         val pullRequests = openSearchService?.findPullRequestsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() }
@@ -219,7 +219,7 @@ class VcsManagerImpl(
         return pullRequests
     }
 
-    override fun find(issueKeys: List<String>): SearchSummary {
+    override fun find(issueKeys: Set<String>): SearchSummary {
         log.trace("=> find({})", issueKeys)
         validateIssueKeys(issueKeys)
         val searchSummary = openSearchService?.findByIssueKeys(issueKeys) ?: run {

@@ -39,10 +39,10 @@ interface OpenSearchService {
     fun savePullRequests(pullRequests: Sequence<PullRequestDocument>)
     fun deletePullRequestsByIds(pullRequestsIds: Sequence<String>)
     fun deletePullRequestsByRepositoryId(repositoryId: String)
-    fun findBranchesByIssueKeys(issueKeys: List<String>): Set<RefDocument>
-    fun findCommitsByIssueKeys(issueKeys: List<String>): Set<CommitDocument>
-    fun findPullRequestsByIssueKeys(issueKeys: List<String>): Set<PullRequestDocument>
-    fun findByIssueKeys(issueKeys: List<String>): SearchSummary
+    fun findBranchesByIssueKeys(issueKeys: Set<String>): Set<RefDocument>
+    fun findCommitsByIssueKeys(issueKeys: Set<String>): Set<CommitDocument>
+    fun findPullRequestsByIssueKeys(issueKeys: Set<String>): Set<PullRequestDocument>
+    fun findByIssueKeys(issueKeys: Set<String>): SearchSummary
 
     companion object {
         fun Ref.toDocument(repositoryDocument: RepositoryDocument) =

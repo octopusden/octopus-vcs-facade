@@ -7,13 +7,15 @@ object IssueKeyParser {
 
     private val issueKeyValidateRegex = ISSUE_KEY_PATTERN.toRegex()
 
-    fun validateIssueKeys(issueKeys: Collection<String>) = issueKeys.filter { !it.matches(issueKeyValidateRegex) }.let {
-        if (it.isNotEmpty()) throw ArgumentsNotCompatibleException("Invalid issue keys: $it")
+    fun validateIssueKeys(issueKeys: Set<String>) = issueKeys.filter { !it.matches(issueKeyValidateRegex) }.let {
+        if (it.isNotEmpty()) throw ArgumentsNotCompatibleException(
+            it.sorted().joinToString(", ", "Invalid issue keys: ") { issueKey -> "'$issueKey'" }
+        )
     }
 
-    private val issueKeyFindRegex = "(?:^|[^_A-Z0-9-])($ISSUE_KEY_PATTERN)".toRegex()
+    private val issueKeyFindRegex = "(?:^|[^_A-Z0-9])($ISSUE_KEY_PATTERN)".toRegex()
 
     fun findIssueKeys(message: String) = issueKeyFindRegex.findAll(message).map { it.groups[1]!!.value }
 
-    fun getIssueKeyRegex(issueKey: String) = "(^|[^_A-Z0-9-])$issueKey(\\D|$)".toRegex()
+    fun getIssueKeyRegex(issueKey: String) = "(^|[^_A-Z0-9])$issueKey(\\D|$)".toRegex()
 }

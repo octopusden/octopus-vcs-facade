@@ -64,16 +64,16 @@ class ClassicVcsFacadeClient(
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
         client.createPullRequest(sshUrl, createPullRequest)
 
-    override fun findByIssueKeys(issueKeys: List<String>) = client.findByIssueKeys(issueKeys)
+    override fun findByIssueKeys(issueKeys: Set<String>) = client.findByIssueKeys(issueKeys)
 
-    override fun findBranchesByIssueKeys(issueKeys: List<String>) = client.findBranchesByIssueKeys(issueKeys)
+    override fun findBranchesByIssueKeys(issueKeys: Set<String>) = client.findBranchesByIssueKeys(issueKeys)
 
-    override fun findCommitsByIssueKeys(issueKeys: List<String>) = client.findCommitsByIssueKeys(issueKeys)
+    override fun findCommitsByIssueKeys(issueKeys: Set<String>) = client.findCommitsByIssueKeys(issueKeys)
 
-    override fun findCommitsWithFilesByIssueKeys(issueKeys: List<String>, commitFilesLimit: Int?) =
+    override fun findCommitsWithFilesByIssueKeys(issueKeys: Set<String>, commitFilesLimit: Int?) =
         client.findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
 
-    override fun findPullRequestsByIssueKeys(issueKeys: List<String>) = client.findPullRequestsByIssueKeys(issueKeys)
+    override fun findPullRequestsByIssueKeys(issueKeys: Set<String>) = client.findPullRequestsByIssueKeys(issueKeys)
 
     fun setUrl(apiUrl: String, timeRetryInMillis: Int) {
         client = createClient(apiUrl, mapper, timeRetryInMillis)

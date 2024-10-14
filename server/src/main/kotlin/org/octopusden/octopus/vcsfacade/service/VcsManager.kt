@@ -33,9 +33,9 @@ interface VcsManager { //TODO: allow to use both http and ssh repository url (re
     fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles
     fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
     fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
-    fun findBranches(issueKeys: List<String>): Sequence<Branch>
-    fun findCommits(issueKeys: List<String>): Sequence<Commit>
-    fun findCommitsWithFiles(issueKeys: List<String>): Sequence<CommitWithFiles>
-    fun findPullRequests(issueKeys: List<String>): Sequence<PullRequest>
-    fun find(issueKeys: List<String>): SearchSummary
+    fun findBranches(issueKeys: Set<String>): Sequence<Branch>
+    fun findCommits(issueKeys: Set<String>): Sequence<Commit>
+    fun findCommitsWithFiles(issueKeys: Set<String>): Sequence<CommitWithFiles>
+    fun findPullRequests(issueKeys: Set<String>): Sequence<PullRequest>
+    fun find(issueKeys: Set<String>): SearchSummary
 }
