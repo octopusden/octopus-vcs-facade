@@ -1,1 +1,13 @@
-[{"name":"ISSUE-6-and-ISSUE-7","hash":"8165914023d2b33fe1d99312ddabed6b04fb418f","link":"http://@test.vcs-host@/test/repository-2/src/branch/ISSUE-6-and-ISSUE-7","repository":{"sshUrl":"ssh://git@@test.vcs-host@/test/repository-2.git","link":"http://@test.vcs-host@/test/repository-2","avatar":null},"type":"BRANCH"}]
+[
+  {
+    "name": "ISSUE-6-and-ISSUE-7",
+    "hash": "8165914023d2b33fe1d99312ddabed6b04fb418f",
+    "link": "http://@test.vcs-host@/test/repository-2/src/branch/ISSUE-6-and-ISSUE-7",
+    "repository": {
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+      "link": "http://@test.vcs-host@/test/repository-2",
+      "avatar": null
+    },
+    "type": "BRANCH"
+  }
+]

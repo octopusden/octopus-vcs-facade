@@ -1,1 +1,35 @@
-[{"commit":{"hash":"8165914023d2b33fe1d99312ddabed6b04fb418f","message":"[ISSUE-6] [ISSUE-7] Double issue commit","date":1728911456000,"author":{"name":"admin","avatar":"http://@test.vcs-host@/users/admin/avatar.png?s=48"},"parents":["06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd"],"link":"http://@test.vcs-host@/projects/test/repos/repository-2/commits/8165914023d2b33fe1d99312ddabed6b04fb418f","repository":{"sshUrl":"ssh://git@@test.vcs-host@/test/repository-2.git","link":"http://@test.vcs-host@/projects/test/repos/repository-2/browse","avatar":"http://@test.vcs-host@/projects/test/avatar.png?s=48"}},"totalFiles":2,"files":[{"type":"MODIFY","path":"src/source-2.txt","link":"http://@test.vcs-host@/projects/test/repos/repository-2/commits/8165914023d2b33fe1d99312ddabed6b04fb418f#src/source-2.txt"},{"type":"MODIFY","path":"src/source.txt","link":"http://@test.vcs-host@/projects/test/repos/repository-2/commits/8165914023d2b33fe1d99312ddabed6b04fb418f#src/source.txt"}]}]
+[
+  {
+    "commit": {
+      "hash": "8165914023d2b33fe1d99312ddabed6b04fb418f",
+      "message": "[ISSUE-6] [ISSUE-7] Double issue commit",
+      "date": 1728911456000,
+      "author": {
+        "name": "admin",
+        "avatar": "http://@test.vcs-host@/users/admin/avatar.png?s=48"
+      },
+      "parents": [
+        "06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd"
+      ],
+      "link": "http://@test.vcs-host@/projects/test/repos/repository-2/commits/8165914023d2b33fe1d99312ddabed6b04fb418f",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/projects/test/repos/repository-2/browse",
+        "avatar": "http://@test.vcs-host@/projects/test/avatar.png?s=48"
+      }
+    },
+    "totalFiles": 2,
+    "files": [
+      {
+        "type": "MODIFY",
+        "path": "src/source-2.txt",
+        "link": "http://@test.vcs-host@/projects/test/repos/repository-2/commits/8165914023d2b33fe1d99312ddabed6b04fb418f#src/source-2.txt"
+      },
+      {
+        "type": "MODIFY",
+        "path": "src/source.txt",
+        "link": "http://@test.vcs-host@/projects/test/repos/repository-2/commits/8165914023d2b33fe1d99312ddabed6b04fb418f#src/source.txt"
+      }
+    ]
+  }
+]

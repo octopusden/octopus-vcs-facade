@@ -1,1 +1,46 @@
-[{"index":2,"title":"ISSUE-6, ISSUE-7 test PR 2","description":"Test PR 2 description","author":{"name":"test-admin","avatar":"https://secure.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?d=identicon"},"source":"ISSUE-6-and-ISSUE-7","target":"master","assignees":[],"reviewers":[],"status":"OPEN","createdAt":1698062284000,"updatedAt":1698062284000,"link":"http://@test.vcs-host@/test/repository-2/pulls/2","repository":{"sshUrl":"ssh://git@@test.vcs-host@/test/repository-2.git","link":"http://@test.vcs-host@/test/repository-2","avatar":null}},{"index":1,"title":"[ISSUE-4] test PR","description":"Test PR description","author":{"name":"test-admin","avatar":"https://secure.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?d=identicon"},"source":"feature/ISSUE-4","target":"master","assignees":[],"reviewers":[],"status":"OPEN","createdAt":1698062284000,"updatedAt":1698062284000,"link":"http://@test.vcs-host@/test/repository-2/pulls/1","repository":{"sshUrl":"ssh://git@@test.vcs-host@/test/repository-2.git","link":"http://@test.vcs-host@/test/repository-2","avatar":null}}]
+[
+  {
+    "index": 2,
+    "title": "ISSUE-6, ISSUE-7 test PR 2",
+    "description": "Test PR 2 description",
+    "author": {
+      "name": "test-admin",
+      "avatar": "https://secure.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?d=identicon"
+    },
+    "source": "ISSUE-6-and-ISSUE-7",
+    "target": "master",
+    "assignees": [],
+    "reviewers": [],
+    "status": "OPEN",
+    "createdAt": 1698062284000,
+    "updatedAt": 1698062284000,
+    "link": "http://@test.vcs-host@/test/repository-2/pulls/2",
+    "repository": {
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+      "link": "http://@test.vcs-host@/test/repository-2",
+      "avatar": null
+    }
+  },
+  {
+    "index": 1,
+    "title": "[ISSUE-4] test PR",
+    "description": "Test PR description",
+    "author": {
+      "name": "test-admin",
+      "avatar": "https://secure.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?d=identicon"
+    },
+    "source": "feature/ISSUE-4",
+    "target": "master",
+    "assignees": [],
+    "reviewers": [],
+    "status": "OPEN",
+    "createdAt": 1698062284000,
+    "updatedAt": 1698062284000,
+    "link": "http://@test.vcs-host@/test/repository-2/pulls/1",
+    "repository": {
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+      "link": "http://@test.vcs-host@/test/repository-2",
+      "avatar": null
+    }
+  }
+]
