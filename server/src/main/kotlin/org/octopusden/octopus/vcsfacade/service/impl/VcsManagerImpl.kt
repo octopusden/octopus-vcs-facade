@@ -2,7 +2,6 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import java.util.Date
 import java.util.stream.Collectors
-import org.apache.commons.lang3.tuple.ImmutablePair
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
@@ -246,7 +245,7 @@ class VcsManagerImpl(
     override fun health(): Health {
         log.trace("Run health check")
 
-        val healthCheckList = vcsProperties.services.mapNotNull { it.healthCheck ?.let { hc -> ImmutablePair(it.id, hc) } }.toList()
+        val healthCheckList = vcsProperties.services.mapNotNull { it.healthCheck ?.let { hc -> it.id to hc } }.toList()
         if (healthCheckList.isEmpty()) {
             val msg = "Health check is not configured for any VCS service"
             log.warn(msg)
@@ -254,9 +253,9 @@ class VcsManagerImpl(
         }
 
         val errors = healthCheckList.mapNotNull {
-            val healthCheck = it.value
+            val healthCheck = it.second
             try {
-                val commits = getVcsServiceById(it.key).getCommits(
+                val commits = getVcsServiceById(it.first).getCommits(
                     healthCheck.group,
                     healthCheck.repository,
                     HashOrRefOrDate.create(healthCheck.fromCommit, null),
@@ -270,7 +269,7 @@ class VcsManagerImpl(
                     null
                 }
             } catch (e: Exception) {
-                log.error("Health check for VCS service with id '${it.key}' has failed", e)
+                log.error("Health check for VCS service with id '${it.first}' has failed", e)
                 e.javaClass.name + ": " + e.message
             }
         }.toList()
