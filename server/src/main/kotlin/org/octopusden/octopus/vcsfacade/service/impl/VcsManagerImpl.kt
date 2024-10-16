@@ -245,7 +245,7 @@ class VcsManagerImpl(
     override fun health(): Health {
         log.trace("Run health check")
 
-        val healthCheckList = vcsProperties.services.mapNotNull { it.healthCheck ?.let { hc -> it.id to hc } }.toList()
+        val healthCheckList = vcsProperties.services.mapNotNull { it.healthCheck ?.let { hc -> it.id to hc } }
         if (healthCheckList.isEmpty()) {
             val msg = "Health check is not configured for any VCS service"
             log.warn(msg)
@@ -272,7 +272,7 @@ class VcsManagerImpl(
                 log.error("Health check for VCS service with id '${it.first}' has failed", e)
                 e.javaClass.name + ": " + e.message
             }
-        }.toList()
+        }
         return if (errors.isEmpty()) {
             log.trace("Health check status is UP")
             Health.up().build()
