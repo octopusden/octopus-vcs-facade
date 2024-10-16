@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import java.util.Date
 import java.util.stream.Collectors
+import org.apache.commons.lang3.tuple.ImmutablePair
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
@@ -24,7 +25,6 @@ import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.slf4j.LoggerFactory
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
-import org.springframework.boot.actuate.health.Status
 import org.springframework.stereotype.Service
 
 @Service
@@ -245,53 +245,40 @@ class VcsManagerImpl(
 
     override fun health(): Health {
         log.trace("Run health check")
-        var status = Status.UNKNOWN
 
-        fun updateStatus(newStatus: Status) {
-            if (status != Status.DOWN) {
-                status = newStatus
-            }
+        val healthCheckList = vcsProperties.services.mapNotNull { it.healthCheck ?.let { hc -> ImmutablePair(it.id, hc) } }.toList()
+        if (healthCheckList.isEmpty()) {
+            val msg = "Health check is not configured for any VCS service"
+            log.warn(msg)
+            return Health.unknown().withDetail("services", msg).build()
         }
 
-        val errors = vcsProperties.services.mapNotNull {
-            val healthCheck = it.healthCheck
-            if (healthCheck == null) {
-                log.warn("Health check is not configured for VCS service with id '${it.id}'")
-                null
-            } else {
-                try {
-                    val commits = getVcsServiceById(it.id).getCommits(
-                        healthCheck.group,
-                        healthCheck.repository,
-                        HashOrRefOrDate.create(healthCheck.fromCommit, null),
-                        healthCheck.toCommit
-                    ).map { commit -> commit.hash }.toSet()
-                    if (commits != healthCheck.expectedCommits) {
-                        val diffCommits = (commits - healthCheck.expectedCommits)
-                            .union(healthCheck.expectedCommits - commits)
-                        updateStatus(Status.DOWN)
-                        "The symmetric difference of response commits with expected commits is $diffCommits"
-                    } else {
-                        updateStatus(Status.UP)
-                        null
-                    }
-                } catch (e: Exception) {
-                    log.error("Health check for VCS service with id '${it.id}' has failed", e)
-                    updateStatus(Status.DOWN)
-                    e.javaClass.name + ": " + e.message
+        val errors = healthCheckList.mapNotNull {
+            val healthCheck = it.value
+            try {
+                val commits = getVcsServiceById(it.key).getCommits(
+                    healthCheck.group,
+                    healthCheck.repository,
+                    HashOrRefOrDate.create(healthCheck.fromCommit, null),
+                    healthCheck.toCommit
+                ).map { commit -> commit.hash }.toSet()
+                if (commits != healthCheck.expectedCommits) {
+                    val diffCommits = (commits - healthCheck.expectedCommits)
+                        .union(healthCheck.expectedCommits - commits)
+                    "The symmetric difference of response commits with expected commits is $diffCommits"
+                } else {
+                    null
                 }
-            }?.let { error -> "Health check for VCS service with id '${it.id}' has failed. $error" }
-        }
-        val healthBuilder = Health.status(status)
-        val health = if (errors.isEmpty()) {
-            healthBuilder.build()
+            } catch (e: Exception) {
+                log.error("Health check for VCS service with id '${it.key}' has failed", e)
+                e.javaClass.name + ": " + e.message
+            }
+        }.toList()
+        return if (errors.isEmpty()) {
+            Health.up().build()
         } else {
-            healthBuilder.withDetail("errors", buildString {
-                errors.joinTo(this, separator = ". ")
-            }).build()
+            Health.down().withDetail("errors", errors.joinToString(". ")).build()
         }
-        log.trace("Health check status is {}", health.status)
-        return health
     }
 
     companion object {
