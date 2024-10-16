@@ -275,8 +275,10 @@ class VcsManagerImpl(
             }
         }.toList()
         return if (errors.isEmpty()) {
+            log.trace("Health check status is UP")
             Health.up().build()
         } else {
+            log.error("Health check status is DOWN: ${errors.joinToString(". ")}")
             Health.down().withDetail("errors", errors.joinToString(". ")).build()
         }
     }
