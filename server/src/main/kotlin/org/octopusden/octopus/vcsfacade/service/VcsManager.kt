@@ -22,14 +22,20 @@ interface VcsManager { //TODO: allow to use both http and ssh repository url (re
     fun getTag(sshUrl: String, name: String): Tag
     fun deleteTag(sshUrl: String, name: String)
     fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<Commit>
-    fun getCommitsWithFiles(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<CommitWithFiles>
+    fun getCommitsWithFiles(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String
+    ): Sequence<CommitWithFiles>
+
     fun getCommit(sshUrl: String, hashOrRef: String): Commit
     fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles
     fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
     fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
-    fun findBranches(issueKey: String): Sequence<Branch>
-    fun findCommits(issueKey: String): Sequence<Commit>
-    fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles>
-    fun findPullRequests(issueKey: String): Sequence<PullRequest>
-    fun find(issueKey: String): SearchSummary
+    fun findBranches(issueKeys: Set<String>): Sequence<Branch>
+    fun findCommits(issueKeys: Set<String>): Sequence<Commit>
+    fun findCommitsWithFiles(issueKeys: Set<String>): Sequence<CommitWithFiles>
+    fun findPullRequests(issueKeys: Set<String>): Sequence<PullRequest>
+    fun find(issueKeys: Set<String>): SearchSummary
 }

@@ -103,7 +103,12 @@ class OpenSearchServiceImpl(
 
     override fun findPullRequestsIdsByRepositoryId(repositoryId: String): Set<String> {
         log.trace("=> findPullRequestsByRepositoryId({})", repositoryId)
-        return fetchAllIds { pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(repositoryId, it) }
+        return fetchAllIds {
+            pullRequestRepository.searchFirst100ByRepositoryIdAndIdAfterOrderByIdAsc(
+                repositoryId,
+                it
+            )
+        }
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
@@ -125,51 +130,59 @@ class OpenSearchServiceImpl(
         log.trace("<= deletePullRequestsByRepositoryId({})", repositoryId)
     }
 
-    override fun findBranchesByIssueKey(issueKey: String): Sequence<RefDocument> {
-        log.trace("=> findBranchesByIssueKey({})", issueKey)
-        return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
+    override fun findBranchesByIssueKeys(issueKeys: Set<String>): Set<RefDocument> {
+        log.trace("=> findBranchesByIssueKeys({})", issueKeys)
+        return issueKeys.flatMap { issueKey ->
+            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
             refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
-                .asSequence().filter { containsMatchIn(it.name) }
-        }.also {
-            log.trace("<= findBranchesByIssueKey({}): {}", issueKey, it)
+                .filter { issueKeyRegex.containsMatchIn(it.name) }
+        }.toSet().also {
+            log.trace("<= findBranchesByIssueKeys({}): {}", issueKeys, it)
         }
     }
 
-    override fun findCommitsByIssueKey(issueKey: String): Sequence<CommitDocument> {
-        log.trace("=> findCommitsByIssueKey({})", issueKey)
-        return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
+    override fun findCommitsByIssueKeys(issueKeys: Set<String>): Set<CommitDocument> {
+        log.trace("=> findCommitsByIssueKeys({})", issueKeys)
+        return issueKeys.flatMap { issueKey ->
+            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
             commitRepository.searchByMessageContaining(issueKey)
-                .asSequence().filter { containsMatchIn(it.message) }
-        }.also {
-            log.trace("<= findCommitsByIssueKey({}): {}", issueKey, it)
+                .filter { issueKeyRegex.containsMatchIn(it.message) }
+        }.toSet().also {
+            log.trace("<= findCommitsByIssueKeys({}): {}", issueKeys, it)
         }
     }
 
-    override fun findPullRequestsByIssueKey(issueKey: String): Sequence<PullRequestDocument> {
-        log.trace("=> findPullRequestsByIssueKey({})", issueKey)
-        return with(IssueKeyParser.getIssueKeyRegex(issueKey)) {
+    override fun findPullRequestsByIssueKeys(issueKeys: Set<String>): Set<PullRequestDocument> {
+        log.trace("=> findPullRequestsByIssueKeys({})", issueKeys)
+        return issueKeys.flatMap { issueKey ->
+            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
             pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
-                .asSequence().filter { containsMatchIn(it.title) || containsMatchIn(it.description) }
-        }.also {
-            log.trace("<= findPullRequestsByIssueKey({}): {}", issueKey, it)
+                .filter { issueKeyRegex.containsMatchIn(it.title) || issueKeyRegex.containsMatchIn(it.description) }
+        }.toSet().also {
+            log.trace("<= findPullRequestsByIssueKeys({}): {}", issueKeys, it)
         }
     }
 
-    override fun findByIssueKey(issueKey: String): SearchSummary {
-        log.trace("=> findByIssueKey({})", issueKey)
-        val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
-        val branchesCommits = refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey).filter {
-            issueKeyRegex.containsMatchIn(it.name)
-        }.map {
-            commitRepository.findById(it.commitId).getOrNull()
-        }
-        val commits = commitRepository.searchByMessageContaining(issueKey).filter {
-            issueKeyRegex.containsMatchIn(it.message)
-        }
-        val pullRequests =
-            pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
-                issueKeyRegex.containsMatchIn(it.title) || issueKeyRegex.containsMatchIn(it.description)
+    override fun findByIssueKeys(issueKeys: Set<String>): SearchSummary {
+        log.trace("=> findByIssueKeys({})", issueKeys)
+        val issueKeysToRegex = issueKeys.map { it to IssueKeyParser.getIssueKeyRegex(it) }
+        val branchesCommits = issueKeysToRegex.flatMap { (issueKey, regex) ->
+            refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey).filter {
+                regex.containsMatchIn(it.name)
+            }.map {
+                commitRepository.findById(it.commitId).getOrNull()
             }
+        }.toSet()
+        val commits = issueKeysToRegex.flatMap { (issueKey, regex) ->
+            commitRepository.searchByMessageContaining(issueKey).filter {
+                regex.containsMatchIn(it.message)
+            }
+        }.toSet()
+        val pullRequests = issueKeysToRegex.flatMap { (issueKey, regex) ->
+            pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
+                regex.containsMatchIn(it.title) || regex.containsMatchIn(it.description)
+            }
+        }.toSet()
         return SearchSummary(SearchSummary.SearchBranchesSummary(
             branchesCommits.size,
             branchesCommits.filterNotNull().maxOfOrNull { it.date }),
@@ -180,7 +193,7 @@ class OpenSearchServiceImpl(
                     if (size == 1) first() else null
                 })
         ).also {
-            log.trace("<= findByIssueKey({}): {}", issueKey, it)
+            log.trace("<= findByIssueKeys({}): {}", issueKeys, it)
         }
     }
 
@@ -221,7 +234,12 @@ class OpenSearchServiceImpl(
         private fun <T> processAll(documents: Sequence<T>, batchOperation: (batch: List<T>) -> Unit) =
             processAll(documents, BATCH_SIZE, { 1 }, batchOperation)
 
-        private fun <T> processAll(documents: Sequence<T>, batchWeightLimit: Int, documentWeight: (document: T) -> Int, batchOperation: (batch: List<T>) -> Unit) {
+        private fun <T> processAll(
+            documents: Sequence<T>,
+            batchWeightLimit: Int,
+            documentWeight: (document: T) -> Int,
+            batchOperation: (batch: List<T>) -> Unit
+        ) {
             val batch = ArrayList<T>(BATCH_SIZE)
             var batchWeight = 0
             for (document in documents) {

@@ -10,7 +10,7 @@ import org.octopusden.octopus.vcsfacade.client.impl.VcsFacadeClientParametersPro
 
 abstract class BaseVcsFacadeFunctionalTest(
     testService: TestService, testClient: TestClient
-) : BaseVcsFacadeTest(testService, testClient) {
+) : BaseVcsFacadeTestExtended(testService, testClient) {
     override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
         client.createPullRequest(sshUrl, createPullRequest)
 
@@ -52,16 +52,16 @@ abstract class BaseVcsFacadeFunctionalTest(
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
         client.searchIssuesInRanges(searchRequest)
 
-    override fun findByIssueKey(issueKey: String) = client.findByIssueKey(issueKey)
+    override fun findByIssueKeys(issueKeys: Set<String>) = client.findByIssueKeys(issueKeys)
 
-    override fun findBranchesByIssueKey(issueKey: String) = client.findBranchesByIssueKey(issueKey)
+    override fun findBranchesByIssueKeys(issueKeys: Set<String>) = client.findBranchesByIssueKeys(issueKeys)
 
-    override fun findCommitsByIssueKey(issueKey: String) = client.findCommitsByIssueKey(issueKey)
+    override fun findCommitsByIssueKeys(issueKeys: Set<String>) = client.findCommitsByIssueKeys(issueKeys)
 
-    override fun findCommitsWithFilesByIssueKey(issueKey: String, commitFilesLimit: Int?) =
-        client.findCommitsWithFilesByIssueKey(issueKey, commitFilesLimit)
+    override fun findCommitsWithFilesByIssueKeys(issueKeys: Set<String>, commitFilesLimit: Int?) =
+        client.findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
 
-    override fun findPullRequestsByIssueKey(issueKey: String) = client.findPullRequestsByIssueKey(issueKey)
+    override fun findPullRequestsByIssueKeys(issueKeys: Set<String>) = client.findPullRequestsByIssueKeys(issueKeys)
 
     companion object {
         val vcsFacadeHost = System.getProperty("test.vcs-facade-host")

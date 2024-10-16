@@ -1,0 +1,20 @@
+[
+  {
+    "hash": "8165914023d2b33fe1d99312ddabed6b04fb418f",
+    "message": "[ISSUE-6] [ISSUE-7] Double issue commit\n",
+    "date": 1728911456000,
+    "author": {
+      "name": "admin",
+      "avatar": null
+    },
+    "parents": [
+      "06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd"
+    ],
+    "link": "http://@test.vcs-host@/test/repository-2/commit/8165914023d2b33fe1d99312ddabed6b04fb418f",
+    "repository": {
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+      "link": "http://@test.vcs-host@/test/repository-2",
+      "avatar": null
+    }
+  }
+]

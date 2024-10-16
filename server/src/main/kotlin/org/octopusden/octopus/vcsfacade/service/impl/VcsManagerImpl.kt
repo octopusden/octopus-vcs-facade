@@ -17,7 +17,7 @@ import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
-import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser.validateIssueKey
+import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser.validateIssueKeys
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService.Companion.toDto
 import org.octopusden.octopus.vcsfacade.service.VcsManager
@@ -153,7 +153,7 @@ class VcsManagerImpl(
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
         log.trace("=> searchIssuesInRanges({})", searchRequest)
-        searchRequest.issueKeys.map { validateIssueKey(it) }
+        validateIssueKeys(searchRequest.issueKeys)
         val messageRanges = searchRequest.ranges.flatMap { range ->
             getCommits(
                 range.sshUrl, range.fromHashOrRef, range.fromDate, range.toHashOrRef
@@ -179,66 +179,80 @@ class VcsManagerImpl(
         ).also { log.trace("<= searchIssuesInRanges({}): {}", searchRequest, it) }
     }
 
-    override fun findBranches(issueKey: String): Sequence<Branch> {
-        log.trace("=> findBranches({})", issueKey)
-        validateIssueKey(issueKey)
-        val branches = openSearchService?.findBranchesByIssueKey(issueKey)?.map { it.toDto() as Branch }
-            ?: vcsServices.flatMap { it.findBranches(issueKey) }.asSequence()
-        if (log.isTraceEnabled) log.trace("<= findBranches({}): {}", issueKey, branches.toList())
+    override fun findBranches(issueKeys: Set<String>): Sequence<Branch> {
+        log.trace("=> findBranches({})", issueKeys)
+        validateIssueKeys(issueKeys)
+        val branches = openSearchService?.findBranchesByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() as Branch }
+            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findBranches(issueKey) } }
+                .asSequence().distinctBy { it.repository.sshUrl + it.name }
+        if (log.isTraceEnabled) log.trace("<= findBranches({}): {}", issueKeys, branches.toList())
         return branches
     }
 
-    override fun findCommits(issueKey: String): Sequence<Commit> {
-        log.trace("=> findCommits({})", issueKey)
-        validateIssueKey(issueKey)
-        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto().commit }
-            ?: vcsServices.flatMap { it.findCommits(issueKey) }.asSequence()
-        if (log.isTraceEnabled) log.trace("<= findCommits({}): {}", issueKey, commits.toList())
+    override fun findCommits(issueKeys: Set<String>): Sequence<Commit> {
+        log.trace("=> findCommits({})", issueKeys)
+        validateIssueKeys(issueKeys)
+        val commits = openSearchService?.findCommitsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto().commit }
+            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findCommits(issueKey) } }
+                .asSequence().distinctBy { it.repository.sshUrl + it.hash }
+        if (log.isTraceEnabled) log.trace("<= findCommits({}): {}", issueKeys, commits.toList())
         return commits
     }
 
-    override fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles> {
-        log.trace("=> findCommitsWithFiles({})", issueKey)
-        validateIssueKey(issueKey)
-        val commits = openSearchService?.findCommitsByIssueKey(issueKey)?.map { it.toDto() }
-            ?: vcsServices.flatMap { it.findCommitsWithFiles(issueKey) }.asSequence()
-        if (log.isTraceEnabled) log.trace("<= findCommitsWithFiles({}): {}", issueKey, commits.toList())
-        return commits
+    override fun findCommitsWithFiles(issueKeys: Set<String>): Sequence<CommitWithFiles> {
+        log.trace("=> findCommitsWithFiles({})", issueKeys)
+        validateIssueKeys(issueKeys)
+        val commitsWithFiles = openSearchService?.findCommitsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() }
+            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findCommitsWithFiles(issueKey) } }
+                .asSequence().distinctBy { it.commit.repository.sshUrl + it.commit.hash }
+        if (log.isTraceEnabled) log.trace("<= findCommitsWithFiles({}): {}", issueKeys, commitsWithFiles.toList())
+        return commitsWithFiles
     }
 
-    override fun findPullRequests(issueKey: String): Sequence<PullRequest> {
-        log.trace("=> findPullRequests({})", issueKey)
-        validateIssueKey(issueKey)
-        val pullRequests = openSearchService?.findPullRequestsByIssueKey(issueKey)?.map { it.toDto() }
-            ?: vcsServices.flatMap { it.findPullRequests(issueKey) }.asSequence()
-        if (log.isTraceEnabled) log.trace("<= findPullRequests({}): {}", issueKey, pullRequests.toList())
+    override fun findPullRequests(issueKeys: Set<String>): Sequence<PullRequest> {
+        log.trace("=> findPullRequests({})", issueKeys)
+        validateIssueKeys(issueKeys)
+        val pullRequests = openSearchService?.findPullRequestsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() }
+            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findPullRequests(issueKey) } }
+                .asSequence().distinctBy { it.repository.sshUrl + it.index }
+        if (log.isTraceEnabled) log.trace("<= findPullRequests({}): {}", issueKeys, pullRequests.toList())
         return pullRequests
     }
 
-    override fun find(issueKey: String): SearchSummary {
-        log.trace("=> find({})", issueKey)
-        validateIssueKey(issueKey)
-        val searchSummary = openSearchService?.findByIssueKey(issueKey) ?: run {
-            val branchesCommits = vcsServices.flatMap { vcsService ->
-                vcsService.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {
-                    val (group, repository) = vcsService.parse(it.key)
-                    vcsService.findCommits(group, repository, it.value.map { branch -> branch.hash }.toSet())
+    override fun find(issueKeys: Set<String>): SearchSummary {
+        log.trace("=> find({})", issueKeys)
+        validateIssueKeys(issueKeys)
+        val searchSummary = openSearchService?.findByIssueKeys(issueKeys) ?: run {
+            val branchesCommits = issueKeys.flatMap { issueKey ->
+                vcsServices.flatMap { vcsService ->
+                    vcsService.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {
+                        val (group, repository) = vcsService.parse(it.key)
+                        vcsService.findCommits(group, repository, it.value.map { branch -> branch.hash }.toSet())
+                    }
                 }
-            }
-            val commits = vcsServices.flatMap { it.findCommits(issueKey) }
-            val pullRequests = vcsServices.flatMap { it.findPullRequests(issueKey) }
-            SearchSummary(SearchSummary.SearchBranchesSummary(
-                branchesCommits.size,
-                branchesCommits.maxOfOrNull { it.date }),
-                SearchSummary.SearchCommitsSummary(commits.size, commits.maxOfOrNull { it.date }),
-                SearchSummary.SearchPullRequestsSummary(pullRequests.size,
+            }.distinctBy { it.repository.sshUrl + it.hash }
+            val commits = issueKeys.flatMap { issueKey ->
+                vcsServices.flatMap { it.findCommits(issueKey) }
+            }.distinctBy { it.repository.sshUrl + it.hash }
+            val pullRequests = issueKeys.flatMap { issueKey ->
+                vcsServices.flatMap { it.findPullRequests(issueKey) }
+            }.distinctBy { it.repository.sshUrl + it.index }
+            SearchSummary(
+                SearchSummary.SearchBranchesSummary(
+                    branchesCommits.size,
+                    branchesCommits.maxOfOrNull { it.date }),
+                SearchSummary.SearchCommitsSummary(
+                    commits.size,
+                    commits.maxOfOrNull { it.date }),
+                SearchSummary.SearchPullRequestsSummary(
+                    pullRequests.size,
                     pullRequests.maxOfOrNull { it.updatedAt },
                     with(pullRequests.map { it.status }.toSet()) {
                         if (size == 1) first() else null
                     })
             )
         }
-        log.trace("<= find({}): {}", issueKey, searchSummary)
+        log.trace("<= find({}): {}", issueKeys, searchSummary)
         return searchSummary
     }
 

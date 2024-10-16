@@ -1,0 +1,180 @@
+[
+  {
+    "commit": {
+      "hash": "8165914023d2b33fe1d99312ddabed6b04fb418f",
+      "message": "[ISSUE-6] [ISSUE-7] Double issue commit\n",
+      "date": 1728911456000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd"
+      ],
+      "link": "http://@test.vcs-host@/test/repository-2/commit/8165914023d2b33fe1d99312ddabed6b04fb418f",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 2,
+    "files": [
+      {
+        "type": "MODIFY",
+        "path": "src/source-2.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/8165914023d2b33fe1d99312ddabed6b04fb418f#diff-75d4b3ab0aad35786827dc3096812657df1eb070"
+      },
+      {
+        "type": "MODIFY",
+        "path": "src/source.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/8165914023d2b33fe1d99312ddabed6b04fb418f#diff-2feb10ce6a5a50faefb9fddbb78ef8a89b915a9"
+      }
+    ]
+  },
+  {
+    "commit": {
+      "hash": "06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd",
+      "message": "Merge branch 'feature/ISSUE-2' (squash)\n",
+      "date": 1716987041000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "9a44342d8ee92b85b9b23bcad8953b56868f9699"
+      ],
+      "link": "http://@test.vcs-host@/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 3,
+    "files": [
+      {
+        "type": "DELETE",
+        "path": "src/source-1.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-ee724442198bac184fd8356360895fa4d9c45b69"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source-2.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-75d4b3ab0aad35786827dc3096812657df1eb070"
+      },
+      {
+        "type": "ADD",
+        "path": "src/source.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/06e8235bf0fffef5e4e9e0a1258c576ce7f7fdcd#diff-2feb10ce6a5a50faefb9fddbb78ef8a89b915a9"
+      }
+    ]
+  },
+  {
+    "commit": {
+      "hash": "b1adb6beb8ffe099d0a746a845a031538ee44e4f",
+      "message": "[ISSUE-4] First commit\n",
+      "date": 1716986870000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "9a44342d8ee92b85b9b23bcad8953b56868f9699"
+      ],
+      "link": "http://@test.vcs-host@/test/repository-2/commit/b1adb6beb8ffe099d0a746a845a031538ee44e4f",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 1,
+    "files": [
+      {
+        "type": "ADD",
+        "path": "src/source-4.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/b1adb6beb8ffe099d0a746a845a031538ee44e4f#diff-2034b7e73073bd07284a80db2243ff98cf65604"
+      }
+    ]
+  },
+  {
+    "commit": {
+      "hash": "9a44342d8ee92b85b9b23bcad8953b56868f9699",
+      "message": "Merge branch 'bugfix/ISSUE-3'\n\n# Conflicts:\n#\tsrc/source-1.txt\n",
+      "date": 1716986762000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7",
+        "ce1b7175c9b4914cf2fc03c0f28046509f820597"
+      ],
+      "link": "http://@test.vcs-host@/test/repository-2/commit/9a44342d8ee92b85b9b23bcad8953b56868f9699",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 0,
+    "files": []
+  },
+  {
+    "commit": {
+      "hash": "ce1b7175c9b4914cf2fc03c0f28046509f820597",
+      "message": "ISSUE-3 First commit\n",
+      "date": 1716986486000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1"
+      ],
+      "link": "http://@test.vcs-host@/test/repository-2/commit/ce1b7175c9b4914cf2fc03c0f28046509f820597",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 1,
+    "files": [
+      {
+        "type": "MODIFY",
+        "path": "src/source-1.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/ce1b7175c9b4914cf2fc03c0f28046509f820597#diff-ee724442198bac184fd8356360895fa4d9c45b69"
+      }
+    ]
+  },
+  {
+    "commit": {
+      "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+      "message": "ISSUE-1 Initial implementation\n",
+      "date": 1716986279000,
+      "author": {
+        "name": "admin",
+        "avatar": null
+      },
+      "parents": [
+        "49bfe6a125a88cddd90c74b75b196c40fd380685"
+      ],
+      "link": "http://@test.vcs-host@/test/repository-2/commit/7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
+      "repository": {
+        "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+        "link": "http://@test.vcs-host@/test/repository-2",
+        "avatar": null
+      }
+    },
+    "totalFiles": 1,
+    "files": [
+      {
+        "type": "ADD",
+        "path": "src/source-1.txt",
+        "link": "http://@test.vcs-host@/test/repository-2/commit/7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1#diff-ee724442198bac184fd8356360895fa4d9c45b69"
+      }
+    ]
+  }
+]

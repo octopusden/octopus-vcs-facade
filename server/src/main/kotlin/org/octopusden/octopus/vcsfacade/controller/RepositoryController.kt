@@ -194,52 +194,120 @@ class RepositoryController(
         vcsManager.createPullRequest(sshUrl, createPullRequest)
     }
 
+    @GetMapping("find", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun findByIssueKeys(
+        @RequestParam("issueKeys") issueKeys: Set<String>,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get search summary for issue keys {}", issueKeys)
+        vcsManager.find(issueKeys)
+    }
+
+    @GetMapping("branches/find", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun findBranchesByIssueKeys(
+        @RequestParam("issueKeys") issueKeys: Set<String>,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find branches by issue keys {}", issueKeys)
+        RepositoryResponse(vcsManager.findBranches(issueKeys))
+    }.data.sorted()
+
+    @GetMapping("commits/find", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun findCommitsByIssueKeys(
+        @RequestParam("issueKeys") issueKeys: Set<String>,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find commits by issue keys {}", issueKeys)
+        RepositoryResponse(vcsManager.findCommits(issueKeys))
+    }.data.sorted()
+
+    @GetMapping("commits/files/find", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun findCommitsWithFilesByIssueKeys(
+        @RequestParam("issueKeys") issueKeys: Set<String>,
+        @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find commits with files (limit {}) by issue keys {}", commitFilesLimit, issueKeys)
+        RepositoryResponse(
+            vcsManager.findCommitsWithFiles(issueKeys).map { it.mapFilesList(commitFilesLimit) }
+        )
+    }.data.sorted()
+
+    @GetMapping("pull-requests/find", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun findPullRequestsByIssueKeys(
+        @RequestParam("issueKeys") issueKeys: Set<String>,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Find pull requests by issue keys {}", issueKeys)
+        RepositoryResponse(vcsManager.findPullRequests(issueKeys))
+    }.data.sorted()
+
+    @Deprecated(
+        message = "Deprecated endpoint",
+        replaceWith = ReplaceWith("findByIssueKeys(listOf(issueKey), requestId)")
+    )
     @GetMapping("find/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get search summary for issue key {}", issueKey)
-        vcsManager.find(issueKey)
+        log.warn("Deprecated call! Get search summary for issue key {}", issueKey)
+        vcsManager.find(setOf(issueKey))
     }
 
+    @Deprecated(
+        message = "Deprecated endpoint",
+        replaceWith = ReplaceWith("findBranchesByIssueKeys(listOf(issueKey), requestId)")
+    )
     @GetMapping("find/{issueKey}/branches", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findBranchesByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find branches by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findBranches(issueKey))
+        log.warn("Deprecated call! Find branches by issue key {}", issueKey)
+        RepositoryResponse(vcsManager.findBranches(setOf(issueKey)))
     }.data.sorted()
 
+    @Deprecated(
+        message = "Deprecated endpoint",
+        replaceWith = ReplaceWith("findCommitsByIssueKeys(listOf(issueKey), requestId)")
+    )
     @GetMapping("find/{issueKey}/commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find commits by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findCommits(issueKey))
+        log.warn("Deprecated call! Find commits by issue key {}", issueKey)
+        RepositoryResponse(vcsManager.findCommits(setOf(issueKey)))
     }.data.sorted()
 
+    @Deprecated(
+        message = "Deprecated endpoint",
+        replaceWith = ReplaceWith("findCommitsWithFilesByIssueKeys(listOf(issueKey), commitFilesLimit, requestId)")
+    )
     @GetMapping("find/{issueKey}/commits/files", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsWithFilesByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
+        log.warn("Deprecated call! Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(issueKey).map { it.mapFilesList(commitFilesLimit) }
+            vcsManager.findCommitsWithFiles(setOf(issueKey)).map { it.mapFilesList(commitFilesLimit) }
         )
     }.data.sorted()
 
+    @Deprecated(
+        message = "Deprecated endpoint",
+        replaceWith = ReplaceWith("findPullRequestsByIssueKeys(listOf(issueKey), requestId)")
+    )
     @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findPullRequestsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Find pull requests by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findPullRequests(issueKey))
+        log.warn("Deprecated call! Find pull requests by issue key {}", issueKey)
+        RepositoryResponse(vcsManager.findPullRequests(setOf(issueKey)))
     }.data.sorted()
 
     private fun <T> processRequest(requestId: String, func: () -> T): T {
@@ -267,6 +335,8 @@ class RepositoryController(
         }
         log.debug("Collect request {} result", requestId)
         try {
+            //TODO: use some concurrent map with timed entry eviction
+            //Repeatable deferred result request could be routed to another instance if application runs in multi-nodes
             @Suppress("UNCHECKED_CAST") return requestJobs.remove(requestId)!!.get() as T
         } catch (e: ExecutionException) {
             throw e.cause!!
