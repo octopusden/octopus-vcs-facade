@@ -278,8 +278,9 @@ class VcsManagerImpl(
             log.trace("Health check status is UP")
             Health.up().build()
         } else {
-            log.error("Health check status is DOWN: ${errors.joinToString(". ")}")
-            Health.down().withDetail("errors", errors.joinToString(". ")).build()
+            val error = errors.joinToString(". ")
+            log.error("Health check status is DOWN: $error")
+            Health.down().withDetail("errors", error).build()
         }
     }
 
