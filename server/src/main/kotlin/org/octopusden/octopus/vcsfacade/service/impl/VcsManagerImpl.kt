@@ -258,35 +258,43 @@ class VcsManagerImpl(
 
     override fun health(): Health {
         log.trace("Run health check")
-        val errors = vcsProperties.services.mapNotNull {
-            if (it.healthCheck == null) {
-                log.warn("Health check is not configured for VCS service with id '${it.id}'")
-                null
-            } else {
-                try {
-                    val commits = getVcsServiceById(it.id).getCommits(
-                        it.healthCheck.group,
-                        it.healthCheck.repository,
-                        HashOrRefOrDate.create(it.healthCheck.fromCommit, null),
-                        it.healthCheck.toCommit
-                    ).map { commit -> commit.hash }.toSet()
-                    if (commits != it.healthCheck.expectedCommits) {
-                        val diffCommits = (commits - it.healthCheck.expectedCommits)
-                            .union(it.healthCheck.expectedCommits - commits)
-                        "The symmetric difference of response commits with expected commits is $diffCommits"
-                    } else null
-                } catch (e: Exception) {
-                    "Unexpected exception"
-                }
-            }?.let { error -> "Health check for VCS service with id '${it.id}' has failed. $error" }
+
+        val healthCheckList = vcsProperties.services.mapNotNull { it.healthCheck ?.let { hc -> it.id to hc } }
+        if (healthCheckList.isEmpty()) {
+            val msg = "Health check is not configured for any VCS service"
+            log.warn(msg)
+            return Health.unknown().withDetail("services", msg).build()
         }
-        val health = if (errors.isEmpty()) {
+
+        val errors = healthCheckList.mapNotNull {
+            val healthCheck = it.second
+            try {
+                val commits = getVcsServiceById(it.first).getCommits(
+                    healthCheck.group,
+                    healthCheck.repository,
+                    HashOrRefOrDate.create(healthCheck.fromCommit, null),
+                    healthCheck.toCommit
+                ).map { commit -> commit.hash }.toSet()
+                if (commits != healthCheck.expectedCommits) {
+                    val diffCommits = (commits - healthCheck.expectedCommits)
+                        .union(healthCheck.expectedCommits - commits)
+                    "The symmetric difference of response commits with expected commits is $diffCommits"
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                log.error("Health check for VCS service with id '${it.first}' has failed", e)
+                e.javaClass.name + ": " + e.message
+            }
+        }
+        return if (errors.isEmpty()) {
+            log.trace("Health check status is UP")
             Health.up().build()
         } else {
-            Health.down().withDetail("errors", errors.joinToString(separator = ". ")).build()
+            val error = errors.joinToString(". ")
+            log.error("Health check status is DOWN: $error")
+            Health.down().withDetail("errors", error).build()
         }
-        log.trace("Health check status is {}", health.status)
-        return health
     }
 
     companion object {
