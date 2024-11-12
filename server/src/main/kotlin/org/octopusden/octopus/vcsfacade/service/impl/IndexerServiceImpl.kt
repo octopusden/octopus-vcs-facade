@@ -7,6 +7,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaShortCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.document.CommitDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
@@ -214,20 +215,26 @@ class IndexerServiceImpl(
                     "Save tags in index for ${repository.sshUrl} repository", tags
                 )
                 openSearchService.saveRefs(tags)
-                val commits = vcsService.getBranchesCommitGraph(repository.group, repository.name).map {
-                    it.toDocument(repository)
+
+                val visited = mutableSetOf<String>()
+                val branchesCommitGraphSequence = vcsService.getBranchesCommitGraph(repository.group, repository.name)
+                branchesCommitGraphSequence.chunked(50).forEach { chunk ->
+                    logIndexActionMessage(
+                        "Save commits in index for ${repository.sshUrl} repository ", chunk.asSequence()
+                    )
+                    visited.addAll(chunk.map { c -> c.commit.hash })
+                    openSearchService.saveCommits(chunk.map { it.toDocument(repository) }.asSequence())
                 }
+
                 val orphanedCommitsIds = (openSearchService.findCommitsIdsByRepositoryId(repository.id) -
-                        commits.map { it.id }.toSet()).asSequence()
+                        visited.map { CommitDocument.commitId(repository, it) }.toSet()).asSequence()
+
                 logIndexActionMessage(
                     "Remove orphaned commits from index for ${repository.sshUrl} repository",
                     orphanedCommitsIds
                 )
                 openSearchService.deleteCommitsByIds(orphanedCommitsIds)
-                logIndexActionMessage(
-                    "Save commits in index for ${repository.sshUrl} repository ", commits
-                )
-                openSearchService.saveCommits(commits)
+
                 val pullRequests = vcsService.getPullRequests(repository.group, repository.name).map {
                     it.toDocument(repository)
                 }
