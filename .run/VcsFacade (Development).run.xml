@@ -10,6 +10,7 @@
     </additionalParameters>
     <module name="octopus-vcs-facade.vcs-facade.main" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="org.octopusden.octopus.vcsfacade.VcsFacadeApplication" />
+    <option name="VM_PARAMETERS" value="-Xmx1500m" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="org.octopusden.octopus.vcsfacade.*" />

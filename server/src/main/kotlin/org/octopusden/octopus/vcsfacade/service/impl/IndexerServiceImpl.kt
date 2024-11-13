@@ -218,9 +218,9 @@ class IndexerServiceImpl(
 
                 val visited = mutableSetOf<String>()
                 val branchesCommitGraphSequence = vcsService.getBranchesCommitGraph(repository.group, repository.name)
-                branchesCommitGraphSequence.chunked(50).forEach { chunk ->
+                branchesCommitGraphSequence.chunked(50).forEachIndexed { index, chunk ->
                     logIndexActionMessage(
-                        "Save commits in index for ${repository.sshUrl} repository ", chunk.asSequence()
+                        "Save chunk ($index) of commits in index for ${repository.sshUrl} repository ", chunk.asSequence()
                     )
                     visited.addAll(chunk.map { c -> c.commit.hash })
                     openSearchService.saveCommits(chunk.map { it.toDocument(repository) }.asSequence())
