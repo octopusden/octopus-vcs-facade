@@ -32,6 +32,8 @@ import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 
+private const val COMMIT_CHUNK_SIZE = 50
+
 @Service
 @ConditionalOnProperty(
     prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
@@ -215,26 +217,22 @@ class IndexerServiceImpl(
                     "Save tags in index for ${repository.sshUrl} repository", tags
                 )
                 openSearchService.saveRefs(tags)
-
                 val visited = mutableSetOf<String>()
-                val branchesCommitGraphSequence = vcsService.getBranchesCommitGraph(repository.group, repository.name)
-                branchesCommitGraphSequence.chunked(50).forEachIndexed { index, chunk ->
+                val commits = vcsService.getBranchesCommitGraph(repository.group, repository.name)
+                commits.chunked(COMMIT_CHUNK_SIZE).forEachIndexed { index, chunk ->
                     logIndexActionMessage(
-                        "Save chunk ($index) of commits in index for ${repository.sshUrl} repository ", chunk.asSequence()
+                        "Save chunk (${index + 1}) of ($COMMIT_CHUNK_SIZE) commits in index for ${repository.sshUrl} repository ", chunk.asSequence()
                     )
                     visited.addAll(chunk.map { c -> c.commit.hash })
                     openSearchService.saveCommits(chunk.map { it.toDocument(repository) }.asSequence())
                 }
-
                 val orphanedCommitsIds = (openSearchService.findCommitsIdsByRepositoryId(repository.id) -
                         visited.map { CommitDocument.commitId(repository, it) }.toSet()).asSequence()
-
                 logIndexActionMessage(
                     "Remove orphaned commits from index for ${repository.sshUrl} repository",
                     orphanedCommitsIds
                 )
                 openSearchService.deleteCommitsByIds(orphanedCommitsIds)
-
                 val pullRequests = vcsService.getPullRequests(repository.group, repository.name).map {
                     it.toDocument(repository)
                 }
