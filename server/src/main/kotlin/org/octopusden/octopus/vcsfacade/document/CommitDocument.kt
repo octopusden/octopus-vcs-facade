@@ -22,7 +22,11 @@ class CommitDocument(
     @Field(type = FieldType.Keyword) val link: String,
     //TODO: Sometimes a commit contains enormous number of affected files. Is it better to store files in separate index?
     @Field(type = FieldType.Object) val files: List<FileChangeDocument>
-) : BaseDocument(id(repository.id, hash)) {
+) : BaseDocument(commitId(repository, hash)) {
     override fun toString() =
         "CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"
+
+    companion object {
+        fun commitId(repository: RepositoryDocument, hash: String) = id(repository.id, hash)
+    }
 }

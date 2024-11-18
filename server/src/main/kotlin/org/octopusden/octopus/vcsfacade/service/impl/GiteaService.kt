@@ -159,7 +159,7 @@ class GiteaService(
     override fun getBranchesCommitGraph(group: String, repository: String): Sequence<CommitWithFiles> {
         log.trace("=> getBranchesCommitGraph({}, {})", group, repository)
         return with(getRepository(group, repository)) {
-            client.getBranchesCommitGraph(group, repository, true).asSequence().map { it.toCommitWithFiles(this) }
+            client.getBranchesCommitGraph(group, repository, true).map { it.toCommitWithFiles(this) }
         }.also {
             if (log.isTraceEnabled) log.trace(
                 "<= getBranchesCommitGraph({}, {}): {}",
