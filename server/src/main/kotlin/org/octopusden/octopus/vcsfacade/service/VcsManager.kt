@@ -17,7 +17,7 @@ interface VcsManager { //TODO: allow to use both http and ssh repository url (re
     fun findVcsServiceById(id: String): VcsService?
     fun getVcsServiceById(id: String): VcsService
     fun getVcsServiceForSshUrl(sshUrl: String): VcsService
-    fun getTags(sshUrl: String): Sequence<Tag>
+    fun getTags(sshUrl: String, names: Set<String>?): Sequence<Tag>
     fun createTag(sshUrl: String, createTag: CreateTag): Tag
     fun getTag(sshUrl: String, name: String): Tag
     fun deleteTag(sshUrl: String, name: String)

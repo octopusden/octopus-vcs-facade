@@ -1,44 +1,11 @@
 [
   {
-    "name": "test-0.1",
+    "name": "v1.0",
     "hash": "7df7b682b6be1dd1e3c81ef776d5d6da44ac8ee1",
-    "link": "http://@test.vcs-host@/test/repository-2-tags/src/tag/test-0.1",
+    "link": "http://@test.vcs-host@/test/repository-2/src/tag/v1.0",
     "repository": {
-      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2-tags.git",
-      "link": "http://@test.vcs-host@/test/repository-2-tags",
-      "avatar": null
-    },
-    "type": "TAG"
-  },
-  {
-    "name": "test-0.2",
-    "hash": "d25d71af3afa700e91a1613c5ab4ec6b26a88ff7",
-    "link": "http://@test.vcs-host@/test/repository-2-tags/src/tag/test-0.2",
-    "repository": {
-      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2-tags.git",
-      "link": "http://@test.vcs-host@/test/repository-2-tags",
-      "avatar": null
-    },
-    "type": "TAG"
-  },
-  {
-    "name": "test-0.3",
-    "hash": "b1adb6beb8ffe099d0a746a845a031538ee44e4f",
-    "link": "http://@test.vcs-host@/test/repository-2-tags/src/tag/test-0.3",
-    "repository": {
-      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2-tags.git",
-      "link": "http://@test.vcs-host@/test/repository-2-tags",
-      "avatar": null
-    },
-    "type": "TAG"
-  },
-  {
-    "name": "v1.0.1",
-    "hash": "60d98c818023c651ee816bf119fe22ac33ccfafe",
-    "link": "http://@test.vcs-host@/test/repository-2-tags/src/tag/v1.0.1",
-    "repository": {
-      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2-tags.git",
-      "link": "http://@test.vcs-host@/test/repository-2-tags",
+      "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
+      "link": "http://@test.vcs-host@/test/repository-2",
       "avatar": null
     },
     "type": "TAG"

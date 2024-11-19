@@ -29,7 +29,7 @@ class ExceptionInfoHandler {
     }
 
     @ExceptionHandler(NotFoundException::class, GiteaNotFoundException::class, BitBucketNotFoundException::class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST) //IMPORTANT: backward compatibility (for RepositoryControllerOld controller), use HttpStatus.NOT_FOUND as possible
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     @ResponseBody
     fun handleNotFound(exception: Exception) = handleError(VcsFacadeErrorCode.NOT_FOUND, exception)
 

@@ -51,6 +51,7 @@ abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
     abstract fun getPullRequests(group: String, repository: String): Sequence<PullRequest>
     abstract fun createPullRequest(group: String, repository: String, createPullRequest: CreatePullRequest): PullRequest
     abstract fun getPullRequest(group: String, repository: String, index: Long): PullRequest
+    abstract fun findTags(group: String, repository: String, names: Set<String>): Sequence<Tag>
     abstract fun findCommits(group: String, repository: String, hashes: Set<String>): Sequence<Commit>
     abstract fun findPullRequests(group: String, repository: String, indexes: Set<Long>): Sequence<PullRequest>
     abstract fun findBranches(issueKey: String): Sequence<Branch>

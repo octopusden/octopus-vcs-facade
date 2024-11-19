@@ -51,12 +51,16 @@ class VcsManagerImpl(
     override fun getVcsServiceForSshUrl(sshUrl: String) = vcsServices.firstOrNull { it.isSupported(sshUrl) }
         ?: throw IllegalStateException("There is no configured VCS service for '$sshUrl'")
 
-    override fun getTags(sshUrl: String): Sequence<Tag> {
-        log.trace("=> getTags({})", sshUrl)
+    override fun getTags(sshUrl: String, names: Set<String>?): Sequence<Tag> {
+        log.trace("=> getTags({}, {})", sshUrl, names)
         return getVcsServiceForSshUrl(sshUrl).run {
             val (group, repository) = parse(sshUrl)
-            getTags(group, repository)
-        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}): {}", sshUrl, it.toList()) }
+            if (names == null) {
+                getTags(group, repository)
+            } else {
+                findTags(group, repository, names)
+            }
+        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", sshUrl, names, it.toList()) }
     }
 
     override fun createTag(sshUrl: String, createTag: CreateTag): Tag {

@@ -41,7 +41,7 @@ abstract class BaseVcsFacadeFunctionalTest(
         toHashOrRef: String
     ) = client.getIssuesFromCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
-    override fun getTags(sshUrl: String) = client.getTags(sshUrl)
+    override fun getTags(sshUrl: String, names: Set<String>?) = client.getTags(sshUrl, names)
 
     override fun createTag(sshUrl: String, createTag: CreateTag) = client.createTag(sshUrl, createTag)
 

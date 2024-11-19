@@ -51,8 +51,8 @@ interface VcsFacadeClient {
         @Param("toHashOrRef") toHashOrRef: String
     ): List<String>
 
-    @RequestLine("GET rest/api/2/repository/tags?sshUrl={sshUrl}")
-    fun getTags(@Param("sshUrl") sshUrl: String): List<Tag>
+    @RequestLine("GET rest/api/2/repository/tags?sshUrl={sshUrl}&names={names}")
+    fun getTags(@Param("sshUrl") sshUrl: String, @Param("names") names: Set<String>? = null): List<Tag>
 
     @RequestLine("POST rest/api/2/repository/tags?sshUrl={sshUrl}")
     @Headers("Content-Type: application/json")
