@@ -113,9 +113,15 @@ abstract class BaseVcsFacadeUnitTest(
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<String>>() {})
 
-    override fun getTags(sshUrl: String) = mvc.perform(
+    override fun getTags(sshUrl: String, names: Set<String>?) = mvc.perform(
         MockMvcRequestBuilders.get("/rest/api/2/repository/tags")
             .param("sshUrl", sshUrl)
+            .apply {
+                if (names != null) {
+                    if (names.isEmpty()) param("names", "")
+                    else param("names", *names.toTypedArray())
+                }
+            }
             .accept(MediaType.APPLICATION_JSON)
     ).andReturn().response.toObject(object : TypeReference<List<Tag>>() {})
 

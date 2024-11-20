@@ -235,16 +235,22 @@ abstract class BaseVcsFacadeTest(
         }
     }
 
-    @Test
-    fun getTagsTest() = Assertions.assertEquals(
-        testService.getTags("tags.json"),
-        getTags(testService.sshUrl(GROUP, REPOSITORY_2))
+    @ParameterizedTest
+    @MethodSource("getTagsArguments")
+    fun getTagsTest(
+        group: String,
+        repository: String,
+        names: Set<String>?,
+        getTagsFile: String
+    ) = Assertions.assertEquals(
+        testService.getTags(getTagsFile),
+        getTags(testService.sshUrl(group, repository), names)
     )
 
     @Test
     fun getTagsFailsTest() {
         Assertions.assertThrows(NotFoundException::class.java) {
-            getTags(testService.sshUrl(GROUP, "absent-repository"))
+            getTags(testService.sshUrl(GROUP, "absent-repository"), null)
         }
     }
 
@@ -545,7 +551,7 @@ abstract class BaseVcsFacadeTest(
         sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String
     ): List<String>
 
-    protected abstract fun getTags(sshUrl: String): List<Tag>
+    protected abstract fun getTags(sshUrl: String, names: Set<String>?): List<Tag>
 
     protected abstract fun createTag(sshUrl: String, createTag: CreateTag): Tag
 
@@ -792,6 +798,28 @@ abstract class BaseVcsFacadeTest(
                 null,
                 "commit-with-files-3.json"
             ),
+        )
+
+        @JvmStatic
+        private fun getTagsArguments() = Stream.of(
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                null,
+                "tags.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                setOf("v1.0"),
+                "tags-2.json"
+            ),
+            Arguments.of(
+                GROUP,
+                REPOSITORY_2,
+                emptySet<String>(),
+                "tags-3.json"
+            )
         )
 
         @JvmStatic

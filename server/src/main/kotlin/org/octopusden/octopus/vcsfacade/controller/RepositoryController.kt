@@ -126,10 +126,11 @@ class RepositoryController(
     @GetMapping("tags", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getTags(
         @RequestParam("sshUrl") sshUrl: String,
+        @RequestParam("names", required = false) names: Set<String>?,
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
-        log.info("Get tags in {} repository", sshUrl)
-        RepositoryResponse(vcsManager.getTags(sshUrl))
+        log.info("Get tags{} in {} repository", names?.joinToString(prefix = " with names {", postfix = "}") ?: "", sshUrl)
+        RepositoryResponse(vcsManager.getTags(sshUrl, names))
     }.data.sorted()
 
     @PostMapping("tags", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])

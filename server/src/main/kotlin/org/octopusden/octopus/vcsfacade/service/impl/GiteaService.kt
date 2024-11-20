@@ -228,6 +228,21 @@ class GiteaService(
         }.also { log.trace("<= getPullRequest({}, {}, {}): {}", group, repository, index, it) }
     }
 
+    override fun findTags(group: String, repository: String, names: Set<String>): Sequence<Tag> {
+        log.trace("=> findTags({}, {}, {})", group, repository, names)
+        return with(getRepository(group, repository)) {
+            names.mapNotNull {
+                try {
+                    client.getTag(group, repository, it).toTag(this)
+                } catch (e: NotFoundException) {
+                    null
+                }
+            }.asSequence()
+        }.also {
+            if (log.isTraceEnabled) log.trace("<= findTags({}, {}, {}): {}", group, repository, names, it.toList())
+        }
+    }
+
     override fun findCommits(group: String, repository: String, hashes: Set<String>): Sequence<Commit> {
         log.trace("=> findCommits({}, {}, {})", group, repository, hashes)
         return with(getRepository(group, repository)) {
@@ -239,13 +254,7 @@ class GiteaService(
                 }
             }.asSequence()
         }.also {
-            if (log.isTraceEnabled) log.trace(
-                "<= findCommits({}, {}, {}): {}",
-                group,
-                repository,
-                hashes,
-                it.toList()
-            )
+            if (log.isTraceEnabled) log.trace("<= findCommits({}, {}, {}): {}", group, repository, hashes, it.toList())
         }
     }
 

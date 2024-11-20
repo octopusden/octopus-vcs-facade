@@ -37,7 +37,7 @@ abstract class BaseVcsFacadeTestExtended(
         )
         deleteTag(testService.sshUrl(GROUP, repository), "v1.0")
         Assertions.assertEquals(
-            testService.getTags("tags-2.json"), getTags(testService.sshUrl(GROUP, repository))
+            testService.getTags("tags-scenario.json"), getTags(testService.sshUrl(GROUP, repository), null)
         )
     }
 }
