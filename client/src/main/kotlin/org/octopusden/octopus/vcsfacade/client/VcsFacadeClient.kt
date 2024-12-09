@@ -89,4 +89,7 @@ interface VcsFacadeClient {
 
     @RequestLine("GET rest/api/2/repository/pull-requests/find?issueKeys={issueKeys}")
     fun findPullRequestsByIssueKeys(@Param("issueKeys") issueKeys: Set<String>): List<PullRequest>
+
+    @RequestLine("POST rest/api/1/indexer/scan?sshUrl={sshUrl}")
+    fun reindexRepository(@Param("sshUrl") sshUrl: String)
 }
