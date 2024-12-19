@@ -6,6 +6,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse.BodyHandlers
 import java.util.Base64
+import java.util.concurrent.TimeUnit
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
@@ -105,6 +107,31 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
                 size == 1 && this[0].index == pullRequestIndex && this[0].status == PullRequestStatus.MERGED
             }
         }
+    }
+
+    @Test
+    fun reindexTest() {
+        val repository = "repository-2-reindex"
+        val issue1 = "ISSUE-101"
+        val issue2 = "ISSUE-601"
+
+        testClient.commit(NewChangeSet("$issue1 commit", testService.sshUrl(GROUP, repository), "master"))
+        testClient.commit(NewChangeSet("$issue2 commit", testService.sshUrl(GROUP, repository), "master"))
+
+        Assertions.assertEquals(0, findByIssueKeys(setOf(issue1)).commits.size)
+        Assertions.assertEquals(0, findByIssueKeys(setOf(issue2)).commits.size)
+
+        client.reindexRepository(testService.sshUrl(GROUP, repository))
+
+        for (i in 1..10) {
+            TimeUnit.SECONDS.sleep(5)
+            if (client.indexReport().repositories.none { it.scanRequired }) {
+                break
+            }
+        }
+
+        Assertions.assertEquals(1, findByIssueKeys(setOf(issue1)).commits.size)
+        Assertions.assertEquals(1, findByIssueKeys(setOf(issue2)).commits.size)
     }
 
     companion object {

@@ -67,7 +67,8 @@ abstract class BaseVcsFacadeFunctionalTest(
         val vcsFacadeHost = System.getProperty("test.vcs-facade-host")
             ?: throw Exception("System property 'test.vcs-facade-host' must be defined")
 
-        private val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
+        @JvmStatic
+        protected val client = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
             override fun getApiUrl() = "http://$vcsFacadeHost"
             override fun getTimeRetryInMillis() = 180000
         })
