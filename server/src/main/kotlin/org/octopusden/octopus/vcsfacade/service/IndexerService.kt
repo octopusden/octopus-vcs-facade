@@ -1,10 +1,10 @@
 package org.octopusden.octopus.vcsfacade.service
 
+import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
-import org.octopusden.octopus.vcsfacade.dto.IndexReport
 
 interface IndexerService {
     fun registerGiteaCreateRefEvent(vcsServiceId: String, createRefEvent: GiteaCreateRefEvent)

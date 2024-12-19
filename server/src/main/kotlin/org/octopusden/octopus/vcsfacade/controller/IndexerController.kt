@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.config.OpenSearchConfig
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaDeleteRefEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPullRequestEvent
 import org.octopusden.octopus.vcsfacade.dto.GiteaPushEvent
-import org.octopusden.octopus.vcsfacade.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.service.IndexerService
 import org.slf4j.LoggerFactory

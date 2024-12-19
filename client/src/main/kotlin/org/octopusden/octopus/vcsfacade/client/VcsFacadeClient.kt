@@ -9,6 +9,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
+import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -89,4 +90,10 @@ interface VcsFacadeClient {
 
     @RequestLine("GET rest/api/2/repository/pull-requests/find?issueKeys={issueKeys}")
     fun findPullRequestsByIssueKeys(@Param("issueKeys") issueKeys: Set<String>): List<PullRequest>
+
+    @RequestLine("POST rest/api/1/indexer/scan?sshUrl={sshUrl}")
+    fun reindexRepository(@Param("sshUrl") sshUrl: String)
+
+    @RequestLine("GET rest/api/1/indexer/report")
+    fun indexReport(): IndexReport
 }

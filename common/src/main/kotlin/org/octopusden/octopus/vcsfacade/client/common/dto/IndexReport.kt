@@ -1,4 +1,4 @@
-package org.octopusden.octopus.vcsfacade.dto
+package org.octopusden.octopus.vcsfacade.client.common.dto
 
 import java.util.Date
 

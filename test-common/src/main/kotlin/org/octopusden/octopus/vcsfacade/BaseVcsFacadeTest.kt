@@ -445,10 +445,8 @@ abstract class BaseVcsFacadeTest(
 
     @ParameterizedTest
     @MethodSource("findCommitsByIssueKeysArguments")
-    fun findCommitsByIssueKeysTest(issueKeys: Set<String>, commitsByIssueKeyFile: String) = Assertions.assertEquals(
-        testService.getCommits(commitsByIssueKeyFile),
-        findCommitsByIssueKeys(issueKeys)
-    )
+    fun findCommitsByIssueKeysTest(issueKeys: Set<String>, commitsByIssueKeyFile: String) =
+        Assertions.assertEquals(testService.getCommits(commitsByIssueKeyFile), findCommitsByIssueKeys(issueKeys))
 
     @ParameterizedTest
     @MethodSource("findByIssueKeysFailsArguments")

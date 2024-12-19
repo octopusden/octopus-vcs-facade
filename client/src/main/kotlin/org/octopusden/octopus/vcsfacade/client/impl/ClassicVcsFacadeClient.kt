@@ -75,6 +75,11 @@ class ClassicVcsFacadeClient(
 
     override fun findPullRequestsByIssueKeys(issueKeys: Set<String>) = client.findPullRequestsByIssueKeys(issueKeys)
 
+    override fun reindexRepository(sshUrl: String) = client.reindexRepository(sshUrl)
+
+    override fun indexReport() = client.indexReport()
+
+    @Suppress("unused")
     fun setUrl(apiUrl: String, timeRetryInMillis: Int) {
         client = createClient(apiUrl, mapper, timeRetryInMillis)
     }
