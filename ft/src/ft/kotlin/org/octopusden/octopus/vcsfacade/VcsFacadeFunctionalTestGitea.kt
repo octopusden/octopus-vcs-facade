@@ -123,9 +123,10 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
 
         client.reindexRepository(testService.sshUrl(GROUP, repository))
 
-        for (i in 1..10) {
-            TimeUnit.SECONDS.sleep(5)
+        for (i in 1..120) {
+            TimeUnit.MILLISECONDS.sleep(500)
             if (client.indexReport().repositories.none { it.scanRequired }) {
+                TimeUnit.SECONDS.sleep(5)
                 break
             }
         }
