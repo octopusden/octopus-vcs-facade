@@ -122,7 +122,6 @@ ftImplementation.isCanBeResolved = true
 configurations["ftRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
 
 val ft by tasks.creating(Test::class) {
-    dependsOn(":vcs-facade:dockerPushImage")
     mustRunAfter(":vcs-facade:test")
     group = "verification"
     description = "Runs the integration tests"
@@ -131,6 +130,7 @@ val ft by tasks.creating(Test::class) {
     systemProperties["test.profile"] = "testProfile".getExt()
     when ("testPlatform".getExt()) {
         "okd" -> {
+            dependsOn(":vcs-facade:dockerPushImage")
             systemProperties["test.vcs-host"] = "testProfile".getExt().getOkdHost()
             systemProperties["test.vcs-external-host"] = "testProfile".getExt().getOkdExternalHost()
             systemProperties["test.vcs-facade-host"] = "vcs-facade".getOkdHost()
