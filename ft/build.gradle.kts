@@ -10,7 +10,7 @@ fun String.getExt() = project.ext[this] as String
 
 val commonOkdParameters = mapOf(
     "DEPLOYMENT_PREFIX" to "vcs-facade-ft-$version".replace("[^-a-z0-9]".toRegex(), "-"),
-    "ACTIVE_DEADLINE_SECONDS" to "3600",
+    "ACTIVE_DEADLINE_SECONDS" to "okdActiveDeadlineSeconds".getExt(),
     "DOCKER_REGISTRY" to "dockerRegistry".getExt()
 )
 
@@ -122,6 +122,7 @@ ftImplementation.isCanBeResolved = true
 configurations["ftRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
 
 val ft by tasks.creating(Test::class) {
+    dependsOn(":vcs-facade:dockerPushImage")
     mustRunAfter(":vcs-facade:test")
     group = "verification"
     description = "Runs the integration tests"

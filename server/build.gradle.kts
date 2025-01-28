@@ -52,7 +52,7 @@ fun String.getExt() = project.ext[this] as String
 
 val commonOkdParameters = mapOf(
     "DEPLOYMENT_PREFIX" to "vcs-facade-ut-$version".replace("[^-a-z0-9]".toRegex(), "-"),
-    "ACTIVE_DEADLINE_SECONDS" to "3600",
+    "ACTIVE_DEADLINE_SECONDS" to "okdActiveDeadlineSeconds".getExt(),
     "DOCKER_REGISTRY" to "dockerRegistry".getExt()
 )
 
