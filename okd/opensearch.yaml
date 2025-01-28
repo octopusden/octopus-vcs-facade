@@ -10,6 +10,8 @@ objects:
     labels:
       app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-opensearch
   spec:
+    restartPolicy: Never
+    activeDeadlineSeconds: ${{ACTIVE_DEADLINE_SECONDS}}
     containers:
       - name: opensearch
         image: ${DOCKER_REGISTRY}/bitnami/opensearch:${OPENSEARCH_IMAGE_TAG}
@@ -53,6 +55,9 @@ objects:
 parameters:
 - description: Unique deployment prefix
   name: DEPLOYMENT_PREFIX
+  required: true
+- description: Active deadline seconds
+  name: ACTIVE_DEADLINE_SECONDS
   required: true
 - description: Docker registry
   name: DOCKER_REGISTRY

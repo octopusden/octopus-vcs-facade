@@ -1,10 +1,6 @@
 import com.avast.gradle.dockercompose.ComposeExtension
 import java.util.Base64
-import org.octopusden.octopus.task.DockerExecTask
-import org.octopusden.octopus.task.OcCreateTask
-import org.octopusden.octopus.task.OcDeleteTask
-import org.octopusden.octopus.task.OcLogsTask
-import org.octopusden.octopus.task.OcProcessTask
+import org.octopusden.octopus.service.OcTemplateService
 
 plugins {
     id("org.springframework.boot")
@@ -56,6 +52,7 @@ fun String.getExt() = project.ext[this] as String
 
 val commonOkdParameters = mapOf(
     "DEPLOYMENT_PREFIX" to "vcs-facade-ut-$version".replace("[^-a-z0-9]".toRegex(), "-"),
+    "ACTIVE_DEADLINE_SECONDS" to "3600",
     "DOCKER_REGISTRY" to "dockerRegistry".getExt()
 )
 
@@ -72,117 +69,36 @@ fun String.getOkdPod() = "${commonOkdParameters["DEPLOYMENT_PREFIX"]}-$this"
 
 fun String.getOkdHost() = "${getOkdPod()}-route-${"okdProject".getExt()}.${"okdClusterDomain".getExt()}:80"
 
-val processGiteaTemplateTask = tasks.register<OcProcessTask>("processGiteaTemplate") {
-    group = "okd"
-    val file = "okd/gitea.yaml"
-    template = rootProject.layout.projectDirectory.file(file)
-    parameters.putAll(commonOkdParameters)
-    parameters.put("GITEA_IMAGE_TAG", properties["gitea.image-tag"] as String)
-    resourceList = layout.buildDirectory.file(file)
-}
-
-val createGiteaResourceTask = tasks.register<OcCreateTask>("createGiteaResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resourceList = processGiteaTemplateTask.get().resourceList
-    checkPodsReadiness = true
-    doLast {
-        "okdWebConsoleUrl".getExt().let {
-            if (it.isNotBlank()) {
-                logger.quiet("UT Gitea pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"gitea".getOkdPod()}")
-            }
-        }
+val gitea = gradle.sharedServices.registerIfAbsent("giteaUtService", OcTemplateService::class.java) {
+    parameters.apply {
+        namespace = "okdProject".getExt()
+        templateFile = rootProject.layout.projectDirectory.file("okd/gitea.yaml")
+        templateParameters.putAll(commonOkdParameters)
+        templateParameters.put("GITEA_IMAGE_TAG", properties["gitea.image-tag"] as String)
+        workDirectory = layout.buildDirectory.dir("okd")
     }
 }
 
-val logsGiteaResourceTask = tasks.register<OcLogsTask>("logsGiteaResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resource = "gitea".getOkdPod()
-    resourceLog = layout.buildDirectory.file("okd/logs/${resource.get()}.log")
-}
-
-val deleteGiteaResourceTask = tasks.register<OcDeleteTask>("deleteGiteaResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resourceList = processGiteaTemplateTask.get().resourceList
-    mustRunAfter(logsGiteaResourceTask)
-}
-
-val processOpensearchTemplateTask = tasks.register<OcProcessTask>("processOpensearchTemplate") {
-    group = "okd"
-    val file = "okd/opensearch.yaml"
-    template = rootProject.layout.projectDirectory.file(file)
-    parameters.putAll(commonOkdParameters)
-    parameters.put("OPENSEARCH_IMAGE_TAG", properties["opensearch.image-tag"] as String)
-    resourceList = layout.buildDirectory.file(file)
-}
-
-val createOpensearchResourceTask = tasks.register<OcCreateTask>("createOpensearchResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resourceList = processOpensearchTemplateTask.get().resourceList
-    checkPodsReadiness = true
-    doLast {
-        "okdWebConsoleUrl".getExt().let {
-            if (it.isNotBlank()) {
-                logger.quiet("UT Opensearch pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"opensearch".getOkdPod()}")
-            }
-        }
+val opensearch = gradle.sharedServices.registerIfAbsent("opensearchUtService", OcTemplateService::class.java) {
+    parameters.apply {
+        namespace = "okdProject".getExt()
+        templateFile = rootProject.layout.projectDirectory.file("okd/opensearch.yaml")
+        templateParameters.putAll(commonOkdParameters)
+        templateParameters.put("OPENSEARCH_IMAGE_TAG", properties["opensearch.image-tag"] as String)
+        workDirectory = layout.buildDirectory.dir("okd")
     }
 }
 
-val logsOpensearchResourceTask = tasks.register<OcLogsTask>("logsOpensearchResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resource = "opensearch".getOkdPod()
-    resourceLog = layout.buildDirectory.file("okd/logs/${resource.get()}.log")
-}
-
-val deleteOpensearchResourceTask = tasks.register<OcDeleteTask>("deleteOpensearchResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resourceList = processOpensearchTemplateTask.get().resourceList
-    mustRunAfter(logsOpensearchResourceTask)
-}
-
-val processBitbucketTemplateTask = tasks.register<OcProcessTask>("processBitbucketTemplate") {
-    group = "okd"
-    val file = "okd/bitbucket.yaml"
-    template = rootProject.layout.projectDirectory.file(file)
-    parameters.putAll(commonOkdParameters)
-    parameters.put("BITBUCKET_LICENSE", Base64.getEncoder().encodeToString("bitbucketLicense".getExt().toByteArray()))
-    parameters.put("BITBUCKET_IMAGE_TAG", properties["bitbucket.image-tag"] as String)
-    parameters.put("POSTGRES_IMAGE_TAG", properties["postgres.image-tag"] as String)
-    resourceList = layout.buildDirectory.file(file)
-}
-
-val createBitbucketResourceTask = tasks.register<OcCreateTask>("createBitbucketResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resourceList = processBitbucketTemplateTask.get().resourceList
-    checkPodsReadiness = true
-    doLast {
-        "okdWebConsoleUrl".getExt().let {
-            if (it.isNotBlank()) {
-                logger.quiet("UT Bitbucket pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"bitbucket".getOkdPod()}")
-            }
-        }
+val bitbucket = gradle.sharedServices.registerIfAbsent("bitbucketUtService", OcTemplateService::class.java) {
+    parameters.apply {
+        namespace = "okdProject".getExt()
+        templateFile = rootProject.layout.projectDirectory.file("okd/bitbucket.yaml")
+        templateParameters.putAll(commonOkdParameters)
+        templateParameters.put("BITBUCKET_LICENSE", Base64.getEncoder().encodeToString("bitbucketLicense".getExt().toByteArray()))
+        templateParameters.put("BITBUCKET_IMAGE_TAG", properties["bitbucket.image-tag"] as String)
+        templateParameters.put("POSTGRES_IMAGE_TAG", properties["postgres.image-tag"] as String)
+        workDirectory = layout.buildDirectory.dir("okd")
     }
-}
-
-val logsBitbucketResourceTask = tasks.register<OcLogsTask>("logsBitbucketResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resource = "bitbucket".getOkdPod()
-    resourceLog = layout.buildDirectory.file("okd/logs/${resource.get()}.log")
-}
-
-val deleteBitbucketResourceTask = tasks.register<OcDeleteTask>("deleteBitbucketResource") {
-    group = "okd"
-    namespace = "okdProject".getExt()
-    resourceList = processBitbucketTemplateTask.get().resourceList
-    mustRunAfter(logsBitbucketResourceTask)
 }
 
 configure<ComposeExtension> {
@@ -201,6 +117,14 @@ configure<ComposeExtension> {
     )
 }
 
+tasks["composeUp"].doLast {
+    if ("testProfile".getExt() == "gitea") {
+        exec {
+            setCommandLine("docker", "exec", "vcs-facade-ut-gitea", "/script/add_admin.sh")
+        }.assertNormalExitValue()
+    }
+}
+
 docker {
     springBootApplication {
         baseImage.set("${"dockerRegistry".getExt()}/eclipse-temurin:21-jdk")
@@ -212,39 +136,57 @@ docker {
 tasks.withType<Test> {
     when ("testPlatform".getExt()) {
         "okd" -> {
+            systemProperties["test.opensearch-host"] = "opensearch".getOkdHost()
+            systemProperties["test.vcs-host"] = "testProfile".getExt().getOkdHost()
             when ("testProfile".getExt()) {
                 "gitea" -> {
-                    dependsOn(createGiteaResourceTask, createOpensearchResourceTask)
-                    finalizedBy(
-                        logsGiteaResourceTask,
-                        deleteGiteaResourceTask,
-                        logsOpensearchResourceTask,
-                        deleteOpensearchResourceTask
-                    )
+                    usesService(gitea)
+                    usesService(opensearch)
+                    doFirst {
+                        gitea.get().create()
+                        opensearch.get().create()
+                        gitea.get().waitPodsForReady()
+                        opensearch.get().waitPodsForReady()
+                        "okdWebConsoleUrl".getExt().let {
+                            if (it.isNotBlank()) {
+                                logger.quiet("UT gitea pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"gitea".getOkdPod()}")
+                                logger.quiet("UT opensearch pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"opensearch".getOkdPod()}")
+                            }
+                        }
+                    }
+                    doLast {
+                        gitea.get().logs("gitea".getOkdPod())
+                        opensearch.get().logs("opensearch".getOkdPod())
+                        gitea.get().delete()
+                        opensearch.get().delete()
+                    }
                 }
 
                 "bitbucket" -> {
-                    dependsOn(createBitbucketResourceTask)
-                    finalizedBy(logsBitbucketResourceTask, deleteBitbucketResourceTask)
+                    usesService(bitbucket)
+                    doFirst {
+                        bitbucket.get().create()
+                        bitbucket.get().waitPodsForReady()
+                        "okdWebConsoleUrl".getExt().let {
+                            if (it.isNotBlank()) {
+                                logger.quiet("UT bitbucket-db pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"bitbucket-db".getOkdPod()}")
+                                logger.quiet("UT bitbucket pod: ${it}/k8s/ns/${"okdProject".getExt()}/pods/${"bitbucket".getOkdPod()}")
+                            }
+                        }
+                    }
+                    doLast {
+                        bitbucket.get().logs("bitbucket-db".getOkdPod())
+                        bitbucket.get().logs("bitbucket".getOkdPod())
+                        bitbucket.get().delete()
+                    }
                 }
             }
-            systemProperties["test.opensearch-host"] = "opensearch".getOkdHost()
-            systemProperties["test.vcs-host"] = "testProfile".getExt().getOkdHost()
         }
 
         "docker" -> {
             systemProperties["test.opensearch-host"] = "opensearch".getDockerHost()
             systemProperties["test.vcs-host"] = "testProfile".getExt().getDockerHost()
-
             dockerCompose.isRequiredBy(this)
-            if ("testProfile".getExt() == "gitea") {
-                dependsOn(tasks.register<DockerExecTask>("createGiteaAdmin") {
-                    group = "docker"
-                    mustRunAfter("composeUp")
-                    container = "vcs-facade-ut-gitea"
-                    command.add("/script/add_admin.sh")
-                })
-            }
         }
     }
     systemProperties["test.vcs-facade-host"] = "localhost:8080"
