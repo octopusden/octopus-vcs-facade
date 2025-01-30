@@ -24,6 +24,8 @@ objects:
     labels:
       app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-bitbucket-db
   spec:
+    restartPolicy: Never
+    activeDeadlineSeconds: ${{ACTIVE_DEADLINE_SECONDS}}
     containers:
       - name: bitbucket-db
         image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
@@ -90,6 +92,8 @@ objects:
     labels:
       app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-bitbucket
   spec:
+    restartPolicy: Never
+    activeDeadlineSeconds: ${{ACTIVE_DEADLINE_SECONDS}}
     containers:
       - name: bitbucket
         image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_IMAGE_TAG}
@@ -165,6 +169,9 @@ objects:
 parameters:
 - description: Unique deployment prefix
   name: DEPLOYMENT_PREFIX
+  required: true
+- description: Active deadline seconds
+  name: ACTIVE_DEADLINE_SECONDS
   required: true
 - description: Docker registry
   name: DOCKER_REGISTRY
