@@ -41,10 +41,11 @@ class OpenSearchServiceImpl(
         }
     }
 
-    override fun saveRepositoriesInfo(repositoriesInfo: Sequence<RepositoryInfoDocument>) {
-        log.trace("=> saveRepositoriesInfo({})", repositoriesInfo)
-        processAll(repositoriesInfo) { repositoryInfoRepository.saveAll(it) }
-        log.trace("<= saveRepositoriesInfo({})", repositoriesInfo)
+    override fun saveRepositoriesInfo(repositoriesInfo: Sequence<RepositoryInfoDocument>): Set<String> {
+        if (log.isTraceEnabled) log.trace("=> saveRepositoriesInfo({})", repositoriesInfo.toList())
+        return processAll(repositoriesInfo) { repositoryInfoRepository.saveAll(it) }.also {
+            if (log.isTraceEnabled) log.trace("<= saveRepositoriesInfo({}): {}", repositoriesInfo.toList(), it)
+        }
     }
 
     override fun deleteRepositoryInfoById(repositoryId: String) {
@@ -59,15 +60,16 @@ class OpenSearchServiceImpl(
             .also { log.trace("<= findRefsByRepositoryId({}): {}", repositoryId, it) }
     }
 
-    override fun saveRefs(refs: Sequence<RefDocument>) {
-        log.trace("=> saveRef({})", refs)
-        processAll(refs) { refRepository.saveAll(it) }
-        log.trace("<= saveRef({})", refs)
+    override fun saveRefs(refs: Sequence<RefDocument>): Set<String> {
+        if (log.isTraceEnabled) log.trace("=> saveRef({})", refs.toList())
+        return processAll(refs) { refRepository.saveAll(it) }.also {
+            if (log.isTraceEnabled) log.trace("<= saveRef({}): {}", refs.toList(), it)
+        }
     }
 
-    override fun deleteRefsByIds(refsIds: Sequence<String>) {
+    override fun deleteRefsByIds(refsIds: Set<String>) {
         log.trace("=> deleteRefsByIds({})", refsIds)
-        processAll(refsIds) { refRepository.deleteAllById(it) }
+        processAllIds(refsIds) { refRepository.deleteAllById(it) }
         log.trace("<= deleteRefsByIds({})", refsIds)
     }
 
@@ -83,15 +85,16 @@ class OpenSearchServiceImpl(
             .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
-    override fun saveCommits(commits: Sequence<CommitDocument>) {
-        log.trace("=> saveCommits({})", commits)
-        processAll(commits, 1000, { 1 + it.files.size }) { commitRepository.saveAll(it) }
-        log.trace("<= saveCommits({})", commits)
+    override fun saveCommits(commits: Sequence<CommitDocument>): Set<String> {
+        if (log.isTraceEnabled) log.trace("=> saveCommits({})", commits.toList())
+        return processAll(commits, 1000, { 1 + it.files.size }) { commitRepository.saveAll(it) }.also {
+            if (log.isTraceEnabled) log.trace("<= saveCommits({}): {}", commits.toList(), it)
+        }
     }
 
-    override fun deleteCommitsByIds(commitsIds: Sequence<String>) {
+    override fun deleteCommitsByIds(commitsIds: Set<String>) {
         log.trace("=> deleteCommitsByIds({})", commitsIds)
-        processAll(commitsIds) { commitRepository.deleteAllById(it) }
+        processAllIds(commitsIds) { commitRepository.deleteAllById(it) }
         log.trace("<= deleteCommitsByIds({})", commitsIds)
     }
 
@@ -108,19 +111,19 @@ class OpenSearchServiceImpl(
                 repositoryId,
                 it
             )
+        }.also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
+    }
+
+    override fun savePullRequests(pullRequests: Sequence<PullRequestDocument>): Set<String> {
+        if (log.isTraceEnabled) log.trace("=> savePullRequests({})", pullRequests.toList())
+        return processAll(pullRequests) { pullRequestRepository.saveAll(it) }.also {
+            if (log.isTraceEnabled) log.trace("<= savePullRequests({}): {}", pullRequests.toList(), it)
         }
-            .also { log.trace("<= findCommitsByRepositoryId({}): {}", repositoryId, it) }
     }
 
-    override fun savePullRequests(pullRequests: Sequence<PullRequestDocument>) {
-        log.trace("=> savePullRequests({})", pullRequests)
-        processAll(pullRequests) { pullRequestRepository.saveAll(it) }
-        log.trace("<= savePullRequests({})", pullRequests)
-    }
-
-    override fun deletePullRequestsByIds(pullRequestsIds: Sequence<String>) {
+    override fun deletePullRequestsByIds(pullRequestsIds: Set<String>) {
         log.trace("=> deletePullRequestsByIds({})", pullRequestsIds)
-        processAll(pullRequestsIds) { pullRequestRepository.deleteAllById(it) }
+        processAllIds(pullRequestsIds) { pullRequestRepository.deleteAllById(it) }
         log.trace("<= deletePullRequestsByIds({})", pullRequestsIds)
     }
 
@@ -223,23 +226,24 @@ class OpenSearchServiceImpl(
             val documentsIds = mutableSetOf<String>()
             var lastId = ""
             do {
-                val batch = fetchBatchAfterId.invoke(lastId).map { it.id }
+                val batch = fetchBatchAfterId.invoke(lastId)
                 if (batch.isEmpty()) break
-                documentsIds.addAll(batch)
-                lastId = batch.last()
+                batch.forEach { documentsIds.add(it.id) }
+                lastId = batch.last().id
             } while (batch.size == BATCH_SIZE)
             return documentsIds
         }
 
-        private fun <T> processAll(documents: Sequence<T>, batchOperation: (batch: List<T>) -> Unit) =
+        private fun <T : BaseDocument> processAll(documents: Sequence<T>, batchOperation: (batch: List<T>) -> Unit) =
             processAll(documents, BATCH_SIZE, { 1 }, batchOperation)
 
-        private fun <T> processAll(
+        private fun <T : BaseDocument> processAll(
             documents: Sequence<T>,
             batchWeightLimit: Int,
             documentWeight: (document: T) -> Int,
             batchOperation: (batch: List<T>) -> Unit
-        ) {
+        ): Set<String> {
+            val documentsIds = mutableSetOf<String>()
             val batch = ArrayList<T>(BATCH_SIZE)
             var batchWeight = 0
             for (document in documents) {
@@ -247,13 +251,22 @@ class OpenSearchServiceImpl(
                 batch.add(document)
                 if (batch.size == BATCH_SIZE || batchWeight >= batchWeightLimit) {
                     batchOperation.invoke(batch)
+                    batch.forEach { documentsIds.add(it.id) }
                     batch.clear()
                     batchWeight = 0
                 }
             }
             if (batch.isNotEmpty()) {
                 batchOperation.invoke(batch)
+                batch.forEach { documentsIds.add(it.id) }
             }
+            return documentsIds
         }
+
+        private fun processAllIds(documentsIds: Set<String>, batchOperation: (batch: List<String>) -> Unit) =
+            documentsIds.chunked(BATCH_SIZE).forEach {
+                batchOperation.invoke(it)
+            }
+
     }
 }

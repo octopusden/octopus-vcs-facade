@@ -8,7 +8,6 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
-import org.octopusden.octopus.vcsfacade.document.CommitDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
 import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
@@ -31,8 +30,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-
-private const val COMMIT_CHUNK_SIZE = 50
 
 @Service
 @ConditionalOnProperty(
@@ -81,7 +78,7 @@ class IndexerServiceImpl(
                 deleteRefEvent.ref, GiteaShortCommit("unknown")
             ).toTag(repositoryDocument.toDto()).toDocument(repositoryDocument)
         }.id
-        openSearchService.deleteRefsByIds(sequenceOf(refDocumentId))
+        openSearchService.deleteRefsByIds(setOf(refDocumentId))
         log.trace("<= registerGiteaDeleteRefEvent({}, {})", vcsServiceId, deleteRefEvent)
     }
 
@@ -151,10 +148,11 @@ class IndexerServiceImpl(
             }.toSet() + vcsManager.vcsServices.filter { it.indexing }.flatMap { vcsService ->
                 vcsService.getRepositories().map { RepositoryInfoDocument(it.toDocument(vcsService)) }
             }
-            logIndexActionMessage(
-                "Scheduled ${repositoriesInfo.size} repositories for scan",
-                repositoriesInfo.asSequence()
-            )
+            if (log.isTraceEnabled) {
+                log.trace("Scheduled {} repositories for scan: {}", repositoriesInfo.size, repositoriesInfo)
+            } else {
+                log.debug("Scheduled {} repositories for scan", repositoriesInfo.size)
+            }
             openSearchService.saveRepositoriesInfo(repositoriesInfo.asSequence())
         } catch (e: Exception) {
             log.error("Unable to schedule repositories for rescan", e)
@@ -176,9 +174,11 @@ class IndexerServiceImpl(
                     opensearchIndexScanExecutor.submit { scan(repositoryInfoDocument.repository) }
                 }
             }
-            logIndexActionMessage(
-                "${repositoryScanQueue.size} repositories in scan queue", repositoryScanQueue.keys.asSequence()
-            )
+            if (log.isTraceEnabled) {
+                log.trace("{} repositories in scan queue: {}", repositoryScanQueue.size, repositoryScanQueue.keys)
+            } else {
+                log.debug("{} repositories in scan queue", repositoryScanQueue.size)
+            }
         } catch (e: Exception) {
             log.error("Unable to submit repositories for scan", e)
         }
@@ -194,59 +194,30 @@ class IndexerServiceImpl(
         }
         if (foundRepositoryDocument == repositoryDocument) { //IMPORTANT: found repository could be renamed one
             with(RepositoryInfoDocument(foundRepositoryDocument, false, Date())) {
-                log.debug("Save repository info in index for {} repository", repository.sshUrl)
+                log.debug("Update {} repository info in index", repository.sshUrl)
                 openSearchService.saveRepositoriesInfo(sequenceOf(this))
-                val branches = vcsService.getBranches(repository.group, repository.name).map {
-                    it.toDocument(repository)
-                }
-                val tags = vcsService.getTags(repository.group, repository.name).map {
-                    it.toDocument(repository)
-                }
-                val orphanedRefsIds = (openSearchService.findRefsIdsByRepositoryId(repository.id) -
-                        (branches.map { it.id } + tags.map { it.id }).toSet()).asSequence()
-                logIndexActionMessage(
-                    "Remove orphaned refs from index for ${repository.sshUrl} repository",
-                    orphanedRefsIds
+                log.debug("Update {} repository refs in index", repository.sshUrl)
+                val foundRefsIds = openSearchService.findRefsIdsByRepositoryId(repository.id)
+                val savedBranchesIds = openSearchService.saveRefs(
+                    vcsService.getBranches(repository.group, repository.name).map { it.toDocument(repository) }
                 )
-                openSearchService.deleteRefsByIds(orphanedRefsIds)
-                logIndexActionMessage(
-                    "Save branches in index for ${repository.sshUrl} repository", branches
+                val savedTagsIds = openSearchService.saveRefs(
+                    vcsService.getTags(repository.group, repository.name).map { it.toDocument(repository) }
                 )
-                openSearchService.saveRefs(branches)
-                logIndexActionMessage(
-                    "Save tags in index for ${repository.sshUrl} repository", tags
+                openSearchService.deleteRefsByIds(foundRefsIds - savedBranchesIds - savedTagsIds)
+                log.debug("Update {} repository commits in index", repository.sshUrl)
+                val foundCommitsIds = openSearchService.findCommitsIdsByRepositoryId(repository.id)
+                val savedCommitsIds = openSearchService.saveCommits(
+                    vcsService.getBranchesCommitGraph(repository.group, repository.name)
+                        .map { it.toDocument(repository) }
                 )
-                openSearchService.saveRefs(tags)
-                val visited = mutableSetOf<String>()
-                val commits = vcsService.getBranchesCommitGraph(repository.group, repository.name)
-                commits.chunked(COMMIT_CHUNK_SIZE).forEachIndexed { index, chunk ->
-                    logIndexActionMessage(
-                        "Save chunk (${index + 1}) of ($COMMIT_CHUNK_SIZE) commits in index for ${repository.sshUrl} repository ", chunk.asSequence()
-                    )
-                    visited.addAll(chunk.map { c -> c.commit.hash })
-                    openSearchService.saveCommits(chunk.map { it.toDocument(repository) }.asSequence())
-                }
-                val orphanedCommitsIds = (openSearchService.findCommitsIdsByRepositoryId(repository.id) -
-                        visited.map { CommitDocument.commitId(repository, it) }.toSet()).asSequence()
-                logIndexActionMessage(
-                    "Remove orphaned commits from index for ${repository.sshUrl} repository",
-                    orphanedCommitsIds
+                openSearchService.deleteCommitsByIds(foundCommitsIds - savedCommitsIds)
+                log.debug("Update {} repository pull requests in index", repository.sshUrl)
+                val foundPullRequestsIds = openSearchService.findPullRequestsIdsByRepositoryId(repository.id)
+                val savedPullRequestsIds = openSearchService.savePullRequests(
+                    vcsService.getPullRequests(repository.group, repository.name).map { it.toDocument(repository) }
                 )
-                openSearchService.deleteCommitsByIds(orphanedCommitsIds)
-                val pullRequests = vcsService.getPullRequests(repository.group, repository.name).map {
-                    it.toDocument(repository)
-                }
-                val orphanedPullRequestsIds = (openSearchService.findPullRequestsIdsByRepositoryId(repository.id) -
-                        pullRequests.map { it.id }.toSet()).asSequence()
-                logIndexActionMessage(
-                    "Remove orphaned pull requests from index for ${repository.sshUrl} repository",
-                    orphanedPullRequestsIds
-                )
-                openSearchService.deletePullRequestsByIds(orphanedPullRequestsIds)
-                logIndexActionMessage(
-                    "Save pull requests in index for ${repository.sshUrl} repository ", pullRequests
-                )
-                openSearchService.savePullRequests(pullRequests)
+                openSearchService.deletePullRequestsByIds(foundPullRequestsIds - savedPullRequestsIds)
             }
         } else {
             log.debug("Remove {} repository pull-requests from index", repositoryDocument.sshUrl)
@@ -255,7 +226,7 @@ class IndexerServiceImpl(
             openSearchService.deleteCommitsByRepositoryId(repositoryDocument.id)
             log.debug("Remove {} repository refs from index", repositoryDocument.sshUrl)
             openSearchService.deleteRefsByRepositoryId(repositoryDocument.id)
-            log.debug("Remove repository info from index for {} repository", repositoryDocument.sshUrl)
+            log.debug("Remove {} repository info from index", repositoryDocument.sshUrl)
             openSearchService.deleteRepositoryInfoById(repositoryDocument.id)
         }
         log.info("Scanning of {} repository completed successfully", repositoryDocument.sshUrl)
@@ -267,12 +238,12 @@ class IndexerServiceImpl(
     companion object {
         private val log = LoggerFactory.getLogger(IndexerServiceImpl::class.java)
 
-        private fun logIndexActionMessage(message: String, documents: Sequence<Any>) {
+        /*private fun logIndexActionMessage(message: String, documents: Sequence<Any>) {
             if (log.isTraceEnabled) {
-                log.trace("$message: $documents")
+                log.trace("$message: ${documents.toList()}")
             } else if (log.isDebugEnabled) {
                 log.debug(message)
             }
-        }
+        }*/
     }
 }
