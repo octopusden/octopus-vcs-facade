@@ -237,13 +237,5 @@ class IndexerServiceImpl(
 
     companion object {
         private val log = LoggerFactory.getLogger(IndexerServiceImpl::class.java)
-
-        /*private fun logIndexActionMessage(message: String, documents: Sequence<Any>) {
-            if (log.isTraceEnabled) {
-                log.trace("$message: ${documents.toList()}")
-            } else if (log.isDebugEnabled) {
-                log.debug(message)
-            }
-        }*/
     }
 }

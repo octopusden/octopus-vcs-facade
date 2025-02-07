@@ -1,8 +1,6 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import java.math.BigInteger
-import java.net.URI
-import java.net.URISyntaxException
 import java.security.MessageDigest
 import java.util.Date
 import org.octopusden.octopus.infrastructure.client.commons.ClientParametersProvider
@@ -305,17 +303,7 @@ class GiteaService(
         val organization = giteaRepository.fullName.lowercase().removeSuffix("/$repository")
         return Repository("$sshUrl/$organization/$repository.git", //TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
-            //IMPORTANT: see https://github.com/go-gitea/gitea/pull/31187
-            //Gitea versions 1.22.0 and 1.22.1 return host url instead of empty string as avatar_url for repository with no avatar
-            giteaRepository.avatarUrl.let {
-                val path = try {
-                    URI(it).path
-                } catch (e: URISyntaxException) {
-                    ""
-                }
-                if (path.trim('/').isEmpty()) null else it
-            }
-            //TODO: restore `giteaRepository.avatarUrl.ifBlank { null }` after Gitea fix
+            giteaRepository.avatarUrl.ifBlank { null }
         )
     }
 
