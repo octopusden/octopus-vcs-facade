@@ -95,5 +95,5 @@ interface VcsFacadeClient {
     fun reindexRepository(@Param("sshUrl") sshUrl: String)
 
     @RequestLine("GET rest/api/1/indexer/report?scanRequired={scanRequired}")
-    fun indexReport(@Param("scanRequired") scanRequired: Boolean?): IndexReport
+    fun indexReport(@Param("scanRequired") scanRequired: Boolean? = null): IndexReport
 }

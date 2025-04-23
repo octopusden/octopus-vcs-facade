@@ -122,10 +122,10 @@ class VcsFacadeFunctionalTestGitea : BaseVcsFacadeFunctionalTest(
         Assertions.assertEquals(0, findByIssueKeys(setOf(issue2)).commits.size)
 
         client.reindexRepository(testService.sshUrl(GROUP, repository))
-        val scanRequired = null
+        
         for (i in 1..120) {
             TimeUnit.MILLISECONDS.sleep(500)
-            if (client.indexReport(scanRequired).repositories.none { it.scanRequired }) {
+            if (client.indexReport().repositories.none { it.scanRequired }) {
                 TimeUnit.SECONDS.sleep(5)
                 break
             }
