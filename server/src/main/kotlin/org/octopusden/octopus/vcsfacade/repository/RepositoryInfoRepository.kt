@@ -9,4 +9,5 @@ import org.springframework.data.repository.CrudRepository
 )
 interface RepositoryInfoRepository : CrudRepository<RepositoryInfoDocument, String> {
     fun searchFirst50ByIdAfterOrderByIdAsc(id: String): List<RepositoryInfoDocument>
+    fun searchFirst50ByScanRequiredAndIdAfterOrderByIdAsc(scanRequired: Boolean, id: String): List<RepositoryInfoDocument>
 }
