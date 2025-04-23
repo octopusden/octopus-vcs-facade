@@ -176,7 +176,7 @@ class IndexerServiceImpl(
             repositoryScanQueue.filterValues { it.isDone }.keys.forEach {
                 repositoryScanQueue.remove(it)
             }
-            openSearchService.getRepositoriesInfo().filter { it.scanRequired }.forEach {
+            openSearchService.getRepositoriesInfo(scanRequired = true).forEach {
                 repositoryScanQueue.computeIfAbsent(it) { repositoryInfoDocument ->
                     opensearchIndexScanExecutor.submit { scan(repositoryInfoDocument.repository) }
                 }
