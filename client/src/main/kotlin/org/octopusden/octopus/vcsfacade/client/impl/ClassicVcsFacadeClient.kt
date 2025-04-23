@@ -77,7 +77,7 @@ class ClassicVcsFacadeClient(
 
     override fun reindexRepository(sshUrl: String) = client.reindexRepository(sshUrl)
 
-    override fun indexReport() = client.indexReport()
+    override fun indexReport(scanRequired: Boolean?) = client.indexReport(scanRequired)
 
     @Suppress("unused")
     fun setUrl(apiUrl: String, timeRetryInMillis: Int) {

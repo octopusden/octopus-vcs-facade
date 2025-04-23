@@ -120,11 +120,21 @@ class IndexerServiceImpl(
         log.trace("<= scheduleRepositoryScan({})", sshUrl)
     }
 
-    override fun getIndexReport(): IndexReport {
-        log.trace("=> getIndexReport()")
-        return IndexReport(openSearchService.getRepositoriesInfo().map {
-            IndexReport.IndexReportRepository(it.repository.sshUrl, it.scanRequired, it.lastScanAt)
-        }).also { log.trace("=> getIndexReport(): {}", it) }
+    override fun getIndexReport(scanRequired: Boolean?): IndexReport {
+        log.trace("=> getIndexReport(scanRequired=$scanRequired)")
+
+        val infos = openSearchService.getRepositoriesInfo()
+            .filter { scanRequired == null || it.scanRequired == scanRequired }
+
+        return IndexReport(
+            infos.map {
+                IndexReport.IndexReportRepository(
+                    sshUrl = it.repository.sshUrl,
+                    scanRequired = it.scanRequired,
+                    lastScanAt = it.lastScanAt
+                )
+            }
+        ).also { log.trace("<= getIndexReport(): {}", it) }
     }
 
     private fun Repository.toDocument(vcsService: VcsService): RepositoryDocument {
