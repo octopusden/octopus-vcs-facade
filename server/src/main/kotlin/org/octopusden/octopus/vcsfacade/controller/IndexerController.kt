@@ -121,9 +121,9 @@ class IndexerController(
     }
 
     @GetMapping("report")
-    fun getIndexReport(): IndexReport {
+    fun getIndexReport(@RequestParam("scanRequired") scanRequired : Boolean?): IndexReport {
         log.info("Get repositories index report")
-        return indexerService.getIndexReport()
+        return indexerService.getIndexReport(scanRequired)
     }
 
     companion object {

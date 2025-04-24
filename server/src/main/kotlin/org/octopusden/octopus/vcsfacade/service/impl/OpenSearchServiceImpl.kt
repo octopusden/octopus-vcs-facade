@@ -28,10 +28,15 @@ class OpenSearchServiceImpl(
     private val commitRepository: CommitRepository,
     private val pullRequestRepository: PullRequestRepository
 ) : OpenSearchService {
-    override fun getRepositoriesInfo(): Set<RepositoryInfoDocument> {
-        log.trace("=> getRepositoriesInfo()")
-        return fetchAll { repositoryInfoRepository.searchFirst50ByIdAfterOrderByIdAsc(it) }
-            .also { log.trace("<= getRepositoriesInfo(): {}", it) }
+    override fun getRepositoriesInfo(scanRequired: Boolean?): Set<RepositoryInfoDocument> {
+        log.trace("=> getRepositoriesInfo({})", scanRequired)
+        val repositoriesInfo = if (scanRequired == null) {
+            fetchAll { repositoryInfoRepository.searchFirst50ByIdAfterOrderByIdAsc(it) }
+        } else {
+            fetchAll { repositoryInfoRepository.searchFirst50ByScanRequiredAndIdAfterOrderByIdAsc(scanRequired, it) }
+        }
+        log.trace("<= getRepositoriesInfo({}): {}", scanRequired, repositoriesInfo)
+        return repositoriesInfo
     }
 
     override fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument? {

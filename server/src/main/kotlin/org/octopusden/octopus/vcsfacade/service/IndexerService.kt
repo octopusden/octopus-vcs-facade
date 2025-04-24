@@ -12,5 +12,5 @@ interface IndexerService {
     fun registerGiteaPushEvent(vcsServiceId: String, pushEvent: GiteaPushEvent)
     fun registerGiteaPullRequestEvent(vcsServiceId: String, pullRequestEvent: GiteaPullRequestEvent)
     fun scheduleRepositoryScan(sshUrl: String)
-    fun getIndexReport(): IndexReport
+    fun getIndexReport(scanRequired: Boolean?): IndexReport
 }
