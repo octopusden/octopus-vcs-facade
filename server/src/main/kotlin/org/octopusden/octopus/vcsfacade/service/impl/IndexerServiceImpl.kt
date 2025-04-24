@@ -120,11 +120,11 @@ class IndexerServiceImpl(
         log.trace("<= scheduleRepositoryScan({})", sshUrl)
     }
 
-    override fun getIndexReport(): IndexReport {
-        log.trace("=> getIndexReport()")
-        return IndexReport(openSearchService.getRepositoriesInfo().map {
+    override fun getIndexReport(scanRequired: Boolean?): IndexReport {
+        log.trace("=> getIndexReport({})", scanRequired)
+        return IndexReport(openSearchService.getRepositoriesInfo(scanRequired).map {
             IndexReport.IndexReportRepository(it.repository.sshUrl, it.scanRequired, it.lastScanAt)
-        }).also { log.trace("=> getIndexReport(): {}", it) }
+        }).also { log.trace("=> getIndexReport({}): {}", scanRequired, it) }
     }
 
     private fun Repository.toDocument(vcsService: VcsService): RepositoryDocument {
@@ -169,7 +169,7 @@ class IndexerServiceImpl(
             repositoryScanQueue.filterValues { it.isDone }.keys.forEach {
                 repositoryScanQueue.remove(it)
             }
-            openSearchService.getRepositoriesInfo().filter { it.scanRequired }.forEach {
+            openSearchService.getRepositoriesInfo(scanRequired = true).forEach {
                 repositoryScanQueue.computeIfAbsent(it) { repositoryInfoDocument ->
                     opensearchIndexScanExecutor.submit { scan(repositoryInfoDocument.repository) }
                 }

@@ -23,7 +23,7 @@ import org.octopusden.octopus.vcsfacade.document.UserDocument
 
 
 interface OpenSearchService {
-    fun getRepositoriesInfo(): Set<RepositoryInfoDocument>
+    fun getRepositoriesInfo(scanRequired: Boolean? = null): Set<RepositoryInfoDocument>
     fun findRepositoryInfoById(repositoryId: String): RepositoryInfoDocument?
     fun saveRepositoriesInfo(repositoriesInfo: Sequence<RepositoryInfoDocument>): Set<String>
     fun deleteRepositoryInfoById(repositoryId: String)
