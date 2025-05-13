@@ -18,7 +18,9 @@ class OpenSearchConfig(private val openSearchProperties: OpenSearchProperties?) 
     )
     data class OpenSearchProperties(
         val host: String,
-        val ssl: Boolean = true,
+        val ssl: Boolean,
+        val connectTimeout: Long?,
+        val socketTimeout: Long?,
         val username: String,
         val password: String,
         val index: Index
@@ -48,6 +50,12 @@ class OpenSearchConfig(private val openSearchProperties: OpenSearchProperties?) 
                 ClientConfiguration.builder().connectedTo(openSearchProperties.host).usingSsl()
             } else {
                 ClientConfiguration.builder().connectedTo(openSearchProperties.host)
+            }
+            openSearchProperties.connectTimeout?.let {
+                clientConfigurationBuilder.withConnectTimeout(it)
+            }
+            openSearchProperties.socketTimeout?.let {
+                clientConfigurationBuilder.withSocketTimeout(it)
             }
             return RestClients.create(
                 clientConfigurationBuilder.withBasicAuth(

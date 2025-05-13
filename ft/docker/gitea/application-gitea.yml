@@ -10,6 +10,8 @@ vcs-facade:
   opensearch:
     host: opensearch:9200
     ssl: false
+    connect-timeout: 10000
+    socket-timeout: 30000
     username: admin
     password: admin
     index:
