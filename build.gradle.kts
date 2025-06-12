@@ -1,6 +1,4 @@
-import java.net.InetAddress
 import java.time.Duration
-import java.util.zip.CRC32
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -13,18 +11,8 @@ plugins {
     signing
 }
 
-val defaultVersion = "${
-    with(CRC32()) {
-        update(InetAddress.getLocalHost().hostName.toByteArray())
-        value
-    }
-}-snapshot"
-
 allprojects {
     group = "org.octopusden.octopus.vcsfacade"
-    if (version == "unspecified") {
-        version = defaultVersion
-    }
 }
 
 nexusPublishing {
