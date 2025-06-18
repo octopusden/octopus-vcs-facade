@@ -128,7 +128,7 @@ docker {
     springBootApplication {
         baseImage.set("${"dockerRegistry".getExt()}/eclipse-temurin:21-jdk")
         ports.set(listOf(8080, 8080))
-        images.set(setOf("${"octopusGithubDockerRegistry".getExt()}/octopusden/$name:${ocTemplate.projectVersion.get()}"))
+        images.set(setOf("${"octopusGithubDockerRegistry".getExt()}/octopusden/$name:$version"))
     }
 }
 

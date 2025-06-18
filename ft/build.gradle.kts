@@ -65,7 +65,7 @@ ocTemplate {
     service("vcs-facade") {
         templateFile.set(rootProject.layout.projectDirectory.file("okd/vcs-facade.yaml"))
         parameters.set(commonOkdParameters + mapOf(
-            "VCS_FACADE_IMAGE_TAG" to projectVersion.get(),
+            "VCS_FACADE_IMAGE_TAG" to version as String,
             "VCS_FACADE_VCS_TYPE" to "testProfile".getExt(),
             "VCS_FACADE_VCS_HOST" to "testProfile".getExt().getOkdExternalHost(),
             "VCS_FACADE_OPENSEARCH_HOST" to "opensearch".getOkdExternalHost()
@@ -91,7 +91,7 @@ configure<ComposeExtension> {
             "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"],
             "GITEA_IMAGE_TAG" to properties["gitea.image-tag"],
             "OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"],
-            "VCS_FACADE_IMAGE_TAG" to ocTemplate.projectVersion.get()
+            "VCS_FACADE_IMAGE_TAG" to version as String
         )
     )
 }
