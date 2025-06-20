@@ -64,10 +64,6 @@ fun String.getPort() = when (this) {
 
 fun String.getDockerHost() = "localhost:${getPort()}"
 
-fun String.getOkdPod(): String = ocTemplate.getPod(this)
-
-fun String.getOkdHost(): String = ocTemplate.getOkdHost(this)
-
 ocTemplate {
     namespace.set("okdProject".getExt())
     workDir.set(layout.buildDirectory.dir("okd"))
@@ -135,8 +131,8 @@ docker {
 tasks.withType<Test> {
     when ("testPlatform".getExt()) {
         "okd" -> {
-            systemProperties["test.opensearch-host"] = "opensearch".getOkdHost()
-            systemProperties["test.vcs-host"] = "testProfile".getExt().getOkdHost()
+            systemProperties["test.opensearch-host"] = ocTemplate.getOkdHost("opensearch") + ":80"
+            systemProperties["test.vcs-host"] = ocTemplate.getOkdHost("testProfile".getExt())
             ocTemplate.isRequiredBy(this)
         }
         "docker" -> {

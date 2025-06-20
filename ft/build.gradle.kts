@@ -25,11 +25,7 @@ fun String.getDockerHost() = "localhost:${getPort()}"
 
 fun String.getDockerExternalHost() = "$this:${getPort()}"
 
-fun String.getOkdPod(): String = ocTemplate.getPod(this)
-
-fun String.getOkdHost(): String = ocTemplate.getOkdHost(this)
-
-fun String.getOkdExternalHost() = "${getOkdPod()}-service:${getPort()}"
+fun getOkdExternalHost(serviceName: String) = "${ocTemplate.getPod(serviceName)}-service:${serviceName.getPort()}"
 
 ocTemplate {
     namespace.set("okdProject".getExt())
@@ -67,8 +63,8 @@ ocTemplate {
         parameters.set(commonOkdParameters + mapOf(
             "VCS_FACADE_IMAGE_TAG" to version as String,
             "VCS_FACADE_VCS_TYPE" to "testProfile".getExt(),
-            "VCS_FACADE_VCS_HOST" to "testProfile".getExt().getOkdExternalHost(),
-            "VCS_FACADE_OPENSEARCH_HOST" to "opensearch".getOkdExternalHost()
+            "VCS_FACADE_VCS_HOST" to getOkdExternalHost("testProfile".getExt()),
+            "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch")
         ))
         if ("testProfile".getExt() == "gitea") {
             dependsOn.set(listOf("gitea", "opensearch"))
@@ -77,6 +73,8 @@ ocTemplate {
         }
     }
 }
+
+tasks["ocProcess"].dependsOn(":vcs-facade:dockerPushImage")
 
 configure<ComposeExtension> {
     useComposeFiles.add("${projectDir}/docker/${"testProfile".getExt()}/docker-compose.yml")
@@ -131,11 +129,10 @@ val ft by tasks.creating(Test::class) {
     systemProperties["test.profile"] = "testProfile".getExt()
     when ("testPlatform".getExt()) {
         "okd" -> {
-            dependsOn(":vcs-facade:dockerPushImage")
-            systemProperties["test.vcs-host"] = "testProfile".getExt().getOkdHost()
-            systemProperties["test.vcs-external-host"] = "testProfile".getExt().getOkdExternalHost()
-            systemProperties["test.vcs-facade-host"] = "vcs-facade".getOkdHost()
-            systemProperties["test.vcs-facade-external-host"] = "vcs-facade".getOkdExternalHost()
+            systemProperties["test.vcs-host"] = ocTemplate.getOkdHost("testProfile".getExt())
+            systemProperties["test.vcs-external-host"] = getOkdExternalHost("testProfile".getExt())
+            systemProperties["test.vcs-facade-host"] = ocTemplate.getOkdHost("vcs-facade")
+            systemProperties["test.vcs-facade-external-host"] = getOkdExternalHost("vcs-facade")
             ocTemplate.isRequiredBy(this)
         }
         "docker" -> {
