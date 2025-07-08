@@ -65,11 +65,15 @@ fun String.getPort() = when (this) {
 fun String.getDockerHost() = "localhost:${getPort()}"
 
 ocTemplate {
-    namespace.set("okdProject".getExt())
     workDir.set(layout.buildDirectory.dir("okd"))
 
     clusterDomain.set("okdClusterDomain".getExt())
+    namespace.set("okdProject".getExt())
     prefix.set("vcs-facade-ut")
+
+    "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let{
+        webConsoleUrl.set(it)
+    }
 
     group("giteaServices").apply {
         enabled.set("testProfile".getExt() == "gitea")
