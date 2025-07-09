@@ -28,11 +28,15 @@ fun String.getDockerExternalHost() = "$this:${getPort()}"
 fun getOkdExternalHost(serviceName: String) = "${ocTemplate.getPod(serviceName)}-service:${serviceName.getPort()}"
 
 ocTemplate {
-    namespace.set("okdProject".getExt())
     workDir.set(layout.buildDirectory.dir("okd"))
 
     clusterDomain.set("okdClusterDomain".getExt())
+    namespace.set("okdProject".getExt())
     prefix.set("vcs-facade-ft")
+
+    "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let{
+        webConsoleUrl.set(it)
+    }
 
     group("giteaServices").apply {
         enabled.set("testProfile".getExt() == "gitea")

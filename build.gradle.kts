@@ -89,24 +89,15 @@ subprojects {
 
     ext {
         System.getenv().let {
-            set(
-                "signingRequired",
-                it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword")
-            )
+            set("signingRequired", it.containsKey("ORG_GRADLE_PROJECT_signingKey") && it.containsKey("ORG_GRADLE_PROJECT_signingPassword"))
             set("testPlatform", it.getOrDefault("TEST_PLATFORM", properties["test.platform"]))
             set("testProfile", it.getOrDefault("TEST_PROFILE", properties["test.profile"]))
             set("dockerRegistry", it.getOrDefault("DOCKER_REGISTRY", properties["docker.registry"]))
-            set(
-                "octopusGithubDockerRegistry",
-                it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"])
-            )
+            set("octopusGithubDockerRegistry", it.getOrDefault("OCTOPUS_GITHUB_DOCKER_REGISTRY", project.properties["octopus.github.docker.registry"]))
             set("okdActiveDeadlineSeconds", it.getOrDefault("OKD_ACTIVE_DEADLINE_SECONDS", properties["okd.active-deadline-seconds"]))
             set("okdProject", it.getOrDefault("OKD_PROJECT", properties["okd.project"]))
             set("okdClusterDomain", it.getOrDefault("OKD_CLUSTER_DOMAIN", properties["okd.cluster-domain"]))
-            set(
-                "okdWebConsoleUrl",
-                (it.getOrDefault("OKD_WEB_CONSOLE_URL", properties["okd.web-console-url"]) as? String)?.trimEnd('/')
-            )
+            set("okdWebConsoleUrl", (it.getOrDefault("OKD_WEB_CONSOLE_URL", properties["okd.web-console-url"]) as String).trimEnd('/'))
             set("bitbucketLicense", it.getOrDefault("BITBUCKET_LICENSE", properties["bitbucket.license"]))
         }
     }
