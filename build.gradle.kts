@@ -18,7 +18,7 @@ val defaultVersion = "${
         update(InetAddress.getLocalHost().hostName.toByteArray())
         value
     }
-}-snapshot"
+}-SNAPSHOT"
 
 allprojects {
     group = "org.octopusden.octopus.vcsfacade"
