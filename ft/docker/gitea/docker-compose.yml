@@ -13,11 +13,13 @@ services:
       - "8080:8080"
     volumes:
       - ./application-gitea.yml:/application-gitea.yml
-      - ./../application-ft.yml:/application-ft.yml
-      - ./../bootstrap-ft.yml:/bootstrap-ft.yml
+      - ./../application-vcs-facade.yml:/application-ft.yml
     environment:
       - SPRING_CONFIG_ADDITIONAL_LOCATION=/
       - SPRING_PROFILES_ACTIVE=ft,gitea
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - VCS_FACADE_VCS_HOST=gitea:3000
+      - VCS_FACADE_OPENSEARCH_HOST=opensearch:9200
 
   gitea:
     image: ${DOCKER_REGISTRY}/gitea/gitea:${GITEA_IMAGE_TAG}
