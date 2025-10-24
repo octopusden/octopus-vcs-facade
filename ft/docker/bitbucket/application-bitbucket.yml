@@ -3,8 +3,8 @@ vcs-facade:
     services:
       - id: test-bitbucket
         type: BITBUCKET
-        http-url: http://bitbucket:7990
-        ssh-url: ssh://git@bitbucket:7990
+        http-url: http://${VCS_FACADE_VCS_HOST}
+        ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
         username: admin
         password: admin
   opensearch:

@@ -3,12 +3,12 @@ vcs-facade:
     services:
       - id: test-gitea
         type: GITEA
-        http-url: http://gitea:3000
-        ssh-url: ssh://git@gitea:3000
+        http-url: http://${VCS_FACADE_VCS_HOST}
+        ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
         username: test-admin
         password: test-admin
   opensearch:
-    host: opensearch:9200
+    host: ${VCS_FACADE_OPENSEARCH_HOST}
     ssl: false
     connect-timeout: 10000
     socket-timeout: 30000

@@ -8,48 +8,12 @@ objects:
     metadata:
       name: ${DEPLOYMENT_PREFIX}-vcs-facade-config
     data:
-      bootstrap-ft.yml: |
-        spring:
-          cloud:
-            config:
-              enabled: false
-      application-ft.yml: |
-        vcs-facade:
-          job:
-            fast-work-timout-secs: 0 #check retry mechanism
-            retry-interval-secs: 1
-      application-bitbucket.yml: |
-        vcs-facade:
-          vcs:
-            services:
-              - id: test-bitbucket
-                type: BITBUCKET
-                http-url: http://${VCS_FACADE_VCS_HOST}
-                ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
-                username: admin
-                password: admin
-          opensearch:
-            enabled: false
-      application-gitea.yml: |
-        vcs-facade:
-          vcs:
-            services:
-              - id: test-gitea
-                type: GITEA
-                http-url: http://${VCS_FACADE_VCS_HOST}
-                ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
-                username: test-admin
-                password: test-admin
-          opensearch:
-            host: ${VCS_FACADE_OPENSEARCH_HOST}
-            ssl: false
-            username: admin
-            password: admin
-            index:
-              suffix: ft
-              webhook-secret: b59dd966-2445-4c84-b631-49502427477e
-              scan:
-                delay: 5000
+      application-dev.yml: |-
+        ${APPLICATION_DEV_CONTENT}
+      application-bitbucket.yml: |-
+        ${APPLICATION_BITBUCKET_CONTENT}
+      application-gitea.yml: |-
+        ${APPLICATION_GITEA_CONTENT}
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -67,7 +31,13 @@ objects:
             - name: SPRING_CONFIG_ADDITIONAL_LOCATION
               value: /app/config/
             - name: SPRING_PROFILES_ACTIVE
-              value: ft,${VCS_FACADE_VCS_TYPE}
+              value: dev,${VCS_FACADE_VCS_TYPE}
+            - name: SPRING_CLOUD_CONFIG_ENABLED
+              value: "false"
+            - name: VCS_FACADE_OPENSEARCH_HOST
+              value: ${VCS_FACADE_OPENSEARCH_HOST}
+            - name: VCS_FACADE_VCS_HOST
+              value: ${VCS_FACADE_VCS_HOST}
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -84,10 +54,8 @@ objects:
           configMap:
             name: ${DEPLOYMENT_PREFIX}-vcs-facade-config
             items:
-              - key: bootstrap-ft.yml
-                path: bootstrap-ft.yml
-              - key: application-ft.yml
-                path: application-ft.yml
+              - key: application-dev.yml
+                path: application-dev.yml
               - key: application-bitbucket.yml
                 path: application-bitbucket.yml
               - key: application-gitea.yml
@@ -135,4 +103,13 @@ parameters:
     required: true
   - description: Opensearch host
     name: VCS_FACADE_OPENSEARCH_HOST
+    required: true
+  - description: application-dev.yml content
+    name: APPLICATION_DEV_CONTENT
+    required: true
+  - description: application-bitbucket.yml content
+    name: APPLICATION_BITBUCKET_CONTENT
+    required: true
+  - description: application-gitea.yml content
+    name: APPLICATION_GITEA_CONTENT
     required: true
