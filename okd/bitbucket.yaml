@@ -96,7 +96,7 @@ objects:
     activeDeadlineSeconds: ${{ACTIVE_DEADLINE_SECONDS}}
     containers:
       - name: bitbucket
-        image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_IMAGE_TAG}
+        image: ${DOCKER_REGISTRY}/atlassian/bitbucket:${BITBUCKET_IMAGE_TAG}
         env:
           - name: SETUP_LICENSE
             valueFrom:
@@ -179,7 +179,7 @@ parameters:
 - description: Bitbucket license (base64 encoded)
   name: BITBUCKET_LICENSE
   required: true
-- description: Tag of atlassian/bitbucket-server image
+- description: Tag of atlassian/bitbucket image
   name: BITBUCKET_IMAGE_TAG
   required: true
 - description: Tag of postgres image

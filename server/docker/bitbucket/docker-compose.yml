@@ -3,7 +3,7 @@ version: '2.4'
 services:
   bitbucket:
     container_name: vcs-facade-ut-bitbucket
-    image: ${DOCKER_REGISTRY}/atlassian/bitbucket-server:${BITBUCKET_IMAGE_TAG}
+    image: ${DOCKER_REGISTRY}/atlassian/bitbucket:${BITBUCKET_IMAGE_TAG}
     depends_on:
       bitbucket-db:
         condition: service_started
