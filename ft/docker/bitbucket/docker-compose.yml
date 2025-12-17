@@ -11,11 +11,12 @@ services:
       - "8080:8080"
     volumes:
       - ./application-bitbucket.yml:/application-bitbucket.yml
-      - ./../application-ft.yml:/application-ft.yml
-      - ./../bootstrap-ft.yml:/bootstrap-ft.yml
+      - ./../application-vcs-facade.yml:/application-ft.yml
     environment:
       - SPRING_CONFIG_ADDITIONAL_LOCATION=/
       - SPRING_PROFILES_ACTIVE=ft,bitbucket
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - VCS_FACADE_VCS_HOST=bitbucket:7990
 
   bitbucket:
     container_name: vcs-facade-ft-bitbucket

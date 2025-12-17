@@ -68,7 +68,10 @@ ocTemplate {
             "VCS_FACADE_IMAGE_TAG" to version as String,
             "VCS_FACADE_VCS_TYPE" to "testProfile".getExt(),
             "VCS_FACADE_VCS_HOST" to getOkdExternalHost("testProfile".getExt()),
-            "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch")
+            "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch"),
+            "APPLICATION_DEV_CONTENT" to layout.projectDirectory.dir("docker/application-vcs-facade.yml").asFile.readText(),
+            "APPLICATION_GITEA_CONTENT" to layout.projectDirectory.dir("docker/gitea/application-gitea.yml").asFile.readText(),
+            "APPLICATION_BITBUCKET_CONTENT" to layout.projectDirectory.dir("docker/bitbucket/application-bitbucket.yml").asFile.readText()
         ))
         if ("testProfile".getExt() == "gitea") {
             dependsOn.set(listOf("gitea", "opensearch"))
