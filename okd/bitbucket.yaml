@@ -137,7 +137,10 @@ objects:
                 else
                   exit 1
                 fi
+          initialDelaySeconds: 30
           periodSeconds: 10
+          failureThreshold: 30
+          timeoutSeconds: 5
         volumeMounts:
           - name: bitbucket-data
             mountPath: /var/atlassian/application-data/bitbucket
