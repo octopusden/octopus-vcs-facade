@@ -33,7 +33,7 @@ ocTemplate {
     clusterDomain.set("okdClusterDomain".getExt())
     namespace.set("okdProject".getExt())
     prefix.set("vcs-facade-ft")
-    attempts.set(50)
+    attempts.set(25)
 
     "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let{
         webConsoleUrl.set(it)
