@@ -97,6 +97,9 @@ objects:
     containers:
       - name: bitbucket
         image: ${DOCKER_REGISTRY}/atlassian/bitbucket:${BITBUCKET_IMAGE_TAG}
+        resources:
+          requests:
+            memory: "3Gi"
         env:
           - name: SETUP_LICENSE
             valueFrom:
