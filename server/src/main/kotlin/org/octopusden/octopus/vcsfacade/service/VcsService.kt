@@ -18,7 +18,7 @@ abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
     val indexing = vcsServiceProperties.indexing
     protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
-    private val sshUrlRegex = "$sshUrl[:/]((?:[^/]+/)+)([^/]+).git".toRegex()
+    private val sshUrlRegex = "$sshUrl[:/](?:scm/)?((?:[^/]+/)+)([^/]+)\\.git".toRegex()
     fun isSupported(sshUrl: String) = sshUrlRegex.matches(sshUrl.lowercase())
     fun parse(sshUrl: String) = sshUrlRegex.find(sshUrl.lowercase())!!.destructured.let {
         it.component1().trimEnd('/') to it.component2()
