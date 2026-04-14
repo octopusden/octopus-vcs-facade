@@ -11,6 +11,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
+import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 
 abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
     val id = vcsServiceProperties.id.lowercase()
@@ -18,7 +19,7 @@ abstract class VcsService(vcsServiceProperties: VcsProperties.Service) {
     val indexing = vcsServiceProperties.indexing
     protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
-    private val sshUrlRegex = "${Regex.escape(sshUrl)}[:/](?:scm/)?((?:[^/]+/)+)([^/]+)\\.git".toRegex()
+    private val sshUrlRegex = "${Regex.escape(sshUrl)}[:/]${if (type == VcsServiceType.BITBUCKET) "(?:scm/)?" else ""}((?:[^/]+/)+)([^/]+)\\.git".toRegex()
     fun isSupported(sshUrl: String) = sshUrlRegex.matches(sshUrl.lowercase())
     fun parse(sshUrl: String) = sshUrlRegex.find(sshUrl.lowercase())!!.destructured.let {
         it.component1().trimEnd('/') to it.component2()
