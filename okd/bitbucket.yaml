@@ -29,6 +29,13 @@ objects:
     containers:
       - name: bitbucket-db
         image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "80Mi"
+          limits:
+            cpu: "50m"
+            memory: "128Mi"
         env:
           - name: POSTGRES_DB
             value: bitbucket
@@ -99,7 +106,11 @@ objects:
         image: ${DOCKER_REGISTRY}/atlassian/bitbucket:${BITBUCKET_IMAGE_TAG}
         resources:
           requests:
+            cpu: "400m"
             memory: "3Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
         env:
           - name: SETUP_LICENSE
             valueFrom:
