@@ -31,11 +31,11 @@ objects:
         image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
         resources:
           requests:
-            cpu: "20m"
-            memory: "80Mi"
-          limits:
             cpu: "50m"
             memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
         env:
           - name: POSTGRES_DB
             value: bitbucket
