@@ -109,8 +109,8 @@ objects:
             cpu: "400m"
             memory: "3Gi"
           limits:
-            cpu: "2000m"
-            memory: "4Gi"
+            cpu: "3000m"
+            memory: "5Gi"
         env:
           - name: SETUP_LICENSE
             valueFrom:
