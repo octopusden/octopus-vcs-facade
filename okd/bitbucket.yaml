@@ -104,6 +104,10 @@ objects:
     initContainers:
       - name: wait-for-db
         image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
         command:
           - sh
           - -c
