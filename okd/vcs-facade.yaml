@@ -27,6 +27,13 @@ objects:
         - name: vcs-facade
           image: ${DOCKER_REGISTRY}/octopusden/vcs-facade:${VCS_FACADE_IMAGE_TAG}
           imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "400Mi"
+            limits:
+              cpu: "400m"
+              memory: "600Mi"
           env:
             - name: SPRING_CONFIG_ADDITIONAL_LOCATION
               value: /app/config/
