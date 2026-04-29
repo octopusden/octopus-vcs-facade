@@ -5,7 +5,7 @@
     "description": "Test PR description",
     "author": {
       "name": "test-admin",
-      "avatar": "https://secure.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?d=identicon"
+      "avatar": "http://@test.vcs-host@/avatars/e64c7d89f26bd1972efa854d13d7dd61"
     },
     "source": "feature/ISSUE-4",
     "target": "master",
