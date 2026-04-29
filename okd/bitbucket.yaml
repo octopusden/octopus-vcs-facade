@@ -101,6 +101,17 @@ objects:
   spec:
     restartPolicy: Never
     activeDeadlineSeconds: ${{ACTIVE_DEADLINE_SECONDS}}
+    initContainers:
+      - name: wait-for-db
+        image: ${DOCKER_REGISTRY}/postgres:${POSTGRES_IMAGE_TAG}
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+        command:
+          - sh
+          - -c
+          - until pg_isready -h ${DEPLOYMENT_PREFIX}-bitbucket-db-service -p 5432 -U bitbucket; do echo "Waiting for DB..."; sleep 2; done
     containers:
       - name: bitbucket
         image: ${DOCKER_REGISTRY}/atlassian/bitbucket:${BITBUCKET_IMAGE_TAG}
