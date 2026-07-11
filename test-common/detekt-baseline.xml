@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MaxLineLength:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$"Cannot find commit '9c8daf84e7ed6ea1d32f654362131e26dbf37440' in commit graph for commit 'a933dc6b4fe8e8f66856b4cb9da7f4bf8ad0e017' in 'test:repository'"</ID>
+    <ID>TooGenericExceptionThrown:TestService.kt$TestService$throw RuntimeException("Unable to schedule '$group:$repository' scan")</ID>
+    <ID>TooManyFunctions:BaseVcsFacadeTest.kt$BaseVcsFacadeTest</ID>
+    <ID>TooManyFunctions:BaseVcsFacadeTest.kt$BaseVcsFacadeTest$Companion</ID>
+    <ID>TooManyFunctions:TestService.kt$TestService</ID>
+    <ID>UnusedParameter:BaseVcsFacadeTest.kt$BaseVcsFacadeTest$exceptionClass: Class&lt;out Throwable&gt;</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun createPullRequestFailsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun createTagFailsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun findBranchesByIssueKeysArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun findByIssueKeysArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun findByIssueKeysFailsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun findCommitsByIssueKeysArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun findCommitsWithFilesByIssueKeysArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun findPullRequestsByIssueKeysArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getCommitArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getCommitFailsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getCommitWithFilesArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getCommitsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getCommitsFailsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getCommitsWithFilesArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getIssuesFromCommitsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getTagFailsArguments()</ID>
+    <ID>UnusedPrivateMember:BaseVcsFacadeTest.kt$BaseVcsFacadeTest.Companion$@JvmStatic private fun getTagsArguments()</ID>
+  </CurrentIssues>
+</SmellBaseline>

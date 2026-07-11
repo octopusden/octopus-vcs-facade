@@ -52,15 +52,16 @@ fun String.getExt() = project.ext[this] as String
 
 val commonOkdParameters = mapOf(
     "ACTIVE_DEADLINE_SECONDS" to "okdActiveDeadlineSeconds".getExt(),
-    "DOCKER_REGISTRY" to "dockerRegistry".getExt()
+    "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
 )
 
-fun String.getPort() = when (this) {
-    "bitbucket" -> 7990
-    "gitea" -> 3000
-    "opensearch" -> 9200
-    else -> throw Exception("Unknown service '$this'")
-}
+fun String.getPort() =
+    when (this) {
+        "bitbucket" -> 7990
+        "gitea" -> 3000
+        "opensearch" -> 9200
+        else -> throw Exception("Unknown service '$this'")
+    }
 
 fun String.getDockerHost() = "localhost:${getPort()}"
 
@@ -71,7 +72,7 @@ ocTemplate {
     namespace.set("okdProject".getExt())
     prefix.set("vcs-facade-ut")
 
-    "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let{
+    "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let {
         webConsoleUrl.set(it)
     }
 
@@ -91,19 +92,26 @@ ocTemplate {
         enabled.set("testProfile".getExt() == "bitbucket")
         service("bitbucket") {
             templateFile.set(rootProject.layout.projectDirectory.file("okd/bitbucket.yaml"))
-            parameters.set(commonOkdParameters + mapOf(
-                "BITBUCKET_LICENSE" to Base64.getEncoder().encodeToString("bitbucketLicense".getExt().toByteArray()),
-                "BITBUCKET_IMAGE_TAG" to properties["bitbucket.image-tag"] as String,
-                "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"] as String
-            ))
+            parameters.set(
+                commonOkdParameters + mapOf(
+                    "BITBUCKET_LICENSE" to Base64.getEncoder().encodeToString("bitbucketLicense".getExt().toByteArray()),
+                    "BITBUCKET_IMAGE_TAG" to properties["bitbucket.image-tag"] as String,
+                    "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"] as String,
+                ),
+            )
         }
     }
 }
 
 configure<ComposeExtension> {
-    useComposeFiles.add("${projectDir}/docker/${"testProfile".getExt()}/docker-compose.yml")
+    useComposeFiles.add("$projectDir/docker/${"testProfile".getExt()}/docker-compose.yml")
     waitForTcpPorts.set(true)
-    captureContainersOutputToFiles.set(layout.buildDirectory.file("docker_logs").get().asFile)
+    captureContainersOutputToFiles.set(
+        layout.buildDirectory
+            .file("docker_logs")
+            .get()
+            .asFile,
+    )
     environment.putAll(
         mapOf(
             "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
@@ -112,7 +120,7 @@ configure<ComposeExtension> {
             "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"],
             "GITEA_IMAGE_TAG" to properties["gitea.image-tag"],
             "OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"],
-        )
+        ),
     )
 }
 
@@ -166,7 +174,9 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.opensearch.client:spring-data-opensearch:${properties["spring-data-opensearch.version"]}")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${properties["springdoc-openapi.version"]}")
-    implementation("org.octopusden.octopus.octopus-external-systems-clients:bitbucket-client:${properties["external-systems-client.version"]}")
+    implementation(
+        "org.octopusden.octopus.octopus-external-systems-clients:bitbucket-client:${properties["external-systems-client.version"]}",
+    )
     implementation("org.octopusden.octopus.octopus-external-systems-clients:gitea-client:${properties["external-systems-client.version"]}")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

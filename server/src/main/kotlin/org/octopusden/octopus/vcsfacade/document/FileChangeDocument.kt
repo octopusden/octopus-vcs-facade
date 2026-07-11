@@ -7,5 +7,5 @@ import org.springframework.data.elasticsearch.annotations.FieldType
 data class FileChangeDocument(
     @Field(type = FieldType.Keyword) val type: FileChangeType,
     @Field(type = FieldType.Text, analyzer = "classic") val path: String,
-    @Field(type = FieldType.Keyword) val link: String
+    @Field(type = FieldType.Keyword) val link: String,
 )

@@ -1,7 +1,5 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
-import java.util.Date
-import java.util.stream.Collectors
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
@@ -25,161 +23,216 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
 import org.springframework.stereotype.Service
+import java.util.Date
+import java.util.stream.Collectors
 
 @Service
 class VcsManagerImpl(
     private val vcsProperties: VcsProperties,
     private val openSearchService: OpenSearchService?,
-) : VcsManager, HealthIndicator {
-    private val vcsServiceMap = vcsProperties.services.map {
-        when (it.type) {
-            VcsServiceType.BITBUCKET -> BitbucketService(it)
-            VcsServiceType.GITEA -> GiteaService(it)
+) : VcsManager,
+    HealthIndicator {
+    private val vcsServiceMap = vcsProperties.services
+        .map {
+            when (it.type) {
+                VcsServiceType.BITBUCKET -> BitbucketService(it)
+                VcsServiceType.GITEA -> GiteaService(it)
+            }
+        }.groupBy { it.id }
+        .mapValues {
+            if (it.value.size > 1) {
+                throw IllegalStateException("${it.value.size} VCS services have similar id '${it.key}'")
+            } else {
+                it.value.first()
+            }
         }
-    }.groupBy { it.id }.mapValues {
-        if (it.value.size > 1) throw IllegalStateException("${it.value.size} VCS services have similar id '${it.key}'")
-        else it.value.first()
-    }
 
     override val vcsServices = vcsServiceMap.values
 
     override fun findVcsServiceById(id: String) = vcsServiceMap[id.lowercase()]
 
-    override fun getVcsServiceById(id: String) = findVcsServiceById(id)
-        ?: throw IllegalStateException("There is no configured VCS service with id '$id'")
+    override fun getVcsServiceById(id: String) =
+        findVcsServiceById(id)
+            ?: throw IllegalStateException("There is no configured VCS service with id '$id'")
 
-    override fun getVcsServiceForSshUrl(sshUrl: String) = vcsServices.firstOrNull { it.isSupported(sshUrl) }
-        ?: throw IllegalStateException("There is no configured VCS service for '$sshUrl'")
+    override fun getVcsServiceForSshUrl(sshUrl: String) =
+        vcsServices.firstOrNull { it.isSupported(sshUrl) }
+            ?: throw IllegalStateException("There is no configured VCS service for '$sshUrl'")
 
-    override fun getTags(sshUrl: String, names: Set<String>?): Sequence<Tag> {
+    override fun getTags(
+        sshUrl: String,
+        names: Set<String>?,
+    ): Sequence<Tag> {
         log.trace("=> getTags({}, {})", sshUrl, names)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            if (names == null) {
-                getTags(group, repository)
-            } else {
-                findTags(group, repository, names)
-            }
-        }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", sshUrl, names, it.toList()) }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                if (names == null) {
+                    getTags(group, repository)
+                } else {
+                    findTags(group, repository, names)
+                }
+            }.also { if (log.isTraceEnabled) log.trace("<= getTags({}, {}): {}", sshUrl, names, it.toList()) }
     }
 
-    override fun createTag(sshUrl: String, createTag: CreateTag): Tag {
+    override fun createTag(
+        sshUrl: String,
+        createTag: CreateTag,
+    ): Tag {
         log.trace("=> createTag({}, {})", sshUrl, createTag)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            createTag(group, repository, createTag)
-        }.also { log.trace("<= getTags({}, {}): {}", sshUrl, createTag, it) }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                createTag(group, repository, createTag)
+            }.also { log.trace("<= getTags({}, {}): {}", sshUrl, createTag, it) }
     }
 
-    override fun getTag(sshUrl: String, name: String): Tag {
+    override fun getTag(
+        sshUrl: String,
+        name: String,
+    ): Tag {
         log.trace("=> getTag({}, {})", sshUrl, name)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getTag(group, repository, name)
-        }.also { log.trace("<= getTag({}, {}): {}", sshUrl, name, it) }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                getTag(group, repository, name)
+            }.also { log.trace("<= getTag({}, {}): {}", sshUrl, name, it) }
     }
 
-    override fun deleteTag(sshUrl: String, name: String) {
+    override fun deleteTag(
+        sshUrl: String,
+        name: String,
+    ) {
         log.trace("=> deleteTag({}, {})", sshUrl, name)
-        getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            deleteTag(group, repository, name)
-        }.also { log.trace("<= deleteTag({}, {})", sshUrl, name) }
+        getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                deleteTag(group, repository, name)
+            }.also { log.trace("<= deleteTag({}, {})", sshUrl, name) }
     }
 
     override fun getCommits(
         sshUrl: String,
         fromHashOrRef: String?,
         fromDate: Date?,
-        toHashOrRef: String
+        toHashOrRef: String,
     ): Sequence<Commit> {
         log.trace("=> getCommits({}, {}, {}, {})", sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommits(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
-        }.also {
-            if (log.isTraceEnabled) log.trace(
-                "<= getCommits({}, {}, {}, {}): {}",
-                sshUrl,
-                fromHashOrRef,
-                fromDate,
-                toHashOrRef,
-                it.toList()
-            )
-        }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                getCommits(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
+            }.also {
+                if (log.isTraceEnabled) {
+                    log.trace(
+                        "<= getCommits({}, {}, {}, {}): {}",
+                        sshUrl,
+                        fromHashOrRef,
+                        fromDate,
+                        toHashOrRef,
+                        it.toList(),
+                    )
+                }
+            }
     }
 
     override fun getCommitsWithFiles(
         sshUrl: String,
         fromHashOrRef: String?,
         fromDate: Date?,
-        toHashOrRef: String
+        toHashOrRef: String,
     ): Sequence<CommitWithFiles> {
         log.trace("=> getCommitsWithFiles({}, {}, {}, {})", sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommitsWithFiles(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
-        }.also {
-            if (log.isTraceEnabled) log.trace(
-                "<= getCommitsWithFiles({}, {}, {}, {}): {}",
-                sshUrl,
-                fromHashOrRef,
-                fromDate,
-                toHashOrRef,
-                it.toList()
-            )
-        }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                getCommitsWithFiles(group, repository, HashOrRefOrDate.create(fromHashOrRef, fromDate), toHashOrRef)
+            }.also {
+                if (log.isTraceEnabled) {
+                    log.trace(
+                        "<= getCommitsWithFiles({}, {}, {}, {}): {}",
+                        sshUrl,
+                        fromHashOrRef,
+                        fromDate,
+                        toHashOrRef,
+                        it.toList(),
+                    )
+                }
+            }
     }
 
-    override fun getCommit(sshUrl: String, hashOrRef: String): Commit {
+    override fun getCommit(
+        sshUrl: String,
+        hashOrRef: String,
+    ): Commit {
         log.trace("=> getCommit({}, {})", sshUrl, hashOrRef)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommit(group, repository, hashOrRef)
-        }.also { log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it) }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                getCommit(group, repository, hashOrRef)
+            }.also { log.trace("<= getCommit({}, {}): {}", sshUrl, hashOrRef, it) }
     }
 
-    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles {
+    override fun getCommitWithFiles(
+        sshUrl: String,
+        hashOrRef: String,
+    ): CommitWithFiles {
         log.trace("=> getCommitWithFiles({}, {})", sshUrl, hashOrRef)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            getCommitWithFiles(group, repository, hashOrRef)
-        }.also { log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it) }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                getCommitWithFiles(group, repository, hashOrRef)
+            }.also { log.trace("<= getCommitWithFiles({}, {}): {}", sshUrl, hashOrRef, it) }
     }
 
-    override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest {
+    override fun createPullRequest(
+        sshUrl: String,
+        createPullRequest: CreatePullRequest,
+    ): PullRequest {
         log.trace("=> createPullRequest({}, {})", sshUrl, createPullRequest)
-        return getVcsServiceForSshUrl(sshUrl).run {
-            val (group, repository) = parse(sshUrl)
-            createPullRequest(group, repository, createPullRequest)
-        }.also { log.trace("<= createPullRequest({}, {}): {}", sshUrl, createPullRequest, it) }
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                createPullRequest(group, repository, createPullRequest)
+            }.also { log.trace("<= createPullRequest({}, {}): {}", sshUrl, createPullRequest, it) }
     }
 
     override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse {
         log.trace("=> searchIssuesInRanges({})", searchRequest)
         validateIssueKeys(searchRequest.issueKeys)
-        val messageRanges = searchRequest.ranges.flatMap { range ->
-            getCommits(
-                range.sshUrl, range.fromHashOrRef, range.fromDate, range.toHashOrRef
-            ).map { commit ->
-                commit.message to RepositoryRange(
-                    commit.repository.sshUrl,
+        val messageRanges = searchRequest.ranges
+            .flatMap { range ->
+                getCommits(
+                    range.sshUrl,
                     range.fromHashOrRef,
                     range.fromDate,
-                    range.toHashOrRef
-                )
-            }
-        }.groupBy({ (message, _) -> message }, { (_, range) -> range })
-        return SearchIssueInRangesResponse(searchRequest.issueKeys.map { issueKey ->
-            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
-            issueKey to messageRanges.entries.filter { (message, _) -> issueKeyRegex.containsMatchIn(message) }
-                .flatMap { (_, ranges) -> ranges }
-        }.groupBy({ (issueKey, _) -> issueKey }, { (_, ranges) -> ranges }).entries.stream()
-            .collect(
-                Collectors.toMap({ (issueKey, _) -> issueKey },
-                    { (_, ranges) -> ranges.flatten().toSet() },
-                    { a, b -> a + b })
-            ).filter { (_, ranges) -> ranges.isNotEmpty() }
+                    range.toHashOrRef,
+                ).map { commit ->
+                    commit.message to RepositoryRange(
+                        commit.repository.sshUrl,
+                        range.fromHashOrRef,
+                        range.fromDate,
+                        range.toHashOrRef,
+                    )
+                }
+            }.groupBy({ (message, _) -> message }, { (_, range) -> range })
+        return SearchIssueInRangesResponse(
+            searchRequest.issueKeys
+                .map { issueKey ->
+                    val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
+                    issueKey to messageRanges.entries
+                        .filter { (message, _) -> issueKeyRegex.containsMatchIn(message) }
+                        .flatMap { (_, ranges) -> ranges }
+                }.groupBy({ (issueKey, _) -> issueKey }, { (_, ranges) -> ranges })
+                .entries
+                .stream()
+                .collect(
+                    Collectors.toMap(
+                        { (issueKey, _) -> issueKey },
+                        { (_, ranges) -> ranges.flatten().toSet() },
+                        { a, b -> a + b },
+                    ),
+                ).filter { (_, ranges) -> ranges.isNotEmpty() },
         ).also { log.trace("<= searchIssuesInRanges({}): {}", searchRequest, it) }
     }
 
@@ -187,8 +240,10 @@ class VcsManagerImpl(
         log.trace("=> findBranches({})", issueKeys)
         validateIssueKeys(issueKeys)
         val branches = openSearchService?.findBranchesByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() as Branch }
-            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findBranches(issueKey) } }
-                .asSequence().distinctBy { it.repository.sshUrl + it.name }
+            ?: issueKeys
+                .flatMap { issueKey -> vcsServices.flatMap { it.findBranches(issueKey) } }
+                .asSequence()
+                .distinctBy { it.repository.sshUrl + it.name }
         if (log.isTraceEnabled) log.trace("<= findBranches({}): {}", issueKeys, branches.toList())
         return branches
     }
@@ -197,8 +252,10 @@ class VcsManagerImpl(
         log.trace("=> findCommits({})", issueKeys)
         validateIssueKeys(issueKeys)
         val commits = openSearchService?.findCommitsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto().commit }
-            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findCommits(issueKey) } }
-                .asSequence().distinctBy { it.repository.sshUrl + it.hash }
+            ?: issueKeys
+                .flatMap { issueKey -> vcsServices.flatMap { it.findCommits(issueKey) } }
+                .asSequence()
+                .distinctBy { it.repository.sshUrl + it.hash }
         if (log.isTraceEnabled) log.trace("<= findCommits({}): {}", issueKeys, commits.toList())
         return commits
     }
@@ -207,8 +264,10 @@ class VcsManagerImpl(
         log.trace("=> findCommitsWithFiles({})", issueKeys)
         validateIssueKeys(issueKeys)
         val commitsWithFiles = openSearchService?.findCommitsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() }
-            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findCommitsWithFiles(issueKey) } }
-                .asSequence().distinctBy { it.commit.repository.sshUrl + it.commit.hash }
+            ?: issueKeys
+                .flatMap { issueKey -> vcsServices.flatMap { it.findCommitsWithFiles(issueKey) } }
+                .asSequence()
+                .distinctBy { it.commit.repository.sshUrl + it.commit.hash }
         if (log.isTraceEnabled) log.trace("<= findCommitsWithFiles({}): {}", issueKeys, commitsWithFiles.toList())
         return commitsWithFiles
     }
@@ -217,8 +276,10 @@ class VcsManagerImpl(
         log.trace("=> findPullRequests({})", issueKeys)
         validateIssueKeys(issueKeys)
         val pullRequests = openSearchService?.findPullRequestsByIssueKeys(issueKeys)?.asSequence()?.map { it.toDto() }
-            ?: issueKeys.flatMap { issueKey -> vcsServices.flatMap { it.findPullRequests(issueKey) } }
-                .asSequence().distinctBy { it.repository.sshUrl + it.index }
+            ?: issueKeys
+                .flatMap { issueKey -> vcsServices.flatMap { it.findPullRequests(issueKey) } }
+                .asSequence()
+                .distinctBy { it.repository.sshUrl + it.index }
         if (log.isTraceEnabled) log.trace("<= findPullRequests({}): {}", issueKeys, pullRequests.toList())
         return pullRequests
     }
@@ -227,33 +288,39 @@ class VcsManagerImpl(
         log.trace("=> find({})", issueKeys)
         validateIssueKeys(issueKeys)
         val searchSummary = openSearchService?.findByIssueKeys(issueKeys) ?: run {
-            val branchesCommits = issueKeys.flatMap { issueKey ->
-                vcsServices.flatMap { vcsService ->
-                    vcsService.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {
-                        val (group, repository) = vcsService.parse(it.key)
-                        vcsService.findCommits(group, repository, it.value.map { branch -> branch.hash }.toSet())
+            val branchesCommits = issueKeys
+                .flatMap { issueKey ->
+                    vcsServices.flatMap { vcsService ->
+                        vcsService.findBranches(issueKey).groupBy { it.repository.sshUrl }.flatMap {
+                            val (group, repository) = vcsService.parse(it.key)
+                            vcsService.findCommits(group, repository, it.value.map { branch -> branch.hash }.toSet())
+                        }
                     }
-                }
-            }.distinctBy { it.repository.sshUrl + it.hash }
-            val commits = issueKeys.flatMap { issueKey ->
-                vcsServices.flatMap { it.findCommits(issueKey) }
-            }.distinctBy { it.repository.sshUrl + it.hash }
-            val pullRequests = issueKeys.flatMap { issueKey ->
-                vcsServices.flatMap { it.findPullRequests(issueKey) }
-            }.distinctBy { it.repository.sshUrl + it.index }
+                }.distinctBy { it.repository.sshUrl + it.hash }
+            val commits = issueKeys
+                .flatMap { issueKey ->
+                    vcsServices.flatMap { it.findCommits(issueKey) }
+                }.distinctBy { it.repository.sshUrl + it.hash }
+            val pullRequests = issueKeys
+                .flatMap { issueKey ->
+                    vcsServices.flatMap { it.findPullRequests(issueKey) }
+                }.distinctBy { it.repository.sshUrl + it.index }
             SearchSummary(
                 SearchSummary.SearchBranchesSummary(
                     branchesCommits.size,
-                    branchesCommits.maxOfOrNull { it.date }),
+                    branchesCommits.maxOfOrNull { it.date },
+                ),
                 SearchSummary.SearchCommitsSummary(
                     commits.size,
-                    commits.maxOfOrNull { it.date }),
+                    commits.maxOfOrNull { it.date },
+                ),
                 SearchSummary.SearchPullRequestsSummary(
                     pullRequests.size,
                     pullRequests.maxOfOrNull { it.updatedAt },
                     with(pullRequests.map { it.status }.toSet()) {
                         if (size == 1) first() else null
-                    })
+                    },
+                ),
             )
         }
         log.trace("<= find({}): {}", issueKeys, searchSummary)
@@ -273,12 +340,14 @@ class VcsManagerImpl(
         val errors = healthCheckList.mapNotNull {
             val healthCheck = it.second
             try {
-                val commits = getVcsServiceById(it.first).getCommits(
-                    healthCheck.group,
-                    healthCheck.repository,
-                    HashOrRefOrDate.create(healthCheck.fromCommit, null),
-                    healthCheck.toCommit
-                ).map { commit -> commit.hash }.toSet()
+                val commits = getVcsServiceById(it.first)
+                    .getCommits(
+                        healthCheck.group,
+                        healthCheck.repository,
+                        HashOrRefOrDate.create(healthCheck.fromCommit, null),
+                        healthCheck.toCommit,
+                    ).map { commit -> commit.hash }
+                    .toSet()
                 if (commits != healthCheck.expectedCommits) {
                     val diffCommits = (commits - healthCheck.expectedCommits)
                         .union(healthCheck.expectedCommits - commits)

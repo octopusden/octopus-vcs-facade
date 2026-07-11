@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ClassOrdering:IndexerServiceImpl.kt$IndexerServiceImpl$private val repositoryScanQueue = mutableMapOf&lt;RepositoryInfoDocument, Future&lt;*&gt;&gt;()</ID>
+    <ID>ClassOrdering:IssueKeyParser.kt$IssueKeyParser$private val issueKeyFindRegex = "(?:^|[^_A-Z0-9])($ISSUE_KEY_PATTERN)".toRegex()</ID>
+    <ID>ClassOrdering:VcsServiceSshUrlParsingTest.kt$VcsServiceSshUrlParsingTest$private fun createService( sshUrl: String, type: VcsServiceType, ): VcsService</ID>
+    <ID>ComplexCondition:IndexerController.kt$IndexerController$( event == "pull_request" &amp;&amp; (eventType == "pull_request" || eventType == "pull_request_assign" || eventType == "pull_request_review_request") ) || (event == "pull_request_approved" &amp;&amp; eventType == "pull_request_review_approved") || (event == "pull_request_rejected" &amp;&amp; eventType == "pull_request_review_rejected")</ID>
+    <ID>CyclomaticComplexMethod:IndexerController.kt$IndexerController$@PostMapping("gitea/webhook") fun processGiteaWebhookEvent( @RequestParam("vcsServiceId") vcsServiceId: String, @RequestHeader("x-gitea-event") event: String, @RequestHeader("x-gitea-event-type") eventType: String, @RequestHeader("x-gitea-signature") signature: String?, request: HttpServletRequest, )</ID>
+    <ID>ForbiddenComment:CommitDocument.kt$CommitDocument$// TODO: Sometimes a commit contains enormous number of affected files. Is it better to store files in separate index?</ID>
+    <ID>ForbiddenComment:GiteaService.kt$GiteaService$// TODO: add "useColon" parameter?</ID>
+    <ID>ForbiddenComment:IndexerController.kt$IndexerController$// TODO: support BitBucket webhooks</ID>
+    <ID>ForbiddenComment:RepositoryController.kt$RepositoryController$// TODO: use some concurrent map with timed entry eviction</ID>
+    <ID>ForbiddenComment:VcsManager.kt$VcsManager$// TODO: allow to use both http and ssh repository url (renaming `sshUrl` to `repositoryUrl`)</ID>
+    <ID>ImplicitDefaultLocale:IndexerController.kt$IndexerController$String.format("%02X", b)</ID>
+    <ID>MaxLineLength:CommitDocument.kt$CommitDocument$"CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"</ID>
+    <ID>MaxLineLength:OpenSearchServiceImpl.kt$OpenSearchServiceImpl.Companion$/* IMPORTANT: use raw `search_after` approach because: * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API) * - limitation of raw `search_after` (inconsistency because of concurrent operations) is suitable, consistency is complied by vcs services * - better performance of raw `search_after` comparing with `search_after` with PIT or `scroll` */</ID>
+    <ID>MaxLineLength:PullRequestDocument.kt$PullRequestDocument$"PullRequestDocument(id=$id, repository=$repository, index=$index, title=$title, description=$description, author=$author, source=$source, target=$target, assignees=$assignees, reviewers=$reviewers, status=$status, createdAt=$createdAt, updatedAt=$updatedAt, link=$link)"</ID>
+    <ID>SwallowedException:BaseVcsFacadeUnitTest.kt$BaseVcsFacadeUnitTest$e: Exception</ID>
+    <ID>SwallowedException:BitbucketService.kt$BitbucketService$e: NotFoundException</ID>
+    <ID>SwallowedException:GiteaService.kt$GiteaService$e: NotFoundException</ID>
+    <ID>SwallowedException:RepositoryController.kt$RepositoryController$e: ExecutionException</ID>
+    <ID>TooGenericExceptionCaught:IndexerServiceImpl.kt$IndexerServiceImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VcsManagerImpl.kt$VcsManagerImpl$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:BaseVcsFacadeUnitTest.kt$BaseVcsFacadeUnitTest.Companion$throw Exception("System property 'test.vcs-facade-host' must be defined")</ID>
+    <ID>TooGenericExceptionThrown:BaseVcsFacadeUnitTest.kt$BaseVcsFacadeUnitTest.Companion$throw Exception("System property 'test.vcs-host' must be defined")</ID>
+    <ID>TooManyFunctions:BitbucketService.kt$BitbucketService : VcsService</ID>
+    <ID>TooManyFunctions:GiteaService.kt$GiteaService : VcsService</ID>
+    <ID>TooManyFunctions:IndexerServiceImpl.kt$IndexerServiceImpl : IndexerService</ID>
+    <ID>TooManyFunctions:OpenSearchService.kt$OpenSearchService</ID>
+    <ID>TooManyFunctions:OpenSearchService.kt$OpenSearchService$Companion</ID>
+    <ID>TooManyFunctions:OpenSearchServiceImpl.kt$OpenSearchServiceImpl : OpenSearchService</ID>
+    <ID>TooManyFunctions:RepositoryController.kt$RepositoryController</ID>
+    <ID>TooManyFunctions:VcsManager.kt$VcsManager</ID>
+    <ID>TooManyFunctions:VcsManagerImpl.kt$VcsManagerImpl : VcsManagerHealthIndicator</ID>
+    <ID>TooManyFunctions:VcsService.kt$VcsService</ID>
+    <ID>UnusedPrivateMember:IndexerServiceImpl.kt$IndexerServiceImpl$@Scheduled(cron = "#{ @opensearchIndexScheduleRepositoriesRescanCron }") private fun scheduleRepositoriesRescan()</ID>
+    <ID>UnusedPrivateMember:IndexerServiceImpl.kt$IndexerServiceImpl$@Scheduled(fixedDelayString = "#{ @opensearchIndexSubmitScheduledRepositoriesScanFixedDelay }") private fun submitScheduledRepositoriesScan()</ID>
+    <ID>UseCheckOrError:IndexerServiceImpl.kt$IndexerServiceImpl$throw IllegalStateException("There is no configured Gitea service with id '$id' and enabled indexing")</ID>
+    <ID>UseCheckOrError:VcsManagerImpl.kt$VcsManagerImpl$throw IllegalStateException("${it.value.size} VCS services have similar id '${it.key}'")</ID>
+    <ID>UseCheckOrError:VcsManagerImpl.kt$VcsManagerImpl$throw IllegalStateException("There is no configured VCS service for '$sshUrl'")</ID>
+    <ID>UseCheckOrError:VcsManagerImpl.kt$VcsManagerImpl$throw IllegalStateException("There is no configured VCS service with id '$id'")</ID>
+    <ID>UseCheckOrError:VcsProperties.kt$VcsProperties.Service$throw IllegalStateException("Auth token or username/password must be specified")</ID>
+  </CurrentIssues>
+</SmellBaseline>

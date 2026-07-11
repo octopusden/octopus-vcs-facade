@@ -7,7 +7,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType
 abstract class BaseDocument(
     @Id
     @Field(type = FieldType.Keyword)
-    val id: String
+    val id: String,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

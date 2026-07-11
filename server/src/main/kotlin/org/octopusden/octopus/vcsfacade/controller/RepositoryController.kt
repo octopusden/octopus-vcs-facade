@@ -1,12 +1,5 @@
 package org.octopusden.octopus.vcsfacade.controller
 
-import java.util.Date
-import java.util.UUID
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
@@ -31,14 +24,20 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-
+import java.util.Date
+import java.util.UUID
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 @RestController
 @RequestMapping("rest/api/2/repository")
 class RepositoryController(
     private val jobProperties: JobConfig.JobProperties,
     private val vcsManager: VcsManager,
-    @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor
+    @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor,
 ) {
     private val requestJobs = ConcurrentHashMap<String, Future<*>>()
 
@@ -48,13 +47,13 @@ class RepositoryController(
         @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestParam("toHashOrRef") toHashOrRef: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
             "Get commits ({},{}] in {} repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
-            sshUrl
+            sshUrl,
         )
         RepositoryResponse(vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef))
     }.data.sorted()
@@ -66,18 +65,19 @@ class RepositoryController(
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestParam("toHashOrRef") toHashOrRef: String,
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
             "Get commits ({},{}] with files (limit {}) in {} repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
             commitFilesLimit,
-            sshUrl
+            sshUrl,
         )
         RepositoryResponse(
-            vcsManager.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-                .map { it.mapFilesList(commitFilesLimit) }
+            vcsManager
+                .getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+                .map { it.mapFilesList(commitFilesLimit) },
         )
     }.data.sorted()
 
@@ -85,7 +85,7 @@ class RepositoryController(
     fun getCommit(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("hashOrRef") hashOrRef: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get commit {} in {} repository", hashOrRef, sshUrl)
         vcsManager.getCommit(sshUrl, hashOrRef)
@@ -96,7 +96,7 @@ class RepositoryController(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("hashOrRef") hashOrRef: String,
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get commit {} with files (limit {}) in {} repository", hashOrRef, commitFilesLimit, sshUrl)
         vcsManager.getCommitWithFiles(sshUrl, hashOrRef).mapFilesList(commitFilesLimit)
@@ -108,26 +108,27 @@ class RepositoryController(
         @RequestParam("fromHashOrRef", required = false) fromHashOrRef: String?,
         @RequestParam("fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: Date?,
         @RequestParam("toHashOrRef") toHashOrRef: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
             "Find issue keys in commits ({},{}] in {} repository",
             (fromHashOrRef ?: fromDate?.toString()).orEmpty(),
             toHashOrRef,
-            sshUrl
+            sshUrl,
         )
         RepositoryResponse(
-            vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
-                .flatMap { IssueKeyParser.findIssueKeys(it.message) }.distinct()
+            vcsManager
+                .getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+                .flatMap { IssueKeyParser.findIssueKeys(it.message) }
+                .distinct(),
         )
     }.data.sorted()
-
 
     @GetMapping("tags", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getTags(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("names", required = false) names: Set<String>?,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get tags{} in {} repository", names?.joinToString(prefix = " with names {", postfix = "}") ?: "", sshUrl)
         RepositoryResponse(vcsManager.getTags(sshUrl, names))
@@ -137,7 +138,7 @@ class RepositoryController(
     fun createTag(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestBody createTag: CreateTag,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Create tag {} on {} in {} repository", createTag.name, createTag.hashOrRef, sshUrl)
         vcsManager.createTag(sshUrl, createTag)
@@ -147,7 +148,7 @@ class RepositoryController(
     fun getTag(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("name") name: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get tag {} in {} repository", name, sshUrl)
         vcsManager.getTag(sshUrl, name)
@@ -157,7 +158,7 @@ class RepositoryController(
     fun deleteTag(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestParam("name") name: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Delete tag {} in {} repository", name, sshUrl)
         vcsManager.deleteTag(sshUrl, name)
@@ -166,11 +167,11 @@ class RepositoryController(
     @PostMapping(
         "search-issues-in-ranges",
         consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.APPLICATION_JSON_VALUE]
+        produces = [MediaType.APPLICATION_JSON_VALUE],
     )
     fun searchIssuesInRanges(
         @RequestBody searchRequest: SearchIssuesInRangesRequest,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Search issue keys {} in specified commit ranges", searchRequest.issueKeys)
         vcsManager.searchIssuesInRanges(searchRequest)
@@ -179,18 +180,18 @@ class RepositoryController(
     @PostMapping(
         "pull-requests",
         consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.APPLICATION_JSON_VALUE]
+        produces = [MediaType.APPLICATION_JSON_VALUE],
     )
     fun createPullRequest(
         @RequestParam("sshUrl") sshUrl: String,
         @RequestBody createPullRequest: CreatePullRequest,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info(
             "Create pull request ({} -> {}) in {} repository",
             sshUrl,
             createPullRequest.sourceBranch,
-            createPullRequest.targetBranch
+            createPullRequest.targetBranch,
         )
         vcsManager.createPullRequest(sshUrl, createPullRequest)
     }
@@ -198,7 +199,7 @@ class RepositoryController(
     @GetMapping("find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findByIssueKeys(
         @RequestParam("issueKeys") issueKeys: Set<String>,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get search summary for issue keys {}", issueKeys)
         vcsManager.find(issueKeys)
@@ -207,7 +208,7 @@ class RepositoryController(
     @GetMapping("branches/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findBranchesByIssueKeys(
         @RequestParam("issueKeys") issueKeys: Set<String>,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find branches by issue keys {}", issueKeys)
         RepositoryResponse(vcsManager.findBranches(issueKeys))
@@ -216,7 +217,7 @@ class RepositoryController(
     @GetMapping("commits/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsByIssueKeys(
         @RequestParam("issueKeys") issueKeys: Set<String>,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue keys {}", issueKeys)
         RepositoryResponse(vcsManager.findCommits(issueKeys))
@@ -226,18 +227,18 @@ class RepositoryController(
     fun findCommitsWithFilesByIssueKeys(
         @RequestParam("issueKeys") issueKeys: Set<String>,
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits with files (limit {}) by issue keys {}", commitFilesLimit, issueKeys)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(issueKeys).map { it.mapFilesList(commitFilesLimit) }
+            vcsManager.findCommitsWithFiles(issueKeys).map { it.mapFilesList(commitFilesLimit) },
         )
     }.data.sorted()
 
     @GetMapping("pull-requests/find", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findPullRequestsByIssueKeys(
         @RequestParam("issueKeys") issueKeys: Set<String>,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find pull requests by issue keys {}", issueKeys)
         RepositoryResponse(vcsManager.findPullRequests(issueKeys))
@@ -245,12 +246,12 @@ class RepositoryController(
 
     @Deprecated(
         message = "Deprecated endpoint",
-        replaceWith = ReplaceWith("findByIssueKeys(listOf(issueKey), requestId)")
+        replaceWith = ReplaceWith("findByIssueKeys(listOf(issueKey), requestId)"),
     )
     @GetMapping("find/{issueKey}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findByIssueKey(
         @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Get search summary for issue key {}", issueKey)
         vcsManager.find(setOf(issueKey))
@@ -258,12 +259,12 @@ class RepositoryController(
 
     @Deprecated(
         message = "Deprecated endpoint",
-        replaceWith = ReplaceWith("findBranchesByIssueKeys(listOf(issueKey), requestId)")
+        replaceWith = ReplaceWith("findBranchesByIssueKeys(listOf(issueKey), requestId)"),
     )
     @GetMapping("find/{issueKey}/branches", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findBranchesByIssueKey(
         @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find branches by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findBranches(setOf(issueKey)))
@@ -271,12 +272,12 @@ class RepositoryController(
 
     @Deprecated(
         message = "Deprecated endpoint",
-        replaceWith = ReplaceWith("findCommitsByIssueKeys(listOf(issueKey), requestId)")
+        replaceWith = ReplaceWith("findCommitsByIssueKeys(listOf(issueKey), requestId)"),
     )
     @GetMapping("find/{issueKey}/commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find commits by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findCommits(setOf(issueKey)))
@@ -284,61 +285,69 @@ class RepositoryController(
 
     @Deprecated(
         message = "Deprecated endpoint",
-        replaceWith = ReplaceWith("findCommitsWithFilesByIssueKeys(listOf(issueKey), commitFilesLimit, requestId)")
+        replaceWith = ReplaceWith("findCommitsWithFilesByIssueKeys(listOf(issueKey), commitFilesLimit, requestId)"),
     )
     @GetMapping("find/{issueKey}/commits/files", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findCommitsWithFilesByIssueKey(
         @PathVariable("issueKey") issueKey: String,
         @RequestParam("commitFilesLimit", defaultValue = "0") commitFilesLimit: Int,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(setOf(issueKey)).map { it.mapFilesList(commitFilesLimit) }
+            vcsManager.findCommitsWithFiles(setOf(issueKey)).map { it.mapFilesList(commitFilesLimit) },
         )
     }.data.sorted()
 
     @Deprecated(
         message = "Deprecated endpoint",
-        replaceWith = ReplaceWith("findPullRequestsByIssueKeys(listOf(issueKey), requestId)")
+        replaceWith = ReplaceWith("findPullRequestsByIssueKeys(listOf(issueKey), requestId)"),
     )
     @GetMapping("find/{issueKey}/pull-requests", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findPullRequestsByIssueKey(
         @PathVariable("issueKey") issueKey: String,
-        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find pull requests by issue key {}", issueKey)
         RepositoryResponse(vcsManager.findPullRequests(setOf(issueKey)))
     }.data.sorted()
 
-    private fun <T> processRequest(requestId: String, func: () -> T): T {
-        with(requestJobs.computeIfAbsent(requestId) { newRequest ->
-            log.debug("Submit request {}", newRequest)
-            val future = jobExecutor.submit(Callable {
-                log.trace("Start executing request {}", newRequest)
-                val result = func.invoke()
-                log.trace("Finish executing request {}", newRequest)
-                result
-            })
-            val waitThreshold = Date(Date().time + (jobProperties.fastWorkTimoutSecs * 1000))
-            while (Date().before(waitThreshold) && !future.isDone) {
-                TimeUnit.MILLISECONDS.sleep(200)
-            }
-            future
-        }) {
+    private fun <T> processRequest(
+        requestId: String,
+        func: () -> T,
+    ): T {
+        with(
+            requestJobs.computeIfAbsent(requestId) { newRequest ->
+                log.debug("Submit request {}", newRequest)
+                val future = jobExecutor.submit(
+                    Callable {
+                        log.trace("Start executing request {}", newRequest)
+                        val result = func.invoke()
+                        log.trace("Finish executing request {}", newRequest)
+                        result
+                    },
+                )
+                val waitThreshold = Date(Date().time + (jobProperties.fastWorkTimoutSecs * 1000))
+                while (Date().before(waitThreshold) && !future.isDone) {
+                    TimeUnit.MILLISECONDS.sleep(200)
+                }
+                future
+            },
+        ) {
             if (!isDone) {
                 throw JobProcessingException(
                     "Request $requestId is still processing",
                     requestId,
-                    Date(Date().time + (jobProperties.retryIntervalSecs * 1000))
+                    Date(Date().time + (jobProperties.retryIntervalSecs * 1000)),
                 )
             }
         }
         log.debug("Collect request {} result", requestId)
         try {
-            //TODO: use some concurrent map with timed entry eviction
-            //Repeatable deferred result request could be routed to another instance if application runs in multi-nodes
-            @Suppress("UNCHECKED_CAST") return requestJobs.remove(requestId)!!.get() as T
+            // TODO: use some concurrent map with timed entry eviction
+            // Repeatable deferred result request could be routed to another instance if application runs in multi-nodes
+            @Suppress("UNCHECKED_CAST")
+            return requestJobs.remove(requestId)!!.get() as T
         } catch (e: ExecutionException) {
             throw e.cause!!
         }
@@ -347,8 +356,9 @@ class RepositoryController(
     companion object {
         private val log = LoggerFactory.getLogger(RepositoryController::class.java)
 
-        private fun CommitWithFiles.mapFilesList(commitFilesLimit: Int) = files.sorted().let {
-            CommitWithFiles(commit, totalFiles, if (commitFilesLimit > 0) it.take(commitFilesLimit) else it)
-        }
+        private fun CommitWithFiles.mapFilesList(commitFilesLimit: Int) =
+            files.sorted().let {
+                CommitWithFiles(commit, totalFiles, if (commitFilesLimit > 0) it.take(commitFilesLimit) else it)
+            }
     }
 }

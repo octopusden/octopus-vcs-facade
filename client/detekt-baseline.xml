@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MaxLineLength:VcsFacadeClient.kt$VcsFacadeClient$"GET rest/api/2/repository/commits/files?sshUrl={sshUrl}&amp;fromHashOrRef={fromHashOrRef}&amp;fromDate={fromDate}&amp;toHashOrRef={toHashOrRef}&amp;commitFilesLimit={commitFilesLimit}"</ID>
+    <ID>SwallowedException:VcsFacadeErrorDecoder.kt$VcsFacadeErrorDecoder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VcsFacadeErrorDecoder.kt$VcsFacadeErrorDecoder$e: Exception</ID>
+    <ID>TooManyFunctions:ClassicVcsFacadeClient.kt$ClassicVcsFacadeClient : VcsFacadeClient</ID>
+    <ID>TooManyFunctions:VcsFacadeClient.kt$VcsFacadeClient</ID>
+  </CurrentIssues>
+</SmellBaseline>
