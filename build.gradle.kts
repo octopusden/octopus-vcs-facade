@@ -29,7 +29,11 @@ octopusQuality {
         failOnViolation.set(true)
     }
     // Functional-test tasks are excluded from the quality gate.
-    excludeTasks("ft", ":ft:ft")
+    // :vcs-facade:test is an infra-bound integration test: docker-compose (test.platform=docker)
+    // wires composeBuild/composeUp onto it via dockerCompose.isRequiredBy(test), which cannot run
+    // on the GitHub runner (no docker-compose / no OKD). Coverage is disabled for this repo, so the
+    // qualityCoverage aggregate must not pull this task (and its compose chain) into the graph.
+    excludeTasks("ft", ":ft:ft", ":vcs-facade:test")
 }
 
 val defaultVersion = "${
