@@ -8,5 +8,5 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 data class GiteaDeleteRefEvent(
     val refType: GiteaRefType,
     val ref: String,
-    val repository: GiteaRepository
+    val repository: GiteaRepository,
 )

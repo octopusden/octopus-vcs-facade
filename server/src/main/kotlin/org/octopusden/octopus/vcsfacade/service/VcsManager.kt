@@ -1,6 +1,5 @@
 package org.octopusden.octopus.vcsfacade.service
 
-import java.util.Date
 import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
@@ -11,31 +10,75 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesRes
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
+import java.util.Date
 
-interface VcsManager { //TODO: allow to use both http and ssh repository url (renaming `sshUrl` to `repositoryUrl`)
+interface VcsManager { // TODO: allow to use both http and ssh repository url (renaming `sshUrl` to `repositoryUrl`)
     val vcsServices: Collection<VcsService>
+
     fun findVcsServiceById(id: String): VcsService?
+
     fun getVcsServiceById(id: String): VcsService
+
     fun getVcsServiceForSshUrl(sshUrl: String): VcsService
-    fun getTags(sshUrl: String, names: Set<String>?): Sequence<Tag>
-    fun createTag(sshUrl: String, createTag: CreateTag): Tag
-    fun getTag(sshUrl: String, name: String): Tag
-    fun deleteTag(sshUrl: String, name: String)
-    fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String): Sequence<Commit>
+
+    fun getTags(
+        sshUrl: String,
+        names: Set<String>?,
+    ): Sequence<Tag>
+
+    fun createTag(
+        sshUrl: String,
+        createTag: CreateTag,
+    ): Tag
+
+    fun getTag(
+        sshUrl: String,
+        name: String,
+    ): Tag
+
+    fun deleteTag(
+        sshUrl: String,
+        name: String,
+    )
+
+    fun getCommits(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+    ): Sequence<Commit>
+
     fun getCommitsWithFiles(
         sshUrl: String,
         fromHashOrRef: String?,
         fromDate: Date?,
-        toHashOrRef: String
+        toHashOrRef: String,
     ): Sequence<CommitWithFiles>
 
-    fun getCommit(sshUrl: String, hashOrRef: String): Commit
-    fun getCommitWithFiles(sshUrl: String, hashOrRef: String): CommitWithFiles
-    fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest): PullRequest
+    fun getCommit(
+        sshUrl: String,
+        hashOrRef: String,
+    ): Commit
+
+    fun getCommitWithFiles(
+        sshUrl: String,
+        hashOrRef: String,
+    ): CommitWithFiles
+
+    fun createPullRequest(
+        sshUrl: String,
+        createPullRequest: CreatePullRequest,
+    ): PullRequest
+
     fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest): SearchIssueInRangesResponse
+
     fun findBranches(issueKeys: Set<String>): Sequence<Branch>
+
     fun findCommits(issueKeys: Set<String>): Sequence<Commit>
+
     fun findCommitsWithFiles(issueKeys: Set<String>): Sequence<CommitWithFiles>
+
     fun findPullRequests(issueKeys: Set<String>): Sequence<PullRequest>
+
     fun find(issueKeys: Set<String>): SearchSummary
 }

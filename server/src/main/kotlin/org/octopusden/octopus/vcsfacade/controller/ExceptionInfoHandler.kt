@@ -53,8 +53,12 @@ class ExceptionInfoHandler {
     companion object {
         private val log: Logger = LoggerFactory.getLogger(ExceptionInfoHandler::class.java)
 
-        private fun handleError(errorCode: VcsFacadeErrorCode, exception: Exception) = ErrorResponse(
-            errorCode, exception.message ?: errorCode.defaultMessage
+        private fun handleError(
+            errorCode: VcsFacadeErrorCode,
+            exception: Exception,
+        ) = ErrorResponse(
+            errorCode,
+            exception.message ?: errorCode.defaultMessage,
         ).also {
             log.error(it.errorMessage, exception)
         }

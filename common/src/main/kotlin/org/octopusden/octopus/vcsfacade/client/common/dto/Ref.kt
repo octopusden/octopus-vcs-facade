@@ -8,18 +8,18 @@ import java.util.Objects
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.EXISTING_PROPERTY,
     property = "type",
-    visible = true
+    visible = true,
 )
 @JsonSubTypes(
     JsonSubTypes.Type(Branch::class, name = "BRANCH"),
-    JsonSubTypes.Type(Tag::class, name = "TAG")
+    JsonSubTypes.Type(Tag::class, name = "TAG"),
 )
 abstract class Ref(
     val type: RefType,
     val name: String,
     val hash: String,
     val link: String,
-    val repository: Repository
+    val repository: Repository,
 ) : Comparable<Ref> {
     override fun compareTo(other: Ref) = compareBy(Ref::repository, Ref::type, Ref::name).compare(this, other)
 

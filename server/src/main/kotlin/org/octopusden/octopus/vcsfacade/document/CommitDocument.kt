@@ -1,16 +1,19 @@
 package org.octopusden.octopus.vcsfacade.document
 
-import java.util.Date
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.elasticsearch.annotations.Document
 import org.springframework.data.elasticsearch.annotations.Field
 import org.springframework.data.elasticsearch.annotations.FieldType
 import org.springframework.data.elasticsearch.annotations.Setting
+import java.util.Date
 
 @Document(indexName = "#{ 'vcs-facade-commits-' + @opensearchIndexSuffix }")
 @Setting(settingPath = "opensearch-index-settings.json")
 @ConditionalOnProperty(
-    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true,
 )
 class CommitDocument(
     @Field(type = FieldType.Object) val repository: RepositoryDocument,
@@ -20,13 +23,16 @@ class CommitDocument(
     @Field(type = FieldType.Object) val author: UserDocument,
     @Field(type = FieldType.Keyword) val parents: List<String>,
     @Field(type = FieldType.Keyword) val link: String,
-    //TODO: Sometimes a commit contains enormous number of affected files. Is it better to store files in separate index?
-    @Field(type = FieldType.Object) val files: List<FileChangeDocument>
+    // TODO: Sometimes a commit contains enormous number of affected files. Is it better to store files in separate index?
+    @Field(type = FieldType.Object) val files: List<FileChangeDocument>,
 ) : BaseDocument(commitId(repository, hash)) {
     override fun toString() =
         "CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"
 
     companion object {
-        fun commitId(repository: RepositoryDocument, hash: String) = id(repository.id, hash)
+        fun commitId(
+            repository: RepositoryDocument,
+            hash: String,
+        ) = id(repository.id, hash)
     }
 }

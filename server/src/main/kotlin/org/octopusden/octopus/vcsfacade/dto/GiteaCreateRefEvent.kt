@@ -9,5 +9,5 @@ data class GiteaCreateRefEvent(
     val refType: GiteaRefType,
     val ref: String,
     val repository: GiteaRepository,
-    val sha: String
+    val sha: String,
 )

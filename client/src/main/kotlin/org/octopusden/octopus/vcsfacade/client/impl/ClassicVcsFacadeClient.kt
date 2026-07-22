@@ -10,8 +10,6 @@ import feign.httpclient.ApacheHttpClient
 import feign.jackson.JacksonDecoder
 import feign.jackson.JacksonEncoder
 import feign.slf4j.Slf4jLogger
-import java.util.Date
-import java.util.concurrent.TimeUnit
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
@@ -19,50 +17,83 @@ import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetryer
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 class ClassicVcsFacadeClient(
-    apiParametersProvider: VcsFacadeClientParametersProvider, private val mapper: ObjectMapper
+    apiParametersProvider: VcsFacadeClientParametersProvider,
+    private val mapper: ObjectMapper,
 ) : VcsFacadeClient {
     private var client = createClient(
-        apiParametersProvider.getApiUrl(), mapper, apiParametersProvider.getTimeRetryInMillis()
+        apiParametersProvider.getApiUrl(),
+        mapper,
+        apiParametersProvider.getTimeRetryInMillis(),
     )
 
     constructor(apiParametersProvider: VcsFacadeClientParametersProvider) : this(
-        apiParametersProvider, getMapper()
+        apiParametersProvider,
+        getMapper(),
     )
 
-    override fun getCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String) =
-        client.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+    override fun getCommits(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+    ) = client.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
     override fun getCommitsWithFiles(
         sshUrl: String,
         fromHashOrRef: String?,
         fromDate: Date?,
         toHashOrRef: String,
-        commitFilesLimit: Int?
+        commitFilesLimit: Int?,
     ) = client.getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef, commitFilesLimit)
 
-    override fun getCommit(sshUrl: String, hashOrRef: String) = client.getCommit(sshUrl, hashOrRef)
+    override fun getCommit(
+        sshUrl: String,
+        hashOrRef: String,
+    ) = client.getCommit(sshUrl, hashOrRef)
 
-    override fun getCommitWithFiles(sshUrl: String, hashOrRef: String, commitFilesLimit: Int?) =
-        client.getCommitWithFiles(sshUrl, hashOrRef, commitFilesLimit)
+    override fun getCommitWithFiles(
+        sshUrl: String,
+        hashOrRef: String,
+        commitFilesLimit: Int?,
+    ) = client.getCommitWithFiles(sshUrl, hashOrRef, commitFilesLimit)
 
-    override fun getIssuesFromCommits(sshUrl: String, fromHashOrRef: String?, fromDate: Date?, toHashOrRef: String) =
-        client.getIssuesFromCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+    override fun getIssuesFromCommits(
+        sshUrl: String,
+        fromHashOrRef: String?,
+        fromDate: Date?,
+        toHashOrRef: String,
+    ) = client.getIssuesFromCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
 
-    override fun getTags(sshUrl: String, names: Set<String>?) = client.getTags(sshUrl, names)
+    override fun getTags(
+        sshUrl: String,
+        names: Set<String>?,
+    ) = client.getTags(sshUrl, names)
 
-    override fun createTag(sshUrl: String, createTag: CreateTag) = client.createTag(sshUrl, createTag)
+    override fun createTag(
+        sshUrl: String,
+        createTag: CreateTag,
+    ) = client.createTag(sshUrl, createTag)
 
-    override fun getTag(sshUrl: String, name: String) = client.getTag(sshUrl, name)
+    override fun getTag(
+        sshUrl: String,
+        name: String,
+    ) = client.getTag(sshUrl, name)
 
-    override fun deleteTag(sshUrl: String, name: String) = client.deleteTag(sshUrl, name)
+    override fun deleteTag(
+        sshUrl: String,
+        name: String,
+    ) = client.deleteTag(sshUrl, name)
 
-    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) =
-        client.searchIssuesInRanges(searchRequest)
+    override fun searchIssuesInRanges(searchRequest: SearchIssuesInRangesRequest) = client.searchIssuesInRanges(searchRequest)
 
-    override fun createPullRequest(sshUrl: String, createPullRequest: CreatePullRequest) =
-        client.createPullRequest(sshUrl, createPullRequest)
+    override fun createPullRequest(
+        sshUrl: String,
+        createPullRequest: CreatePullRequest,
+    ) = client.createPullRequest(sshUrl, createPullRequest)
 
     override fun findByIssueKeys(issueKeys: Set<String>) = client.findByIssueKeys(issueKeys)
 
@@ -70,8 +101,10 @@ class ClassicVcsFacadeClient(
 
     override fun findCommitsByIssueKeys(issueKeys: Set<String>) = client.findCommitsByIssueKeys(issueKeys)
 
-    override fun findCommitsWithFilesByIssueKeys(issueKeys: Set<String>, commitFilesLimit: Int?) =
-        client.findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
+    override fun findCommitsWithFilesByIssueKeys(
+        issueKeys: Set<String>,
+        commitFilesLimit: Int?,
+    ) = client.findCommitsWithFilesByIssueKeys(issueKeys, commitFilesLimit)
 
     override fun findPullRequestsByIssueKeys(issueKeys: Set<String>) = client.findPullRequestsByIssueKeys(issueKeys)
 
@@ -80,7 +113,10 @@ class ClassicVcsFacadeClient(
     override fun indexReport(scanRequired: Boolean?) = client.indexReport(scanRequired)
 
     @Suppress("unused")
-    fun setUrl(apiUrl: String, timeRetryInMillis: Int) {
+    fun setUrl(
+        apiUrl: String,
+        timeRetryInMillis: Int,
+    ) {
         client = createClient(apiUrl, mapper, timeRetryInMillis)
     }
 
@@ -91,15 +127,22 @@ class ClassicVcsFacadeClient(
             return objectMapper
         }
 
-        private fun createClient(apiUrl: String, objectMapper: ObjectMapper, timeRetryInMillis: Int): VcsFacadeClient {
-            return Feign.builder().client(ApacheHttpClient())
+        private fun createClient(
+            apiUrl: String,
+            objectMapper: ObjectMapper,
+            timeRetryInMillis: Int,
+        ): VcsFacadeClient =
+            Feign
+                .builder()
+                .client(ApacheHttpClient())
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
-                .logger(Slf4jLogger(VcsFacadeClient::class.java)).logLevel(Logger.Level.FULL)
+                .logger(Slf4jLogger(VcsFacadeClient::class.java))
+                .logLevel(Logger.Level.FULL)
                 .encoder(JacksonEncoder(objectMapper))
                 .responseInterceptor(VcsFacadeResponseInterceptor(objectMapper))
                 .retryer(VcsFacadeRetryer(timeRetryInMillis))
-                .decoder(JacksonDecoder(objectMapper)).errorDecoder(VcsFacadeErrorDecoder(objectMapper))
+                .decoder(JacksonDecoder(objectMapper))
+                .errorDecoder(VcsFacadeErrorDecoder(objectMapper))
                 .target(VcsFacadeClient::class.java, apiUrl)
-        }
     }
 }

@@ -5,5 +5,5 @@ import org.springframework.data.elasticsearch.annotations.FieldType
 
 data class UserDocument(
     @Field(type = FieldType.Keyword) val name: String,
-    @Field(type = FieldType.Keyword) val avatar: String?
+    @Field(type = FieldType.Keyword) val avatar: String?,
 )

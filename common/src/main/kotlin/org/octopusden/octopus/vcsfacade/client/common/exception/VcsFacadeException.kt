@@ -1,3 +1,5 @@
 package org.octopusden.octopus.vcsfacade.client.common.exception
 
-open class VcsFacadeException(message: String) : RuntimeException(message)
+open class VcsFacadeException(
+    message: String,
+) : RuntimeException(message)

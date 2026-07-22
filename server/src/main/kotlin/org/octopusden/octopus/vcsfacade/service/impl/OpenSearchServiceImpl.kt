@@ -1,6 +1,5 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
-import kotlin.jvm.optionals.getOrNull
 import org.octopusden.octopus.vcsfacade.client.common.dto.RefType
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.document.BaseDocument
@@ -17,16 +16,20 @@ import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 @ConditionalOnProperty(
-    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true,
 )
 class OpenSearchServiceImpl(
     private val repositoryInfoRepository: RepositoryInfoRepository,
     private val refRepository: RefRepository,
     private val commitRepository: CommitRepository,
-    private val pullRequestRepository: PullRequestRepository
+    private val pullRequestRepository: PullRequestRepository,
 ) : OpenSearchService {
     override fun getRepositoriesInfo(scanRequired: Boolean?): Set<RepositoryInfoDocument> {
         log.trace("=> getRepositoriesInfo({})", scanRequired)
@@ -137,66 +140,84 @@ class OpenSearchServiceImpl(
 
     override fun findBranchesByIssueKeys(issueKeys: Set<String>): Set<RefDocument> {
         log.trace("=> findBranchesByIssueKeys({})", issueKeys)
-        return issueKeys.flatMap { issueKey ->
-            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
-            refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
-                .filter { issueKeyRegex.containsMatchIn(it.name) }
-        }.toSet().also {
-            log.trace("<= findBranchesByIssueKeys({}): {}", issueKeys, it)
-        }
+        return issueKeys
+            .flatMap { issueKey ->
+                val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
+                refRepository
+                    .searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
+                    .filter { issueKeyRegex.containsMatchIn(it.name) }
+            }.toSet()
+            .also {
+                log.trace("<= findBranchesByIssueKeys({}): {}", issueKeys, it)
+            }
     }
 
     override fun findCommitsByIssueKeys(issueKeys: Set<String>): Set<CommitDocument> {
         log.trace("=> findCommitsByIssueKeys({})", issueKeys)
-        return issueKeys.flatMap { issueKey ->
-            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
-            commitRepository.searchByMessageContaining(issueKey)
-                .filter { issueKeyRegex.containsMatchIn(it.message) }
-        }.toSet().also {
-            log.trace("<= findCommitsByIssueKeys({}): {}", issueKeys, it)
-        }
+        return issueKeys
+            .flatMap { issueKey ->
+                val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
+                commitRepository
+                    .searchByMessageContaining(issueKey)
+                    .filter { issueKeyRegex.containsMatchIn(it.message) }
+            }.toSet()
+            .also {
+                log.trace("<= findCommitsByIssueKeys({}): {}", issueKeys, it)
+            }
     }
 
     override fun findPullRequestsByIssueKeys(issueKeys: Set<String>): Set<PullRequestDocument> {
         log.trace("=> findPullRequestsByIssueKeys({})", issueKeys)
-        return issueKeys.flatMap { issueKey ->
-            val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
-            pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
-                .filter { issueKeyRegex.containsMatchIn(it.title) || issueKeyRegex.containsMatchIn(it.description) }
-        }.toSet().also {
-            log.trace("<= findPullRequestsByIssueKeys({}): {}", issueKeys, it)
-        }
+        return issueKeys
+            .flatMap { issueKey ->
+                val issueKeyRegex = IssueKeyParser.getIssueKeyRegex(issueKey)
+                pullRequestRepository
+                    .searchByTitleContainingOrDescriptionContaining(issueKey, issueKey)
+                    .filter { issueKeyRegex.containsMatchIn(it.title) || issueKeyRegex.containsMatchIn(it.description) }
+            }.toSet()
+            .also {
+                log.trace("<= findPullRequestsByIssueKeys({}): {}", issueKeys, it)
+            }
     }
 
     override fun findByIssueKeys(issueKeys: Set<String>): SearchSummary {
         log.trace("=> findByIssueKeys({})", issueKeys)
         val issueKeysToRegex = issueKeys.map { it to IssueKeyParser.getIssueKeyRegex(it) }
-        val branchesCommits = issueKeysToRegex.flatMap { (issueKey, regex) ->
-            refRepository.searchByTypeAndNameContaining(RefType.BRANCH, issueKey).filter {
-                regex.containsMatchIn(it.name)
-            }.map {
-                commitRepository.findById(it.commitId).getOrNull()
-            }
-        }.toSet()
-        val commits = issueKeysToRegex.flatMap { (issueKey, regex) ->
-            commitRepository.searchByMessageContaining(issueKey).filter {
-                regex.containsMatchIn(it.message)
-            }
-        }.toSet()
-        val pullRequests = issueKeysToRegex.flatMap { (issueKey, regex) ->
-            pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
-                regex.containsMatchIn(it.title) || regex.containsMatchIn(it.description)
-            }
-        }.toSet()
-        return SearchSummary(SearchSummary.SearchBranchesSummary(
-            branchesCommits.size,
-            branchesCommits.filterNotNull().maxOfOrNull { it.date }),
+        val branchesCommits = issueKeysToRegex
+            .flatMap { (issueKey, regex) ->
+                refRepository
+                    .searchByTypeAndNameContaining(RefType.BRANCH, issueKey)
+                    .filter {
+                        regex.containsMatchIn(it.name)
+                    }.map {
+                        commitRepository.findById(it.commitId).getOrNull()
+                    }
+            }.toSet()
+        val commits = issueKeysToRegex
+            .flatMap { (issueKey, regex) ->
+                commitRepository.searchByMessageContaining(issueKey).filter {
+                    regex.containsMatchIn(it.message)
+                }
+            }.toSet()
+        val pullRequests = issueKeysToRegex
+            .flatMap { (issueKey, regex) ->
+                pullRequestRepository.searchByTitleContainingOrDescriptionContaining(issueKey, issueKey).filter {
+                    regex.containsMatchIn(it.title) || regex.containsMatchIn(it.description)
+                }
+            }.toSet()
+        return SearchSummary(
+            SearchSummary.SearchBranchesSummary(
+                branchesCommits.size,
+                branchesCommits.filterNotNull().maxOfOrNull { it.date },
+            ),
             SearchSummary.SearchCommitsSummary(commits.size, commits.maxOfOrNull { it.date }),
-            SearchSummary.SearchPullRequestsSummary(pullRequests.size,
+            SearchSummary.SearchPullRequestsSummary(
+                pullRequests.size,
                 pullRequests.maxOfOrNull { it.updatedAt },
                 with(pullRequests.map { it.status }.toSet()) {
                     if (size == 1) first() else null
-                })
+                },
+            ),
         ).also {
             log.trace("<= findByIssueKeys({}): {}", issueKeys, it)
         }
@@ -205,7 +226,7 @@ class OpenSearchServiceImpl(
     companion object {
         private val log = LoggerFactory.getLogger(OpenSearchServiceImpl::class.java)
 
-        private const val BATCH_SIZE = 50 //must be equal to search limit in repositories
+        private const val BATCH_SIZE = 50 // must be equal to search limit in repositories
 
         /* IMPORTANT: use raw `search_after` approach because:
          * - native query builder required to use `search_after` with PIT or to `scroll` (spring-data-opensearch does not fully support Spring Data JPA Scroll API)
@@ -236,14 +257,16 @@ class OpenSearchServiceImpl(
             return documentsIds
         }
 
-        private fun <T : BaseDocument> processAll(documents: Sequence<T>, batchOperation: (batch: List<T>) -> Unit) =
-            processAll(documents, BATCH_SIZE, { 1 }, batchOperation)
+        private fun <T : BaseDocument> processAll(
+            documents: Sequence<T>,
+            batchOperation: (batch: List<T>) -> Unit,
+        ) = processAll(documents, BATCH_SIZE, { 1 }, batchOperation)
 
         private fun <T : BaseDocument> processAll(
             documents: Sequence<T>,
             batchWeightLimit: Int,
             documentWeight: (document: T) -> Int,
-            batchOperation: (batch: List<T>) -> Unit
+            batchOperation: (batch: List<T>) -> Unit,
         ): Set<String> {
             val documentsIds = mutableSetOf<String>()
             val batch = ArrayList<T>(BATCH_SIZE)
@@ -265,10 +288,11 @@ class OpenSearchServiceImpl(
             return documentsIds
         }
 
-        private fun processAllIds(documentsIds: Set<String>, batchOperation: (batch: List<String>) -> Unit) =
-            documentsIds.chunked(BATCH_SIZE).forEach {
-                batchOperation.invoke(it)
-            }
-
+        private fun processAllIds(
+            documentsIds: Set<String>,
+            batchOperation: (batch: List<String>) -> Unit,
+        ) = documentsIds.chunked(BATCH_SIZE).forEach {
+            batchOperation.invoke(it)
+        }
     }
 }

@@ -2,8 +2,6 @@ package org.octopusden.octopus.vcsfacade.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.config.OpenSearchConfig
 import org.octopusden.octopus.vcsfacade.dto.GiteaCreateRefEvent
@@ -20,17 +18,22 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 @RestController
 @RequestMapping("rest/api/1/indexer")
 @ConditionalOnProperty(
-    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true,
 )
 class IndexerController(
     openSearchProperties: OpenSearchConfig.OpenSearchProperties,
     private val indexerService: IndexerService,
-    private val objectMapper: ObjectMapper
-) { //TODO: support BitBucket webhooks
+    private val objectMapper: ObjectMapper,
+) { // TODO: support BitBucket webhooks
     private val mac = openSearchProperties.index.webhookSecret?.let {
         Mac.getInstance(MAC_ALGORITHM).apply {
             init(SecretKeySpec(it.toByteArray(), MAC_ALGORITHM))
@@ -44,7 +47,7 @@ class IndexerController(
         @RequestHeader("x-gitea-event") event: String,
         @RequestHeader("x-gitea-event-type") eventType: String,
         @RequestHeader("x-gitea-signature") signature: String?,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ) {
         log.debug("Receive webhook event {}:{} from {}", event, eventType, vcsServiceId)
         val payload = request.inputStream.use { it.readAllBytes() }
@@ -70,8 +73,7 @@ class IndexerController(
                     ref,
                     refType.jsonValue,
                     vcsServiceId,
-                    repository.fullName
-
+                    repository.fullName,
                 )
                 indexerService.registerGiteaCreateRefEvent(vcsServiceId, this)
             }
@@ -82,7 +84,7 @@ class IndexerController(
                     ref,
                     refType.jsonValue,
                     vcsServiceId,
-                    repository.fullName
+                    repository.fullName,
                 )
                 indexerService.registerGiteaDeleteRefEvent(vcsServiceId, this)
             }
@@ -92,12 +94,15 @@ class IndexerController(
                     "Register {} commit(s) in {}:{} repository",
                     commits.size,
                     vcsServiceId,
-                    repository.fullName
+                    repository.fullName,
                 )
                 indexerService.registerGiteaPushEvent(vcsServiceId, this)
             }
         } else if (
-            (event == "pull_request" && (eventType == "pull_request" || eventType == "pull_request_assign" || eventType == "pull_request_review_request")) ||
+            (
+                event == "pull_request" &&
+                    (eventType == "pull_request" || eventType == "pull_request_assign" || eventType == "pull_request_review_request")
+            ) ||
             (event == "pull_request_approved" && eventType == "pull_request_review_approved") ||
             (event == "pull_request_rejected" && eventType == "pull_request_review_rejected")
         ) {
@@ -107,7 +112,7 @@ class IndexerController(
                     action,
                     pullRequest.number,
                     vcsServiceId,
-                    repository.fullName
+                    repository.fullName,
                 )
                 indexerService.registerGiteaPullRequestEvent(vcsServiceId, this)
             }
@@ -115,13 +120,17 @@ class IndexerController(
     }
 
     @PostMapping("scan")
-    fun scanRepository(@RequestParam("sshUrl") sshUrl: String) {
+    fun scanRepository(
+        @RequestParam("sshUrl") sshUrl: String,
+    ) {
         log.info("Schedule scan of {} repository", sshUrl)
         indexerService.scheduleRepositoryScan(sshUrl)
     }
 
     @GetMapping("report")
-    fun getIndexReport(@RequestParam("scanRequired") scanRequired : Boolean?): IndexReport {
+    fun getIndexReport(
+        @RequestParam("scanRequired") scanRequired: Boolean?,
+    ): IndexReport {
         log.info("Get repositories index report")
         return indexerService.getIndexReport(scanRequired)
     }

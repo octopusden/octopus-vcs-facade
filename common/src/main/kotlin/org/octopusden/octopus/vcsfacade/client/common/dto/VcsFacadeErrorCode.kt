@@ -6,13 +6,12 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.VcsFacadeExcepti
 
 enum class VcsFacadeErrorCode(
     private val getExceptionFunction: (message: String) -> VcsFacadeException,
-    val defaultMessage: String
+    val defaultMessage: String,
 ) {
     OTHER({ message -> VcsFacadeException(message) }, "Other"),
     NOT_FOUND({ message -> NotFoundException(message) }, "Not Found"),
-    ARGUMENTS_NOT_COMPATIBLE({ message -> ArgumentsNotCompatibleException(message) }, "Arguments not compatible");
+    ARGUMENTS_NOT_COMPATIBLE({ message -> ArgumentsNotCompatibleException(message) }, "Arguments not compatible"),
+    ;
 
-    fun getException(message: String): VcsFacadeException {
-        return getExceptionFunction.invoke(message)
-    }
+    fun getException(message: String): VcsFacadeException = getExceptionFunction.invoke(message)
 }

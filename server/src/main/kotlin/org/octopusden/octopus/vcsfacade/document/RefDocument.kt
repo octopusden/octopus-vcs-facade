@@ -10,17 +10,19 @@ import org.springframework.data.elasticsearch.annotations.Setting
 @Document(indexName = "#{ 'vcs-facade-refs-' + @opensearchIndexSuffix }")
 @Setting(settingPath = "opensearch-index-settings.json")
 @ConditionalOnProperty(
-    prefix = "vcs-facade.opensearch", name = ["enabled"], havingValue = "true", matchIfMissing = true
+    prefix = "vcs-facade.opensearch",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true,
 )
 class RefDocument(
     @Field(type = FieldType.Object) val repository: RepositoryDocument,
     @Field(type = FieldType.Keyword) val type: RefType,
     @Field(type = FieldType.Text, analyzer = "classic") val name: String,
     @Field(type = FieldType.Keyword) val hash: String,
-    @Field(type = FieldType.Keyword) val link: String
+    @Field(type = FieldType.Keyword) val link: String,
 ) : BaseDocument(id(repository.id, type, name)) {
     val commitId = id(repository.id, hash)
 
-    override fun toString() =
-        "RefDocument(id=$id, repository=$repository, type=$type, name=$name, hash=$hash, link=$link)"
+    override fun toString() = "RefDocument(id=$id, repository=$repository, type=$type, name=$name, hash=$hash, link=$link)"
 }

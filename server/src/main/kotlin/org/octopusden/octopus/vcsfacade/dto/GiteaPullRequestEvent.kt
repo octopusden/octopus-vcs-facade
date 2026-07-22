@@ -9,5 +9,5 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 data class GiteaPullRequestEvent(
     val action: String,
     val pullRequest: GiteaPullRequest,
-    val repository: GiteaRepository
+    val repository: GiteaRepository,
 )

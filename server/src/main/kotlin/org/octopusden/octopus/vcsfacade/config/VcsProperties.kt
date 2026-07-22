@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties("vcs-facade.vcs")
 data class VcsProperties(
-    val services: List<Service>
+    val services: List<Service>,
 ) {
     data class Service(
         val id: String,
@@ -20,30 +20,31 @@ data class VcsProperties(
         val username: String?,
         val password: String?,
         val healthCheck: HealthCheck?,
-        val indexing: Boolean = true
+        val indexing: Boolean = true,
     ) {
-        fun getCredentialProvider() = if (token != null) {
-            if (type == VcsServiceType.BITBUCKET) {
-                BitbucketBearerTokenCredentialProvider(token)
+        fun getCredentialProvider() =
+            if (token != null) {
+                if (type == VcsServiceType.BITBUCKET) {
+                    BitbucketBearerTokenCredentialProvider(token)
+                } else {
+                    StandardBearerTokenCredentialProvider(token)
+                }
+            } else if (username != null && password != null) {
+                if (type == VcsServiceType.BITBUCKET) {
+                    BitbucketBasicCredentialProvider(username, password)
+                } else {
+                    StandardBasicCredCredentialProvider(username, password)
+                }
             } else {
-                StandardBearerTokenCredentialProvider(token)
+                throw IllegalStateException("Auth token or username/password must be specified")
             }
-        } else if (username != null && password != null) {
-            if (type == VcsServiceType.BITBUCKET) {
-                BitbucketBasicCredentialProvider(username, password)
-            } else {
-                StandardBasicCredCredentialProvider(username, password)
-            }
-        } else {
-            throw IllegalStateException("Auth token or username/password must be specified")
-        }
 
         data class HealthCheck(
             val group: String,
             val repository: String,
             val fromCommit: String,
             val toCommit: String,
-            val expectedCommits: Set<String>
+            val expectedCommits: Set<String>,
         )
     }
 }

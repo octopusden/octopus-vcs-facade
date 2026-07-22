@@ -10,16 +10,17 @@ fun String.getExt() = project.ext[this] as String
 
 val commonOkdParameters = mapOf(
     "ACTIVE_DEADLINE_SECONDS" to "okdActiveDeadlineSeconds".getExt(),
-    "DOCKER_REGISTRY" to "dockerRegistry".getExt()
+    "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
 )
 
-fun String.getPort() = when (this) {
-    "bitbucket" -> 7990
-    "gitea" -> 3000
-    "opensearch" -> 9200
-    "vcs-facade" -> 8080
-    else -> throw Exception("Unknown service '$this'")
-}
+fun String.getPort() =
+    when (this) {
+        "bitbucket" -> 7990
+        "gitea" -> 3000
+        "opensearch" -> 9200
+        "vcs-facade" -> 8080
+        else -> throw Exception("Unknown service '$this'")
+    }
 
 fun String.getDockerHost() = "localhost:${getPort()}"
 
@@ -35,7 +36,7 @@ ocTemplate {
     prefix.set("vcs-facade-ft")
     attempts.set(25)
 
-    "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let{
+    "okdWebConsoleUrl".getExt().takeIf { it.isNotBlank() }?.let {
         webConsoleUrl.set(it)
     }
 
@@ -55,25 +56,38 @@ ocTemplate {
         enabled.set("testProfile".getExt() == "bitbucket")
         service("bitbucket") {
             templateFile.set(rootProject.layout.projectDirectory.file("okd/bitbucket.yaml"))
-            parameters.set(commonOkdParameters + mapOf(
-                "BITBUCKET_LICENSE" to Base64.getEncoder().encodeToString("bitbucketLicense".getExt().toByteArray()),
-                "BITBUCKET_IMAGE_TAG" to properties["bitbucket.image-tag"] as String,
-                "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"] as String
-            ))
+            parameters.set(
+                commonOkdParameters + mapOf(
+                    "BITBUCKET_LICENSE" to Base64.getEncoder().encodeToString("bitbucketLicense".getExt().toByteArray()),
+                    "BITBUCKET_IMAGE_TAG" to properties["bitbucket.image-tag"] as String,
+                    "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"] as String,
+                ),
+            )
         }
     }
 
     service("vcs-facade") {
         templateFile.set(rootProject.layout.projectDirectory.file("okd/vcs-facade.yaml"))
-        parameters.set(commonOkdParameters + mapOf(
-            "VCS_FACADE_IMAGE_TAG" to version as String,
-            "VCS_FACADE_VCS_TYPE" to "testProfile".getExt(),
-            "VCS_FACADE_VCS_HOST" to getOkdExternalHost("testProfile".getExt()),
-            "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch"),
-            "APPLICATION_DEV_CONTENT" to layout.projectDirectory.dir("docker/application-vcs-facade.yml").asFile.readText(),
-            "APPLICATION_GITEA_CONTENT" to layout.projectDirectory.dir("docker/gitea/application-gitea.yml").asFile.readText(),
-            "APPLICATION_BITBUCKET_CONTENT" to layout.projectDirectory.dir("docker/bitbucket/application-bitbucket.yml").asFile.readText()
-        ))
+        parameters.set(
+            commonOkdParameters + mapOf(
+                "VCS_FACADE_IMAGE_TAG" to version as String,
+                "VCS_FACADE_VCS_TYPE" to "testProfile".getExt(),
+                "VCS_FACADE_VCS_HOST" to getOkdExternalHost("testProfile".getExt()),
+                "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch"),
+                "APPLICATION_DEV_CONTENT" to layout.projectDirectory
+                    .dir("docker/application-vcs-facade.yml")
+                    .asFile
+                    .readText(),
+                "APPLICATION_GITEA_CONTENT" to layout.projectDirectory
+                    .dir("docker/gitea/application-gitea.yml")
+                    .asFile
+                    .readText(),
+                "APPLICATION_BITBUCKET_CONTENT" to layout.projectDirectory
+                    .dir("docker/bitbucket/application-bitbucket.yml")
+                    .asFile
+                    .readText(),
+            ),
+        )
         if ("testProfile".getExt() == "gitea") {
             dependsOn.set(listOf("gitea", "opensearch"))
         } else {
@@ -85,9 +99,14 @@ ocTemplate {
 tasks["ocProcess"].dependsOn(":vcs-facade:dockerPushImage")
 
 configure<ComposeExtension> {
-    useComposeFiles.add("${projectDir}/docker/${"testProfile".getExt()}/docker-compose.yml")
+    useComposeFiles.add("$projectDir/docker/${"testProfile".getExt()}/docker-compose.yml")
     waitForTcpPorts.set(true)
-    captureContainersOutputToFiles.set(layout.buildDirectory.file("docker_logs").get().asFile)
+    captureContainersOutputToFiles.set(
+        layout.buildDirectory
+            .file("docker_logs")
+            .get()
+            .asFile,
+    )
     environment.putAll(
         mapOf(
             "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
@@ -97,12 +116,12 @@ configure<ComposeExtension> {
             "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"],
             "GITEA_IMAGE_TAG" to properties["gitea.image-tag"],
             "OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"],
-            "VCS_FACADE_IMAGE_TAG" to version as String
-        )
+            "VCS_FACADE_IMAGE_TAG" to version as String,
+        ),
     )
 }
 
-tasks["composeUp"].apply{
+tasks["composeUp"].apply {
     dependsOn(":vcs-facade:dockerBuildImage")
     doLast {
         if ("testProfile".getExt() == "gitea") {

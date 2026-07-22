@@ -11,6 +11,29 @@ plugins {
     id("org.jetbrains.kotlin.jvm")
     id("io.github.gradle-nexus.publish-plugin")
     signing
+    // Kotlin static-analysis tools — declared at root (apply false), applied per Kotlin subproject below.
+    id("io.gitlab.arturbosch.detekt") apply (false)
+    id("org.jlleitschuh.gradle.ktlint") apply (false)
+    // Octopus quality-gates convention plugin — configures detekt/ktlint and wires qualityStatic.
+    id("org.octopusden.octopus-quality")
+}
+
+octopusQuality {
+    // Repo has no coverage tool / no unit-test coverage target — disable coverage verification.
+    coverage {
+        enabled.set(false)
+    }
+    // Enforce the gate: detekt/ktlint violations fail the build. Current debt is absorbed by
+    // the committed detekt-baseline.xml / ktlint-baseline.xml files.
+    kotlin {
+        failOnViolation.set(true)
+    }
+    // Functional-test tasks are excluded from the quality gate.
+    // :vcs-facade:test is an infra-bound integration test: docker-compose (test.platform=docker)
+    // wires composeBuild/composeUp onto it via dockerCompose.isRequiredBy(test), which cannot run
+    // on the GitHub runner (no docker-compose / no OKD). Coverage is disabled for this repo, so the
+    // qualityCoverage aggregate must not pull this task (and its compose chain) into the graph.
+    excludeTasks("ft", ":ft:ft", ":vcs-facade:test")
 }
 
 val defaultVersion = "${
@@ -48,6 +71,23 @@ subprojects {
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "signing")
+    // Kotlin static analysis — must be applied per subproject so the convention plugin's
+    // reactive configuration wires detekt/ktlintCheck tasks (avoids a hollow quality gate).
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+    apply(plugin = "org.jlleitschuh.gradle.ktlint")
+
+    // detekt 1.23.8 bundles kotlin-compiler-embeddable 2.0.21. The Spring
+    // dependency-management BOM (imported below) constrains every configuration —
+    // including detekt's — and would otherwise downgrade it to the project Kotlin
+    // (1.9.22), which detekt rejects ("compiled with Kotlin 2.0.21 but running with
+    // 1.9.22"). Pin only the detekt configuration back to detekt's bundled version.
+    configurations.matching { it.name == "detekt" }.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion("2.0.21")
+            }
+        }
+    }
 
     repositories {
         mavenCentral()
