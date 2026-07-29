@@ -7,46 +7,11 @@ plugins {
     id("com.avast.gradle.docker-compose")
     id("com.bmuschko.docker-spring-boot-application")
     id("org.octopusden.octopus.oc-template")
-    `maven-publish`
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("bootJar") {
-            artifact(tasks.getByName("bootJar"))
-            from(components["java"])
-            pom {
-                name.set(project.name)
-                description.set("Octopus module: ${project.name}")
-                url.set("https://github.com/octopusden/octopus-vcs-facade.git")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/kzaporozhtsev/octopus-vcs-facade.git")
-                    connection.set("scm:git://github.com/octopusden/octopus-vcs-facade.git")
-                }
-                developers {
-                    developer {
-                        id.set("octopus")
-                        name.set("octopus")
-                    }
-                }
-            }
-        }
-    }
-}
-
-signing {
-    isRequired = project.ext["signingRequired"] as Boolean
-    val signingKey: String? by project
-    val signingPassword: String? by project
-    useInMemoryPgpKeys(signingKey, signingPassword)
-    sign(publishing.publications["bootJar"])
-}
+// This module is a deployable service: its artifact is the docker image built from `bootJar`,
+// not a Maven dependency. It therefore declares no Maven publication — see the
+// `centralPublishedProjects` allowlist in the root build script.
 
 fun String.getExt() = project.ext[this] as String
 
