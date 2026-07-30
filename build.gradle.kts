@@ -50,6 +50,62 @@ allprojects {
     }
 }
 
+// Modules allowed to publish to Maven Central. Allowlisted by project PATH, not name: a path is
+// unique and unambiguous for every project including the root (":"), while names need not be —
+// two modules in different parents can share one, and a name-based check would conflate them.
+// A newly added module is absent from this list, so it defaults to unpublished.
+val centralPublishedProjects = setOf(":client", ":common")
+
+fun centralPublicationPolicyProblems(): List<String> {
+    // allprojects, not subprojects: the root is a publishable project like any other.
+    // Read `publishing` only where maven-publish is applied — the extension is absent otherwise.
+    val actual = allprojects
+        .filter { it.plugins.hasPlugin("maven-publish") }
+        .filter { it.extensions.getByType<PublishingExtension>().publications.withType<MavenPublication>().isNotEmpty() }
+        .map { it.path }
+        .toSet()
+    return if (actual == centralPublishedProjects) {
+        emptyList()
+    } else {
+        listOf(
+            "Maven Central publication set drifted.\n" +
+                "  allowlisted: ${centralPublishedProjects.sorted()}\n" +
+                "  publishing:  ${actual.sorted()}",
+        )
+    }
+}
+
+// A policy violation must fail its own gate, not every Gradle invocation: a configuration-time
+// throw would break `build`, `test`, `dependencies` and IDE sync the moment anything drifts.
+// The action reads live project state, so it is not configuration-cache compatible; this build
+// does not enable the configuration cache, and neither does the release pipeline that runs it.
+val verifyCentralPublicationPolicy = tasks.register("verifyCentralPublicationPolicy") {
+    group = "verification"
+    description = "Fails if the set of modules publishing to Maven Central drifts from the allowlist."
+    doLast {
+        val problems = centralPublicationPolicyProblems()
+        if (problems.isNotEmpty()) {
+            throw GradleException(problems.joinToString("\n\n"))
+        }
+    }
+}
+
+// Gate every route to a Maven repository, not just the lifecycle tasks CI happens to call:
+// `AbstractPublishToMaven` covers the per-publication leaf tasks
+// (publishMavenPublicationToSonatypeRepository / …ToMavenLocal), which would otherwise bypass the
+// guard when invoked directly. `publishToSonatype` and `publish` are aggregates of a different
+// type, so they are matched by name — and by name rather than by forcing them into existence,
+// since `publish` only exists where maven-publish is applied.
+gradle.projectsEvaluated {
+    allprojects {
+        tasks.withType<AbstractPublishToMaven>().configureEach {
+            dependsOn(verifyCentralPublicationPolicy)
+        }
+        tasks.matching { it.name in setOf("publishToSonatype", "publish", "publishToMavenLocal") }
+            .configureEach { dependsOn(verifyCentralPublicationPolicy) }
+    }
+}
+
 nexusPublishing {
     repositories {
         sonatype {
