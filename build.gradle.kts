@@ -19,6 +19,26 @@ plugins {
 }
 
 octopusQuality {
+    // Regression guard on what this repository publishes to Maven Central, provided by the
+    // shared policy from octopus-base v2.7.0 — this repository used to hand-roll a path-based
+    // version of the same check (see git history), which is why it is deleted in this same
+    // commit: the plugin registers a task named `verifyCentralPublicationPolicy`, and two tasks
+    // of one name fail configuration.
+    //
+    // Unlike a single-module repository, the project PATH here is a meaningful part of the
+    // identity: :client and :common each declare their own unconditional `publishing {}` block,
+    // so the guard's real job is catching a THIRD module (:server, :test-common, :ft) gaining a
+    // publication it should not have — not distinguishing what :client/:common publish from one
+    // another.
+    publication {
+        enforceCentralPublications.set(true)
+        centralPublications.set(
+            setOf(
+                ":client|maven|org.octopusden.octopus.vcsfacade:client|[jar, jar:javadoc, jar:sources]",
+                ":common|maven|org.octopusden.octopus.vcsfacade:common|[jar, jar:javadoc, jar:sources]",
+            ),
+        )
+    }
     // Repo has no coverage tool / no unit-test coverage target — disable coverage verification.
     coverage {
         enabled.set(false)
@@ -47,62 +67,6 @@ allprojects {
     group = "org.octopusden.octopus.vcsfacade"
     if (version == "unspecified") {
         version = defaultVersion
-    }
-}
-
-// Modules allowed to publish to Maven Central. Allowlisted by project PATH, not name: a path is
-// unique and unambiguous for every project including the root (":"), while names need not be —
-// two modules in different parents can share one, and a name-based check would conflate them.
-// A newly added module is absent from this list, so it defaults to unpublished.
-val centralPublishedProjects = setOf(":client", ":common")
-
-fun centralPublicationPolicyProblems(): List<String> {
-    // allprojects, not subprojects: the root is a publishable project like any other.
-    // Read `publishing` only where maven-publish is applied — the extension is absent otherwise.
-    val actual = allprojects
-        .filter { it.plugins.hasPlugin("maven-publish") }
-        .filter { it.extensions.getByType<PublishingExtension>().publications.withType<MavenPublication>().isNotEmpty() }
-        .map { it.path }
-        .toSet()
-    return if (actual == centralPublishedProjects) {
-        emptyList()
-    } else {
-        listOf(
-            "Maven Central publication set drifted.\n" +
-                "  allowlisted: ${centralPublishedProjects.sorted()}\n" +
-                "  publishing:  ${actual.sorted()}",
-        )
-    }
-}
-
-// A policy violation must fail its own gate, not every Gradle invocation: a configuration-time
-// throw would break `build`, `test`, `dependencies` and IDE sync the moment anything drifts.
-// The action reads live project state, so it is not configuration-cache compatible; this build
-// does not enable the configuration cache, and neither does the release pipeline that runs it.
-val verifyCentralPublicationPolicy = tasks.register("verifyCentralPublicationPolicy") {
-    group = "verification"
-    description = "Fails if the set of modules publishing to Maven Central drifts from the allowlist."
-    doLast {
-        val problems = centralPublicationPolicyProblems()
-        if (problems.isNotEmpty()) {
-            throw GradleException(problems.joinToString("\n\n"))
-        }
-    }
-}
-
-// Gate every route to a Maven repository, not just the lifecycle tasks CI happens to call:
-// `AbstractPublishToMaven` covers the per-publication leaf tasks
-// (publishMavenPublicationToSonatypeRepository / …ToMavenLocal), which would otherwise bypass the
-// guard when invoked directly. `publishToSonatype` and `publish` are aggregates of a different
-// type, so they are matched by name — and by name rather than by forcing them into existence,
-// since `publish` only exists where maven-publish is applied.
-gradle.projectsEvaluated {
-    allprojects {
-        tasks.withType<AbstractPublishToMaven>().configureEach {
-            dependsOn(verifyCentralPublicationPolicy)
-        }
-        tasks.matching { it.name in setOf("publishToSonatype", "publish", "publishToMavenLocal") }
-            .configureEach { dependsOn(verifyCentralPublicationPolicy) }
     }
 }
 
