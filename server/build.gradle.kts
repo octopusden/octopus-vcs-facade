@@ -11,7 +11,7 @@ plugins {
 
 // This module is a deployable service: its artifact is the docker image built from `bootJar`,
 // not a Maven dependency. It therefore declares no Maven publication — see the
-// `centralPublishedProjects` allowlist in the root build script.
+// `octopusQuality { publication { centralPublications } }` declaration in the root build script.
 
 fun String.getExt() = project.ext[this] as String
 
