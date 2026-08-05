@@ -4,6 +4,7 @@ data class Repository(
     val sshUrl: String,
     val link: String,
     val avatar: String? = null,
+    val archived: Boolean = false,
 ) : Comparable<Repository> {
     override fun compareTo(other: Repository) = sshUrl compareTo other.sshUrl
 }

@@ -10,6 +10,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
@@ -17,6 +18,11 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import java.util.Date
 
 interface VcsFacadeClient {
+    @RequestLine("GET rest/api/2/repository?sshUrl={sshUrl}")
+    fun getRepository(
+        @Param("sshUrl") sshUrl: String,
+    ): Repository
+
     @RequestLine(
         "GET rest/api/2/repository/commits?sshUrl={sshUrl}&fromHashOrRef={fromHashOrRef}&fromDate={fromDate}&toHashOrRef={toHashOrRef}",
     )

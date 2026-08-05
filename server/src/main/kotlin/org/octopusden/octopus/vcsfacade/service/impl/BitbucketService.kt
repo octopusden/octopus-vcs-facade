@@ -393,13 +393,15 @@ class BitbucketService(
     private fun getRepository(
         project: String,
         repository: String,
+        archived: Boolean = false,
     ) = Repository(
         "$sshUrl/$project/$repository.git",
         "$httpUrl/projects/$project/repos/$repository/browse",
         "$httpUrl/projects/$project/avatar.png?s=48",
+        archived,
     )
 
-    private fun BitbucketRepository.toRepository() = getRepository(project.key.lowercase(), slug.lowercase())
+    private fun BitbucketRepository.toRepository() = getRepository(project.key.lowercase(), slug.lowercase(), archived)
 
     private fun BitbucketBranch.toBranch(
         project: String,
