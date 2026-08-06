@@ -393,7 +393,7 @@ class BitbucketService(
     private fun getRepository(
         project: String,
         repository: String,
-        archived: Boolean = false,
+        archived: Boolean? = null,
     ) = Repository(
         "$sshUrl/$project/$repository.git",
         "$httpUrl/projects/$project/repos/$repository/browse",

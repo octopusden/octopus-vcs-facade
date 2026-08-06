@@ -399,7 +399,7 @@ class GiteaService(
             "$sshUrl/$organization/$repository.git", // TODO: add "useColon" parameter?
             "$httpUrl/$organization/$repository",
             giteaRepository.avatarUrl.ifBlank { null },
-            giteaRepository.archived ?: false,
+            giteaRepository.archived,
         )
     }
 
