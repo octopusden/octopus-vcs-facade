@@ -8,6 +8,7 @@ import org.octopusden.octopus.infrastructure.client.commons.StandardBasicCredCre
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClassicClient
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaEditRepoOption
 import org.octopusden.octopus.infrastructure.gitea.test.GiteaTestClient
+import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
 import org.octopusden.octopus.vcsfacade.TestService
 import org.springframework.test.context.junit.jupiter.EnabledIf
 import java.io.File
@@ -34,7 +35,9 @@ class VcsFacadeUnitTestGitea :
             testService.sshUrl(GROUP, repository),
             File.createTempFile("VcsFacadeUnitTestGitea-", "-$GROUP-$repository").apply {
                 outputStream().use {
-                    javaClass.classLoader.getResourceAsStream("$GROUP-$REPOSITORY.zip")!!.copyTo(it)
+                    BaseVcsFacadeTest::class.java.classLoader
+                        .getResourceAsStream("$GROUP-$REPOSITORY.zip")!!
+                        .copyTo(it)
                 }
             },
         )

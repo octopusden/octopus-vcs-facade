@@ -8,6 +8,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicCl
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClientParametersProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentialProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketUpdateRepository
+import org.octopusden.octopus.vcsfacade.BaseVcsFacadeTest
 import org.octopusden.octopus.vcsfacade.TestService
 import org.springframework.test.context.junit.jupiter.EnabledIf
 import java.io.File
@@ -29,7 +30,9 @@ class VcsFacadeUnitTestBitbucket :
             testService.sshUrl(GROUP, repository),
             File.createTempFile("VcsFacadeUnitTestBitbucket-", "-$GROUP-$repository").apply {
                 outputStream().use {
-                    javaClass.classLoader.getResourceAsStream("$GROUP-$REPOSITORY.zip")!!.copyTo(it)
+                    BaseVcsFacadeTest::class.java.classLoader
+                        .getResourceAsStream("$GROUP-$REPOSITORY.zip")!!
+                        .copyTo(it)
                 }
             },
         )
