@@ -24,10 +24,6 @@ class VcsFacadeUnitTestGitea :
         (testService as TestService.Gitea).scan(GROUP, REPOSITORY_2)
     }
 
-    // Proves the archived flag really flows end to end: real Gitea -> GiteaService ->
-    // vcs-facade endpoint -> client DTO. getRepositoryTest (base class) only ever sees a fresh,
-    // non-archived repo; a dedicated repository is used here so archiving it can't affect any
-    // other test sharing REPOSITORY / REPOSITORY_2.
     @Test
     fun getArchivedRepositoryTest() {
         val repository = "repository-5-archived"

@@ -19,10 +19,7 @@ class VcsFacadeUnitTestBitbucket :
         TestService.Bitbucket(vcsFacadeHost, vcsHost),
         BitbucketTestClient("http://$vcsHost", BITBUCKET_USER, BITBUCKET_PASSWORD),
     ) {
-    // Proves the archived flag really flows end to end: real Bitbucket -> BitbucketService ->
-    // vcs-facade endpoint -> client DTO. getRepositoryTest (base class) only ever sees a fresh,
-    // non-archived repo; a dedicated repository is used here so archiving it can't affect any
-    // other test sharing REPOSITORY / REPOSITORY_2.
+
     @Test
     fun getArchivedRepositoryTest() {
         val repository = "repository-5-archived"
