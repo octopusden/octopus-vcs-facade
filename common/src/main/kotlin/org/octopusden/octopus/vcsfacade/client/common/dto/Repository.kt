@@ -5,8 +5,7 @@ data class Repository(
     val link: String,
     val avatar: String? = null,
     /**
-     * Whether the repository is archived, or `null` when the state was not resolved (repositories built from
-     * branch/commit/pull request contexts do not populate it). Treat `null` as unknown, not as "not archived".
+     * Whether the repository is archived, or `null` when the state was not resolved. Treat `null` as unknown, not as "not archived".
      */
     val archived: Boolean? = null,
 ) : Comparable<Repository> {
