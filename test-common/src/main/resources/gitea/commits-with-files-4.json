@@ -15,7 +15,8 @@
       "repository": {
         "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
         "link": "http://@test.vcs-host@/test/repository-2",
-        "avatar": null
+        "avatar": null,
+        "archived": false
       }
     },
     "totalFiles": 1,
@@ -44,7 +45,8 @@
       "repository": {
         "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
         "link": "http://@test.vcs-host@/test/repository-2",
-        "avatar": null
+        "avatar": null,
+        "archived": false
       }
     },
     "totalFiles": 0,
@@ -66,7 +68,8 @@
       "repository": {
         "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
         "link": "http://@test.vcs-host@/test/repository-2",
-        "avatar": null
+        "avatar": null,
+        "archived": false
       }
     },
     "totalFiles": 1,
@@ -94,7 +97,8 @@
       "repository": {
         "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
         "link": "http://@test.vcs-host@/test/repository-2",
-        "avatar": null
+        "avatar": null,
+        "archived": false
       }
     },
     "totalFiles": 1,
