@@ -410,7 +410,7 @@ class BitbucketService(
         displayId,
         latestCommit,
         "$httpUrl/projects/$project/repos/$repository/browse?at=$displayId",
-        getRepository(project, repository),
+        this.repository?.toRepository() ?: getRepository(project, repository),
     )
 
     private fun BitbucketTag.toTag(
@@ -420,7 +420,7 @@ class BitbucketService(
         displayId,
         latestCommit,
         "$httpUrl/projects/$project/repos/$repository/browse?at=$displayId",
-        getRepository(project, repository),
+        this.repository?.toRepository() ?: getRepository(project, repository),
     )
 
     private fun BitbucketUser.toUser() = User(name, "$httpUrl/users/$name/avatar.png?s=48")
@@ -459,7 +459,7 @@ class BitbucketService(
             createdDate,
             updatedDate,
             "$httpUrl/projects/$project/repos/$repository/pull-requests/$id/overview",
-            getRepository(project, repository),
+            toRef.repository?.toRepository() ?: getRepository(project, repository),
         )
     }
 
