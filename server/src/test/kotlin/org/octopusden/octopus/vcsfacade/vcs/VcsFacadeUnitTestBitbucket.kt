@@ -19,7 +19,6 @@ class VcsFacadeUnitTestBitbucket :
         TestService.Bitbucket(vcsFacadeHost, vcsHost),
         BitbucketTestClient("http://$vcsHost", BITBUCKET_USER, BITBUCKET_PASSWORD),
     ) {
-
     @Test
     fun getArchivedRepositoryTest() {
         val repository = "repository-5-archived"
