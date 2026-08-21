@@ -2,6 +2,8 @@ package org.octopusden.octopus.vcsfacade.vcs
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.octopusden.octopus.infrastructure.common.test.TestClient
@@ -28,6 +30,7 @@ import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import java.io.File
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -56,6 +59,25 @@ abstract class BaseVcsFacadeUnitTest(
             ).andReturn()
             .response
             .toObject(object : TypeReference<Repository>() {})
+
+    @Test
+    fun getArchivedRepositoryTest() {
+        val repository = "repository-5-archived"
+        testClient.importRepository(
+            testService.sshUrl(GROUP, repository),
+            File.createTempFile("BaseVcsFacadeUnitTest-", "-$GROUP-$repository").apply {
+                outputStream().use {
+                    BaseVcsFacadeUnitTest::class.java.classLoader
+                        .getResourceAsStream("$GROUP-$REPOSITORY.zip")!!
+                        .copyTo(it)
+                }
+            },
+        )
+        archiveRepository(repository)
+        Assertions.assertEquals(true, getRepository(testService.sshUrl(GROUP, repository)).archived)
+    }
+
+    protected abstract fun archiveRepository(repository: String)
 
     override fun createPullRequest(
         sshUrl: String,
