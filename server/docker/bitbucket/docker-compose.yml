@@ -25,7 +25,7 @@ services:
       test: curl -s -f bitbucket:7990/status >/dev/null || exit 1
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 20
 
   bitbucket-db:
     container_name: vcs-facade-ut-bitbucket-db
