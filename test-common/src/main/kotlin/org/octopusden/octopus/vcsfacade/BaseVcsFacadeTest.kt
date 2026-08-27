@@ -15,7 +15,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
-import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -560,8 +559,6 @@ abstract class BaseVcsFacadeTest(
             Assertions.assertEquals(exceptionMessage, exception.message)
         }
     }
-
-    protected abstract fun getRepository(sshUrl: String): Repository
 
     protected abstract fun createPullRequest(
         sshUrl: String,
