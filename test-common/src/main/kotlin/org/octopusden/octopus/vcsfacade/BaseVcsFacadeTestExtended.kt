@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.octopusden.octopus.infrastructure.common.test.TestClient
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import java.io.File
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -12,6 +14,55 @@ abstract class BaseVcsFacadeTestExtended(
     testService: TestService,
     testClient: TestClient,
 ) : BaseVcsFacadeTest(testService, testClient) {
+    protected abstract fun getRepository(sshUrl: String): Repository
+
+    @Test
+    fun getRepositoryTest() {
+        val repository = "repository-3-repository"
+        testClient.importRepository(
+            testService.sshUrl(GROUP, repository),
+            File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$repository").apply {
+                outputStream().use {
+                    BaseVcsFacadeTestExtended::class.java.classLoader
+                        .getResourceAsStream("$GROUP-$REPOSITORY.zip")!!
+                        .copyTo(it)
+                }
+            },
+        )
+        val result = getRepository(testService.sshUrl(GROUP, repository))
+        Assertions.assertEquals(testService.sshUrl(GROUP, repository), result.sshUrl)
+        Assertions.assertEquals(false, result.archived)
+    }
+
+    @Test
+    fun getArchivedRepositoryTest() {
+        val repository = "repository-5-archived"
+        val sshUrl = testService.sshUrl(GROUP, repository)
+        testClient.importRepository(
+            sshUrl,
+            File.createTempFile("BaseVcsFacadeTest-", "-$GROUP-$repository").apply {
+                outputStream().use {
+                    BaseVcsFacadeTestExtended::class.java.classLoader
+                        .getResourceAsStream("$GROUP-$REPOSITORY.zip")!!
+                        .copyTo(it)
+                }
+            },
+        )
+        testClient.setArchived(sshUrl, true)
+        try {
+            Assertions.assertEquals(true, getRepository(sshUrl).archived)
+        } finally {
+            testClient.setArchived(sshUrl, false)
+        }
+    }
+
+    @Test
+    fun getRepositoryFailsTest() {
+        Assertions.assertThrows(NotFoundException::class.java) {
+            getRepository(testService.sshUrl(GROUP, "absent-repository"))
+        }
+    }
+
     @Test
     fun tagsTestScenario() {
         val repository = "repository-2-tags"

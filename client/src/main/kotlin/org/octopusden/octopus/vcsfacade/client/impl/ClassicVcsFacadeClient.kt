@@ -35,6 +35,8 @@ class ClassicVcsFacadeClient(
         getMapper(),
     )
 
+    override fun getRepository(sshUrl: String) = client.getRepository(sshUrl)
+
     override fun getCommits(
         sshUrl: String,
         fromHashOrRef: String?,

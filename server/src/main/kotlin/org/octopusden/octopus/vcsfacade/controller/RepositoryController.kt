@@ -41,6 +41,15 @@ class RepositoryController(
 ) {
     private val requestJobs = ConcurrentHashMap<String, Future<*>>()
 
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getRepository(
+        @RequestParam("sshUrl") sshUrl: String,
+        @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
+    ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
+        log.info("Get repository {}", sshUrl)
+        vcsManager.getRepository(sshUrl)
+    }
+
     @GetMapping("commits", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getCommits(
         @RequestParam("sshUrl") sshUrl: String,

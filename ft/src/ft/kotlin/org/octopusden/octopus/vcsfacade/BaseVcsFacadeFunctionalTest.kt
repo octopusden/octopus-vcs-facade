@@ -12,6 +12,8 @@ abstract class BaseVcsFacadeFunctionalTest(
     testService: TestService,
     testClient: TestClient,
 ) : BaseVcsFacadeTestExtended(testService, testClient) {
+    override fun getRepository(sshUrl: String) = client.getRepository(sshUrl)
+
     override fun createPullRequest(
         sshUrl: String,
         createPullRequest: CreatePullRequest,

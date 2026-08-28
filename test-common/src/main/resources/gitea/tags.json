@@ -6,7 +6,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
       "link": "http://@test.vcs-host@/test/repository-2",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     },
     "type": "TAG"
   },
@@ -17,7 +18,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository-2.git",
       "link": "http://@test.vcs-host@/test/repository-2",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     },
     "type": "TAG"
   }
