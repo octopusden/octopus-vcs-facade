@@ -3,6 +3,7 @@ import java.time.Duration
 import java.util.zip.CRC32
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jfrog.gradle.plugin.artifactory.dsl.ArtifactoryPluginConvention
 
 plugins {
     java
@@ -10,6 +11,7 @@ plugins {
     id("io.spring.dependency-management")
     id("org.jetbrains.kotlin.jvm")
     id("io.github.gradle-nexus.publish-plugin")
+    id("com.jfrog.artifactory") apply false
     signing
     // Kotlin static-analysis tools — declared at root (apply false), applied per Kotlin subproject below.
     id("io.gitlab.arturbosch.detekt") apply (false)
@@ -197,5 +199,33 @@ subprojects {
                     (if (undefinedProperties.contains("okdClusterDomain")) " OKD_CLUSTER_DOMAIN" else "") +
                     (if (undefinedProperties.contains("bitbucketLicense")) " BITBUCKET_LICENSE" else "")
         )
+    }
+}
+
+// Test push of :client/:common maven publications to the internal JFrog Artifactory, alongside
+// the existing Sonatype/Central publish (this does not touch or disable it). Configuration is a
+// no-op unless ARTIFACTORY_URL is set, so it stays inert for anyone not running the experiment.
+subprojects {
+    pluginManager.withPlugin("maven-publish") {
+        apply(plugin = "com.jfrog.artifactory")
+        val artifactoryUrl = System.getenv("ARTIFACTORY_URL")
+        if (artifactoryUrl.isNullOrBlank()) {
+            return@withPlugin
+        }
+        configure<ArtifactoryPluginConvention> {
+            publish {
+                contextUrl = "${artifactoryUrl.removeSuffix("/").removeSuffix("/artifactory")}/artifactory"
+                repository {
+                    repoKey = properties["artifactory.repo-key"] as String
+                    username = System.getenv("ARTIFACTORY_DEPLOYER_USERNAME")
+                    password = System.getenv("ARTIFACTORY_DEPLOYER_PASSWORD")
+                }
+                defaults {
+                    publications("ALL_PUBLICATIONS")
+                    setPublishPom(true)
+                    setPublishArtifacts(true)
+                }
+            }
+        }
     }
 }

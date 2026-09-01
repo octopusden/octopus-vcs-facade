@@ -9,6 +9,9 @@ pluginManagement {
         id("com.bmuschko.docker-spring-boot-application") version (extra["bmuschko-docker-plugin.version"] as String)
         id("org.octopusden.octopus.oc-template") version (extra["octopus-oc-template.version"] as String)
         id("io.github.gradle-nexus.publish-plugin") version "1.1.0" apply false
+        // JFrog Artifactory Gradle plugin - test push of :client/:common maven publications
+        // to the internal Artifactory instance, alongside the existing Sonatype/Central publish.
+        id("com.jfrog.artifactory") version (extra["jfrog-artifactory-plugin.version"] as String) apply false
         // Octopus quality-gates convention plugin + Kotlin static-analysis tools.
         id("io.gitlab.arturbosch.detekt") version (extra["detekt.version"] as String)
         id("org.jlleitschuh.gradle.ktlint") version (extra["ktlint.version"] as String)
