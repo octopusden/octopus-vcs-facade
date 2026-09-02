@@ -1,5 +1,8 @@
 package org.octopusden.octopus.vcsfacade.client.common.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class CommitWithFiles(
     val commit: Commit,
     val totalFiles: Int,

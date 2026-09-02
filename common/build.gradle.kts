@@ -53,4 +53,8 @@ tasks.withType<KotlinCompile>().configureEach {
 
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations")
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("org.junit.jupiter:junit-jupiter-params")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }

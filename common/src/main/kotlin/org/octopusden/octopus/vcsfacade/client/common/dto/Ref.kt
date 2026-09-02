@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade.client.common.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import java.util.Objects
@@ -14,6 +15,7 @@ import java.util.Objects
     JsonSubTypes.Type(Branch::class, name = "BRANCH"),
     JsonSubTypes.Type(Tag::class, name = "TAG"),
 )
+@JsonIgnoreProperties(ignoreUnknown = true)
 abstract class Ref(
     val type: RefType,
     val name: String,
