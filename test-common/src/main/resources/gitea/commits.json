@@ -14,7 +14,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -33,7 +34,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -51,7 +53,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -69,7 +72,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -87,7 +91,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -105,7 +110,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -124,7 +130,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -142,7 +149,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -160,7 +168,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -178,7 +187,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -196,7 +206,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -214,7 +225,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -232,7 +244,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -250,7 +263,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -268,7 +282,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -286,7 +301,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -304,7 +320,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -323,7 +340,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -341,7 +359,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -359,7 +378,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -377,7 +397,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -395,7 +416,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -413,7 +435,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -431,7 +454,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -449,7 +473,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -467,7 +492,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -486,7 +512,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -504,7 +531,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -522,7 +550,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -540,7 +569,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -559,7 +589,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -578,7 +609,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -596,7 +628,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   },
   {
@@ -614,7 +647,8 @@
     "repository": {
       "sshUrl": "ssh://git@@test.vcs-host@/test/repository.git",
       "link": "http://@test.vcs-host@/test/repository",
-      "avatar": null
+      "avatar": null,
+      "archived": false
     }
   }
 ]

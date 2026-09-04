@@ -6,6 +6,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
@@ -20,6 +21,8 @@ interface VcsManager { // TODO: allow to use both http and ssh repository url (r
     fun getVcsServiceById(id: String): VcsService
 
     fun getVcsServiceForSshUrl(sshUrl: String): VcsService
+
+    fun getRepository(sshUrl: String): Repository
 
     fun getTags(
         sshUrl: String,

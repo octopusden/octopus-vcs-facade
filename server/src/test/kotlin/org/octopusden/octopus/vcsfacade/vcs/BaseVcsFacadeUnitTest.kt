@@ -15,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
@@ -44,6 +45,17 @@ abstract class BaseVcsFacadeUnitTest(
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
+
+    override fun getRepository(sshUrl: String) =
+        mvc
+            .perform(
+                MockMvcRequestBuilders
+                    .get("/rest/api/2/repository")
+                    .param("sshUrl", sshUrl)
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andReturn()
+            .response
+            .toObject(object : TypeReference<Repository>() {})
 
     override fun createPullRequest(
         sshUrl: String,

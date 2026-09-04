@@ -6,11 +6,13 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryRange
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssueInRangesResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchSummary
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
+import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
@@ -58,6 +60,15 @@ class VcsManagerImpl(
     override fun getVcsServiceForSshUrl(sshUrl: String) =
         vcsServices.firstOrNull { it.isSupported(sshUrl) }
             ?: throw IllegalStateException("There is no configured VCS service for '$sshUrl'")
+
+    override fun getRepository(sshUrl: String): Repository {
+        log.trace("=> getRepository({})", sshUrl)
+        return getVcsServiceForSshUrl(sshUrl)
+            .run {
+                val (group, repository) = parse(sshUrl)
+                findRepository(group, repository) ?: throw NotFoundException("Repository '$sshUrl' is not found")
+            }.also { log.trace("<= getRepository({}): {}", sshUrl, it) }
+    }
 
     override fun getTags(
         sshUrl: String,

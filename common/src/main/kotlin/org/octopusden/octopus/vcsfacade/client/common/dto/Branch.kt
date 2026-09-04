@@ -1,5 +1,8 @@
 package org.octopusden.octopus.vcsfacade.client.common.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 class Branch(
     name: String,
     hash: String,
