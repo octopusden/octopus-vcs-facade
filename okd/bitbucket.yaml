@@ -148,6 +148,14 @@ objects:
             value: admin
           - name: SETUP_SYSADMIN_USERNAME
             value: admin
+          # Bitbucket 10+ disables basic authentication for REST API calls by default on
+          # NEW instances (it stays enabled on upgraded ones). The test clients authenticate
+          # with username/password, so without this the very first REST call is rejected with
+          # HTTP 403 {"message":"Basic Authentication has been disabled on this instance."},
+          # which does not match the standard {"errors":[...]} error shape and surfaces as a
+          # confusing Jackson deserialization failure rather than an auth error.
+          - name: JVM_SUPPORT_RECOMMENDED_ARGS
+            value: "-Dcom.atlassian.plugins.authentication.basic.auth.filter.force.allow=true"
         ports:
           - containerPort: 7990
             protocol: TCP
