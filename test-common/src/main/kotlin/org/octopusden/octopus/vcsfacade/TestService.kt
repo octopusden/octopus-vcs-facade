@@ -162,6 +162,7 @@ sealed class TestService(
                 sshUrl.replaceHost(to),
                 link.replaceHost(to),
                 avatar?.replaceHost(to),
+                archived,
             )
 
         private fun Commit.replaceHost(to: String) =
