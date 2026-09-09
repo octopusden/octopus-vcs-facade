@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 @EnabledIfSystemProperty(named = "test.profile", matches = "gitea")
 class VcsFacadeFunctionalTestGitea :
     BaseVcsFacadeFunctionalTest(
-        TestService.Gitea(vcsFacadeHost, vcsExternalHost, true),
+        TestService.Gitea(vcsFacadeHost, vcsExternalHost),
         GiteaTestClient("http://$vcsHost", GITEA_USER, GITEA_PASSWORD, vcsExternalHost),
     ) {
     @BeforeAll
