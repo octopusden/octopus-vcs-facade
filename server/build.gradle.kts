@@ -1,5 +1,7 @@
 import com.avast.gradle.dockercompose.ComposeExtension
+import org.gradle.process.ExecOperations
 import java.util.Base64
+import javax.inject.Inject
 
 plugins {
     id("org.springframework.boot")
@@ -7,6 +9,15 @@ plugins {
     id("com.avast.gradle.docker-compose")
     id("com.bmuschko.docker-spring-boot-application")
     id("org.octopusden.octopus.oc-template")
+}
+
+// The Boot plugin (spring-boot-plugin.version) imports its own BOM when it is applied, after the root
+// build's import of the runtime BOM, and the later import wins. Import the runtime BOM again, last, so
+// the service keeps running on spring-boot.version.
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${providers.gradleProperty("spring-boot.version").get()}")
+    }
 }
 
 // This module is a deployable service: its artifact is the docker image built from `bootJar`,
@@ -71,6 +82,8 @@ ocTemplate {
 configure<ComposeExtension> {
     useComposeFiles.add("$projectDir/docker/${"testProfile".getExt()}/docker-compose.yml")
     waitForTcpPorts.set(true)
+    // The standalone docker-compose binary, as plugin 0.16 used; 0.17 defaults to `docker compose`.
+    useDockerComposeV2.set(false)
     captureContainersOutputToFiles.set(
         layout.buildDirectory
             .file("docker_logs")
@@ -81,19 +94,28 @@ configure<ComposeExtension> {
         mapOf(
             "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
             "BITBUCKET_LICENSE" to "bitbucketLicense".getExt(),
-            "BITBUCKET_IMAGE_TAG" to properties["bitbucket.image-tag"],
-            "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"],
-            "GITEA_IMAGE_TAG" to properties["gitea.image-tag"],
-            "OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"],
+            "BITBUCKET_IMAGE_TAG" to providers.gradleProperty("bitbucket.image-tag").get(),
+            "POSTGRES_IMAGE_TAG" to providers.gradleProperty("postgres.image-tag").get(),
+            "GITEA_IMAGE_TAG" to providers.gradleProperty("gitea.image-tag").get(),
+            "OPENSEARCH_IMAGE_TAG" to providers.gradleProperty("opensearch.image-tag").get(),
         ),
     )
 }
 
+// Gradle 9 removed Project.exec; a build script reaches process execution through ExecOperations.
+interface ExecOperationsHolder {
+    @get:Inject
+    val execOperations: ExecOperations
+}
+
+val execOperations = objects.newInstance<ExecOperationsHolder>().execOperations
+
+// exec fails on a non-zero exit value by default.
 tasks["composeUp"].doLast {
     if ("testProfile".getExt() == "gitea") {
-        exec {
+        execOperations.exec {
             setCommandLine("docker", "exec", "vcs-facade-ut-gitea", "/script/add_admin.sh")
-        }.assertNormalExitValue()
+        }
     }
 }
 
@@ -146,6 +168,8 @@ dependencies {
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":test-common"))
+    // Gradle no longer puts the JUnit Platform launcher on the test runtime classpath itself.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 configurations.all {
