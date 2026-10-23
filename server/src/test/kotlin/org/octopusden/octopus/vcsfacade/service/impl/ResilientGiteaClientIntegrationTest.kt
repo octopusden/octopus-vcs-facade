@@ -15,17 +15,23 @@ import org.octopusden.octopus.infrastructure.gitea.client.getBranchesCommitGraph
 import org.octopusden.octopus.infrastructure.gitea.client.getCommit
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
 import java.net.InetSocketAddress
+import java.util.concurrent.atomic.AtomicInteger
 
 class ResilientGiteaClientIntegrationTest {
     private lateinit var server: HttpServer
+    private val commitsListRequests = AtomicInteger()
+    private val commitRequests = AtomicInteger()
 
     @BeforeEach
     fun startServer() {
+        commitsListRequests.set(0)
+        commitRequests.set(0)
         server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/api/v1/repos/org/repository/branches") { exchange ->
             exchange.respond(200, BRANCHES)
         }
         server.createContext("/api/v1/repos/org/repository/commits") { exchange ->
+            commitsListRequests.incrementAndGet()
             val query = exchange.requestURI.query.orEmpty()
             if (query.contains("files=true")) {
                 exchange.respond(200, COMMITS_TRUNCATED)
@@ -34,6 +40,7 @@ class ResilientGiteaClientIntegrationTest {
             }
         }
         server.createContext("/api/v1/repos/org/repository/git/commits/") { exchange ->
+            commitRequests.incrementAndGet()
             val query = exchange.requestURI.query.orEmpty()
             val sha = exchange.requestURI.path.substringAfterLast('/')
             when {
@@ -61,8 +68,10 @@ class ResilientGiteaClientIntegrationTest {
         val commits = client.getBranchesCommitGraph(ORG, REPOSITORY, true).toList()
 
         assertEquals(listOf("c2", "c1"), commits.map { it.sha })
-        assertEquals(listOf("src/Main.java"), commits[0].files.orEmpty().map { it.filename })
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[0].files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[1].files)
+        assertEquals(2, commitsListRequests.get())
+        assertEquals(0, commitRequests.get())
     }
 
     @Test
@@ -72,8 +81,10 @@ class ResilientGiteaClientIntegrationTest {
         val commits = client.getCommits(ORG, REPOSITORY, "c2", null, true)
 
         assertEquals(listOf("c2", "c1"), commits.map { it.sha })
-        assertEquals(listOf("src/Main.java"), commits[0].files.orEmpty().map { it.filename })
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[0].files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[1].files)
+        assertEquals(2, commitsListRequests.get())
+        assertEquals(0, commitRequests.get())
     }
 
     @Test
@@ -83,9 +94,10 @@ class ResilientGiteaClientIntegrationTest {
         val commits = client.getCommits(ORG, REPOSITORY, "c2", "c1", true)
 
         val commit = commits.single()
-        val files = commit.files.orEmpty().map { it.filename }
         assertEquals(listOf("c2"), commits.map { it.sha })
-        assertEquals(listOf("src/Main.java"), files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
+        assertEquals(2, commitsListRequests.get())
+        assertEquals(2, commitRequests.get())
     }
 
     @Test
@@ -96,6 +108,7 @@ class ResilientGiteaClientIntegrationTest {
 
         assertEquals("c1", commit.sha)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
+        assertEquals(2, commitRequests.get())
     }
 
     @Test
@@ -106,6 +119,7 @@ class ResilientGiteaClientIntegrationTest {
 
         assertEquals("empty", commit.sha)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
+        assertEquals(2, commitRequests.get())
     }
 
     private fun parametersProvider() =

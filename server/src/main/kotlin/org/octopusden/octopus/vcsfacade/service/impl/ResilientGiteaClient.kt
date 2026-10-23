@@ -7,10 +7,13 @@ import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaEntityList
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 class ResilientGiteaClient(
     private val delegate: GiteaClient,
 ) : GiteaClient by delegate {
+    private val warnedRepositories = ConcurrentHashMap.newKeySet<String>()
+
     override fun getCommits(
         organization: String,
         repository: String,
@@ -25,20 +28,11 @@ class ResilientGiteaClient(
             if (!e.isBrokenJsonResponse()) {
                 throw e
             }
-            log.warn(
-                "Gitea returned broken JSON for {}/{} page {} of {} with files=true ({}), retrying with files=false",
-                organization,
-                repository,
-                requestParams["page"],
-                requestParams["sha"],
-                e.cause?.javaClass?.simpleName ?: e.javaClass.simpleName,
-            )
             val page = delegate.getCommits(organization, repository, requestParams + ("files" to false))
+            logBrokenPage(organization, repository, requestParams, page.values.size, e)
             GiteaEntityList(
                 page.hasMore,
-                page.values.map { commit ->
-                    commit.copy(files = getFiles(organization, repository, commit.sha))
-                },
+                page.values.map { commit -> commit.copy(files = emptyList()) },
             )
         }
     }
@@ -58,34 +52,72 @@ class ResilientGiteaClient(
             if (!e.isBrokenJsonResponse()) {
                 throw e
             }
-            log.warn(
-                "Gitea returned broken JSON for {}/{} commit {} with files=true ({}), indexing without files",
-                organization,
-                repository,
-                sha,
-                e.cause?.javaClass?.simpleName ?: e.javaClass.simpleName,
-            )
-            delegate
-                .getCommit(organization, repository, sha, requestParams + ("files" to false))
-                .copy(files = emptyList())
+            val commit = delegate.getCommit(organization, repository, sha, requestParams + ("files" to false))
+            logBrokenCommit(organization, repository, sha, e)
+            commit.copy(files = emptyList())
         }
     }
 
-    private fun getFiles(
+    private fun logBrokenPage(
+        organization: String,
+        repository: String,
+        requestParams: Map<String, Any>,
+        commitsCount: Int,
+        e: Throwable,
+    ) {
+        val repoKey = "$organization/$repository"
+        if (warnedRepositories.add(repoKey)) {
+            log.warn(
+                "Gitea returned broken JSON for {}/{} page {} of {} ({}); {} commits indexed without files." +
+                    FURTHER_OCCURRENCES,
+                organization,
+                repository,
+                requestParams["page"],
+                requestParams["sha"],
+                e.causeName(),
+                commitsCount,
+            )
+        } else {
+            log.debug(
+                "Gitea returned broken JSON for {}/{} page {} of {} ({}); {} commits indexed without files",
+                organization,
+                repository,
+                requestParams["page"],
+                requestParams["sha"],
+                e.causeName(),
+                commitsCount,
+            )
+        }
+    }
+
+    private fun logBrokenCommit(
         organization: String,
         repository: String,
         sha: String,
-    ): Collection<GiteaCommit.GiteaCommitAffectedFile> =
-        getCommit(
-            organization,
-            repository,
-            sha,
-            mapOf(
-                "stat" to false,
-                "verification" to false,
-                "files" to true,
-            ),
-        ).files.orEmpty()
+        e: Throwable,
+    ) {
+        val repoKey = "$organization/$repository"
+        if (warnedRepositories.add(repoKey)) {
+            log.warn(
+                "Gitea returned broken JSON for {}/{} commit {} ({}); commit indexed without files." +
+                    FURTHER_OCCURRENCES,
+                organization,
+                repository,
+                sha,
+                e.causeName(),
+            )
+        } else {
+            log.debug(
+                "Gitea returned broken JSON for {}/{} commit {} ({}); commit indexed without files",
+                organization,
+                repository,
+                sha,
+                e.causeName(),
+            )
+        }
+    }
+
+    private fun Throwable.causeName() = cause?.javaClass?.simpleName ?: javaClass.simpleName
 
     private fun Map<String, Any>.isFilesRequested() = this["files"]?.toString()?.toBoolean() ?: true
 
@@ -97,6 +129,9 @@ class ResilientGiteaClient(
         }
 
     companion object {
+        private const val FURTHER_OCCURRENCES =
+            " Further occurrences for this repository will be logged at DEBUG"
+
         private val log = LoggerFactory.getLogger(ResilientGiteaClient::class.java)
     }
 }

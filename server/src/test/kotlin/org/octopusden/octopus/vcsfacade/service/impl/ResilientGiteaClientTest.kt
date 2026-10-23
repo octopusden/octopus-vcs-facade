@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.anyMap
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.argThat
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
@@ -38,7 +39,7 @@ class ResilientGiteaClientTest {
     }
 
     @Test
-    fun `getBranchesCommitGraph recovers truncated page and skips files for invalid commit`() {
+    fun `getBranchesCommitGraph recovers truncated page and skips files for whole page`() {
         val first = commit("c1")
         val second = commit("c2", parents = listOf("c1"))
         doReturn(GiteaEntityList(false, listOf(GiteaBranch("main", GiteaBranch.PayloadCommit("c2")))))
@@ -48,15 +49,15 @@ class ResilientGiteaClientTest {
             pageWithFiles = { throw truncatedResponse() },
             pageWithoutFiles = { GiteaEntityList(false, listOf(second, first)) },
         )
-        stubCommitsBySha(mapOf("c1" to first, "c2" to second), setOf("c1"))
 
         val commits = client.getBranchesCommitGraph(ORG, REPOSITORY, true).toList()
 
         assertEquals(listOf("c2", "c1"), commits.map { it.sha })
-        assertEquals(listOf(FILE), commits[0].files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[0].files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[1].files)
         assertEquals(second.commit, commits[0].commit)
         assertEquals(second.parents, commits[0].parents)
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
     }
 
     @Test
@@ -67,13 +68,13 @@ class ResilientGiteaClientTest {
             pageWithFiles = { throw truncatedResponse() },
             pageWithoutFiles = { GiteaEntityList(false, listOf(second, first)) },
         )
-        stubCommitsBySha(mapOf("c1" to first, "c2" to second), setOf("c1"))
 
         val commits = client.getCommits(ORG, REPOSITORY, "c2", null, true)
 
         assertEquals(listOf("c2", "c1"), commits.map { it.sha })
-        assertEquals(listOf(FILE), commits[0].files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[0].files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[1].files)
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
     }
 
     @Test
@@ -85,13 +86,15 @@ class ResilientGiteaClientTest {
             pageWithFiles = { throw truncatedResponse() },
             pageWithoutFiles = { GiteaEntityList(false, listOf(third, second, first)) },
         )
-        stubCommitsBySha(mapOf("c1" to first, "c2" to second, "c3" to third), setOf("c2"))
+        stubCommitsBySha(mapOf("c1" to first, "c2" to second, "c3" to third), setOf("c1", "c2", "c3"))
 
         val commits = client.getCommits(ORG, REPOSITORY, "c3", "c1", true)
 
         assertEquals(setOf("c2", "c3"), commits.map { it.sha }.toSet())
-        assertEquals(listOf(FILE), commits.first { it.sha == "c3" }.files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.first { it.sha == "c3" }.files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.first { it.sha == "c2" }.files)
+        verify(delegate, times(2)).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), argThatFiles(true))
     }
 
     @Test
@@ -135,12 +138,12 @@ class ResilientGiteaClientTest {
                 GiteaEntityList(false, listOf(first))
             }
         }.`when`(delegate).getCommits(anyString(), anyString(), anyMap<String, Any>())
-        stubCommitsBySha(mapOf("c1" to first), emptySet())
 
         val commits = client.getCommits(ORG, REPOSITORY, mapOf("files" to true, "page" to 1))
 
         assertEquals(listOf("c1"), commits.values.map { it.sha })
-        assertEquals(listOf(FILE), commits.values.first().files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.values.first().files)
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
     }
 
     @Test
@@ -187,12 +190,12 @@ class ResilientGiteaClientTest {
                 throw truncatedResponse()
             }
         }.`when`(delegate).getCommits(anyString(), anyString(), anyMap<String, Any>())
-        stubCommitsBySha(mapOf("c1" to first), emptySet())
 
         val commits = client.getCommits(ORG, REPOSITORY, mapOf("page" to 1))
 
         assertEquals(listOf("c1"), commits.values.map { it.sha })
-        assertEquals(listOf(FILE), commits.values.first().files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.values.first().files)
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
     }
 
     @Test
@@ -223,6 +226,20 @@ class ResilientGiteaClientTest {
         verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
     }
 
+    @Test
+    fun `normal page keeps files`() {
+        val first = commit("c1").copy(files = listOf(FILE))
+        doReturn(GiteaEntityList(false, listOf(first)))
+            .`when`(delegate)
+            .getCommits(anyString(), anyString(), anyMap<String, Any>())
+
+        val commits = client.getCommits(ORG, REPOSITORY, mapOf("files" to true, "page" to 1))
+
+        assertEquals(listOf("c1"), commits.values.map { it.sha })
+        assertEquals(listOf(FILE), commits.values.first().files)
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+    }
+
     private fun stubCommits(
         pageWithFiles: () -> GiteaEntityList<GiteaCommit>,
         pageWithoutFiles: () -> GiteaEntityList<GiteaCommit>,
@@ -232,6 +249,8 @@ class ResilientGiteaClientTest {
             if (params["files"] == true) pageWithFiles() else pageWithoutFiles()
         }.`when`(delegate).getCommits(anyString(), anyString(), anyMap<String, Any>())
     }
+
+    private fun argThatFiles(files: Boolean): Map<String, Any> = argThat { params -> params["files"] == files }
 
     private fun stubCommitsBySha(
         commits: Map<String, GiteaCommit>,
