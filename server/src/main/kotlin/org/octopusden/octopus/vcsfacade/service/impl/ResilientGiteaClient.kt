@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.service.impl
 
 import com.fasterxml.jackson.core.io.JsonEOFException
 import feign.FeignException
+import feign.codec.DecodeException
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaCommit
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaEntityList
@@ -21,15 +22,16 @@ class ResilientGiteaClient(
         return try {
             delegate.getCommits(organization, repository, requestParams)
         } catch (e: FeignException) {
-            if (!e.isTruncatedJson()) {
+            if (!e.isBrokenJsonResponse()) {
                 throw e
             }
             log.warn(
-                "Gitea returned truncated JSON for {}/{} page {} of {} with files=true, retrying with files=false",
+                "Gitea returned broken JSON for {}/{} page {} of {} with files=true ({}), retrying with files=false",
                 organization,
                 repository,
                 requestParams["page"],
                 requestParams["sha"],
+                e.cause?.javaClass?.simpleName ?: e.javaClass.simpleName,
             )
             val page = delegate.getCommits(organization, repository, requestParams + ("files" to false))
             GiteaEntityList(
@@ -53,14 +55,15 @@ class ResilientGiteaClient(
         return try {
             delegate.getCommit(organization, repository, sha, requestParams)
         } catch (e: FeignException) {
-            if (!e.isTruncatedJson()) {
+            if (!e.isBrokenJsonResponse()) {
                 throw e
             }
             log.warn(
-                "Gitea returned truncated JSON for {}/{} commit {} with files=true, indexing without files",
+                "Gitea returned broken JSON for {}/{} commit {} with files=true ({}), indexing without files",
                 organization,
                 repository,
                 sha,
+                e.cause?.javaClass?.simpleName ?: e.javaClass.simpleName,
             )
             delegate
                 .getCommit(organization, repository, sha, requestParams + ("files" to false))
@@ -86,9 +89,11 @@ class ResilientGiteaClient(
 
     private fun Map<String, Any>.isFilesRequested() = this["files"]?.toString()?.toBoolean() ?: true
 
-    private fun Throwable.isTruncatedJson() =
+    private fun Throwable.isBrokenJsonResponse() =
         generateSequence(this) { it.cause }.any {
-            it is JsonEOFException || it.message?.contains("Unexpected end-of-input") == true
+            it is JsonEOFException ||
+                it.message?.contains("Unexpected end-of-input") == true ||
+                (it is DecodeException && it.status() in 200..299)
         }
 
     companion object {

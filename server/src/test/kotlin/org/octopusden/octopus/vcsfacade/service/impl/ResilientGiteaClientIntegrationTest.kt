@@ -41,6 +41,8 @@ class ResilientGiteaClientIntegrationTest {
                 sha == "c2" -> exchange.respond(200, COMMIT_C2_WITHOUT_FILES)
                 sha == "c1" && query.contains("files=true") -> exchange.respond(200, COMMIT_C1_TRUNCATED)
                 sha == "c1" -> exchange.respond(200, COMMIT_C1_WITHOUT_FILES)
+                sha == "empty" && query.contains("files=true") -> exchange.respond(200, "")
+                sha == "empty" -> exchange.respond(200, COMMIT_EMPTY_WITHOUT_FILES)
                 else -> exchange.respond(404, """{"message":"not found"}""")
             }
         }
@@ -96,6 +98,16 @@ class ResilientGiteaClientIntegrationTest {
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
     }
 
+    @Test
+    fun `real Feign client recovers empty response body`() {
+        val client = ResilientGiteaClient(GiteaClassicClient(parametersProvider()))
+
+        val commit = client.getCommit(ORG, REPOSITORY, "empty", true)
+
+        assertEquals("empty", commit.sha)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
+    }
+
     private fun parametersProvider() =
         object : ClientParametersProvider {
             override fun getApiUrl() = "http://127.0.0.1:${server.address.port}"
@@ -110,8 +122,12 @@ class ResilientGiteaClientIntegrationTest {
         responseHeaders.add("Content-Type", "application/json")
         responseHeaders.add("X-HasMore", "false")
         val bytes = body.toByteArray()
-        sendResponseHeaders(status, bytes.size.toLong())
-        responseBody.use { it.write(bytes) }
+        if (bytes.isEmpty()) {
+            sendResponseHeaders(status, -1)
+        } else {
+            sendResponseHeaders(status, bytes.size.toLong())
+            responseBody.use { it.write(bytes) }
+        }
         close()
     }
 
@@ -218,6 +234,21 @@ class ResilientGiteaClientIntegrationTest {
               "created": "2024-01-01T00:00:00Z",
               "commit": {
                 "message": "message c1",
+                "author": {
+                  "name": "author"
+                }
+              },
+              "parents": []
+            }
+            """.trimIndent()
+
+        private val COMMIT_EMPTY_WITHOUT_FILES =
+            """
+            {
+              "sha": "empty",
+              "created": "2024-01-03T00:00:00Z",
+              "commit": {
+                "message": "message empty",
                 "author": {
                   "name": "author"
                 }

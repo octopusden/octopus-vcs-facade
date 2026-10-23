@@ -1,6 +1,8 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
 import feign.FeignException
+import feign.Request
+import feign.codec.DecodeException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -22,6 +24,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaUser
 import org.octopusden.octopus.infrastructure.gitea.client.getBranchesCommitGraph
 import org.octopusden.octopus.infrastructure.gitea.client.getCommit
 import org.octopusden.octopus.infrastructure.gitea.client.getCommits
+import java.nio.charset.StandardCharsets
 import java.util.Date
 
 class ResilientGiteaClientTest {
@@ -101,6 +104,76 @@ class ResilientGiteaClientTest {
         assertEquals("c1", commit.sha)
         assertEquals(first.commit, commit.commit)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
+    }
+
+    @Test
+    fun `getCommit recovers empty response body`() {
+        val first = commit("c1")
+        doAnswer { invocation ->
+            val params = invocation.getArgument<Map<String, Any>>(3)
+            if (params["files"] == true) {
+                throw TestDecodeException()
+            } else {
+                first.copy(files = null)
+            }
+        }.`when`(delegate).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+
+        val commit = client.getCommit(ORG, REPOSITORY, "c1", true)
+
+        assertEquals("c1", commit.sha)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commit.files)
+    }
+
+    @Test
+    fun `getCommits recovers empty response body`() {
+        val first = commit("c1")
+        doAnswer { invocation ->
+            val params = invocation.getArgument<Map<String, Any>>(2)
+            if (params["files"] == true) {
+                throw TestDecodeException()
+            } else {
+                GiteaEntityList(false, listOf(first))
+            }
+        }.`when`(delegate).getCommits(anyString(), anyString(), anyMap<String, Any>())
+        stubCommitsBySha(mapOf("c1" to first), emptySet())
+
+        val commits = client.getCommits(ORG, REPOSITORY, mapOf("files" to true, "page" to 1))
+
+        assertEquals(listOf("c1"), commits.values.map { it.sha })
+        assertEquals(listOf(FILE), commits.values.first().files)
+    }
+
+    @Test
+    fun `failed fallback is propagated`() {
+        doAnswer { invocation ->
+            val params = invocation.getArgument<Map<String, Any>>(3)
+            if (params["files"] == true) {
+                throw TestDecodeException()
+            } else {
+                error("fallback failed")
+            }
+        }.`when`(delegate).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+
+        val exception = assertThrows<IllegalStateException> {
+            client.getCommit(ORG, REPOSITORY, "c1", true)
+        }
+
+        assertEquals("fallback failed", exception.message)
+        verify(delegate, times(2)).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+    }
+
+    @Test
+    fun `non successful decode exception is propagated`() {
+        doAnswer { throw TestDecodeException(status = 500) }
+            .`when`(delegate)
+            .getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+
+        val exception = assertThrows<TestDecodeException> {
+            client.getCommit(ORG, REPOSITORY, "c1", true)
+        }
+
+        assertEquals(500, exception.status())
+        verify(delegate, times(1)).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
     }
 
     @Test
@@ -193,6 +266,16 @@ class ResilientGiteaClientTest {
     private class TestFeignException(
         cause: Throwable? = null,
     ) : FeignException(500, "boom", cause)
+
+    private class TestDecodeException(
+        status: Int = 200,
+        cause: Throwable = NullPointerException(),
+    ) : DecodeException(
+            status,
+            "decode failed",
+            Request.create("GET", "http://localhost", emptyMap(), ByteArray(0), StandardCharsets.UTF_8),
+            cause,
+        )
 
     companion object {
         private const val ORG = "org"
