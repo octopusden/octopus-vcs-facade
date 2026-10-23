@@ -4,15 +4,16 @@ import feign.FeignException
 import feign.Request
 import feign.codec.DecodeException
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.anyMap
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.ArgumentMatchers.argThat
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -93,8 +94,16 @@ class ResilientGiteaClientTest {
         assertEquals(setOf("c2", "c3"), commits.map { it.sha }.toSet())
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.first { it.sha == "c3" }.files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.first { it.sha == "c2" }.files)
-        verify(delegate, times(2)).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
-        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), argThatFiles(true))
+        val getCommitCalls =
+            mockingDetails(delegate)
+                .invocations
+                .filter { it.method.name == "getCommit" }
+        assertEquals(2, getCommitCalls.size)
+        assertTrue(
+            getCommitCalls.all { invocation ->
+                (invocation.arguments[3] as Map<*, *>)["files"] == false
+            },
+        )
     }
 
     @Test
@@ -249,8 +258,6 @@ class ResilientGiteaClientTest {
             if (params["files"] == true) pageWithFiles() else pageWithoutFiles()
         }.`when`(delegate).getCommits(anyString(), anyString(), anyMap<String, Any>())
     }
-
-    private fun argThatFiles(files: Boolean): Map<String, Any> = argThat { params -> params["files"] == files }
 
     private fun stubCommitsBySha(
         commits: Map<String, GiteaCommit>,
