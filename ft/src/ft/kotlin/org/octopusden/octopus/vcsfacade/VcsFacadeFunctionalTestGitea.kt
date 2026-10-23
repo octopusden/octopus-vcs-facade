@@ -151,7 +151,82 @@ class VcsFacadeFunctionalTestGitea :
         Assertions.assertEquals(1, findByIssueKeys(setOf(issue2)).commits.size)
     }
 
+    @Test
+    fun invalidUtf8FilenameCommitWithFilesTest() {
+        val repository = "repository-2-invalid-utf8"
+        importInvalidUtf8Repository(repository)
+        val sshUrl = testService.sshUrl(GROUP, repository)
+
+        val commits = getCommits(sshUrl, null, null, "master")
+        val badCommit = commits.single { it.message.contains(ISSUE_BAD) }
+        val goodCommit = commits.single { it.message.contains(ISSUE_GOOD) }
+
+        val badWithFiles = getCommitWithFiles(sshUrl, badCommit.hash, null)
+        Assertions.assertEquals(badCommit.hash, badWithFiles.commit.hash)
+        Assertions.assertTrue(badWithFiles.files.isEmpty())
+
+        val goodWithFiles = getCommitWithFiles(sshUrl, goodCommit.hash, null)
+        Assertions.assertEquals(goodCommit.hash, goodWithFiles.commit.hash)
+        Assertions.assertFalse(goodWithFiles.files.isEmpty())
+
+        val commitsWithFiles = getCommitsWithFiles(sshUrl, null, null, "master", null)
+        val badInRange = commitsWithFiles.single { it.commit.hash == badCommit.hash }
+        val goodInRange = commitsWithFiles.single { it.commit.hash == goodCommit.hash }
+        Assertions.assertTrue(badInRange.files.isEmpty())
+        Assertions.assertFalse(goodInRange.files.isEmpty())
+    }
+
+    @Test
+    fun invalidUtf8FilenameRepositoryIndexingTest() {
+        val repository = "repository-2-invalid-utf8-index"
+        importInvalidUtf8Repository(repository)
+        val sshUrl = testService.sshUrl(GROUP, repository)
+
+        client.reindexRepository(sshUrl)
+
+        awaitCommits(ISSUE_BAD, 1)
+        awaitCommits(ISSUE_GOOD, 1)
+
+        Assertions.assertEquals(1, findCommitsByIssueKeys(setOf(ISSUE_BAD)).size)
+        Assertions.assertEquals(1, findCommitsByIssueKeys(setOf(ISSUE_GOOD)).size)
+
+        val indexedBad = findCommitsWithFilesByIssueKeys(setOf(ISSUE_BAD), null)
+        Assertions.assertEquals(1, indexedBad.size)
+        Assertions.assertTrue(indexedBad.single().files.isEmpty())
+
+        val indexedGood = findCommitsWithFilesByIssueKeys(setOf(ISSUE_GOOD), null)
+        Assertions.assertEquals(1, indexedGood.size)
+        Assertions.assertFalse(indexedGood.single().files.isEmpty())
+    }
+
+    private fun importInvalidUtf8Repository(repository: String) {
+        testClient.importRepository(
+            testService.sshUrl(GROUP, repository),
+            File.createTempFile("VcsFacadeFunctionalTestGitea-", "-invalid-utf8.zip").apply {
+                outputStream().use {
+                    VcsFacadeFunctionalTestGitea::class.java.classLoader
+                        .getResourceAsStream("test-repository-invalid-utf8.zip")!!
+                        .copyTo(it)
+                }
+            },
+        )
+    }
+
+    private fun awaitCommits(
+        issueKey: String,
+        expected: Int,
+    ) {
+        repeat(120) {
+            if (findCommitsByIssueKeys(setOf(issueKey)).size == expected) return
+            Thread.sleep(500)
+        }
+        throw RuntimeException("Commits for '$issueKey' have not been indexed")
+    }
+
     companion object {
+        private const val ISSUE_BAD = "ISSUE-7000"
+        private const val ISSUE_GOOD = "ISSUE-7001"
+
         private const val ASSIGNEE = "test-assignee"
         private const val REVIEWER = "test-reviewer"
         private const val APPROVER = "test-approver"

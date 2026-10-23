@@ -224,7 +224,7 @@ class IndexerServiceImpl(
             log.trace("Suppress repositories scan submitting on non-master instance")
         }
 
-    private fun scan(repositoryDocument: RepositoryDocument) =
+    internal fun scan(repositoryDocument: RepositoryDocument) =
         try {
             val vcsService = vcsManager.findVcsServiceById(repositoryDocument.vcsServiceId)
             val foundRepositoryDocument = vcsService?.let {
@@ -243,10 +243,23 @@ class IndexerServiceImpl(
                     val savedBranchesIds = openSearchService.saveRefs(
                         vcsService.getBranches(repository.group, repository.name).map { it.toDocument(repository) },
                     )
-                    val savedTagsIds = openSearchService.saveRefs(
-                        vcsService.getTags(repository.group, repository.name).map { it.toDocument(repository) },
-                    )
-                    openSearchService.deleteRefsByIds(foundRefsIds - savedBranchesIds - savedTagsIds)
+                    val savedTagsIds = try {
+                        openSearchService.saveRefs(
+                            vcsService.getTags(repository.group, repository.name).map { it.toDocument(repository) },
+                        )
+                    } catch (e: Exception) {
+                        log.warn("Failed to get tags for {} repository: {}", repository.sshUrl, e.toString())
+                        log.debug("Failed to get tags for {} repository", repository.sshUrl, e)
+                        null
+                    }
+                    if (savedTagsIds != null) {
+                        openSearchService.deleteRefsByIds(foundRefsIds - savedBranchesIds - savedTagsIds)
+                    } else {
+                        log.warn(
+                            "Skip stale refs cleanup for {} repository because tags could not be read",
+                            repository.sshUrl,
+                        )
+                    }
                     log.debug("Update {} repository commits in index", repository.sshUrl)
                     val foundCommitsIds = openSearchService.findCommitsIdsByRepositoryId(repository.id)
                     val savedCommitsIds = openSearchService.saveCommits(
