@@ -9,6 +9,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaEntityList
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
+// TODO: Temporary workaround. Remove this once the fix is released in Gitea.
 class ResilientGiteaClient(
     private val delegate: GiteaClient,
 ) : GiteaClient by delegate {
