@@ -9,7 +9,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaEntityList
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
-// TODO: Temporary workaround. Remove this once the fix is released in Gitea.
+// Temporary workaround. Remove this once the fix is released in Gitea.
 class ResilientGiteaClient(
     private val delegate: GiteaClient,
 ) : GiteaClient by delegate {
@@ -24,17 +24,17 @@ class ResilientGiteaClient(
             return delegate.getCommits(organization, repository, requestParams)
         }
         return try {
-            delegate.getCommits(organization, repository, requestParams)
+            val page = delegate.getCommits(organization, repository, requestParams)
+            if (page.isSuspiciousEmptyPage()) {
+                fallbackPage(organization, repository, requestParams, "empty page")
+            } else {
+                page
+            }
         } catch (e: FeignException) {
             if (!e.isBrokenJsonResponse()) {
                 throw e
             }
-            val page = delegate.getCommits(organization, repository, requestParams + ("files" to false))
-            logBrokenPage(organization, repository, requestParams, page.values.size, e)
-            GiteaEntityList(
-                page.hasMore,
-                page.values.map { commit -> commit.copy(files = emptyList()) },
-            )
+            fallbackPage(organization, repository, requestParams, e.causeName())
         }
     }
 
@@ -59,23 +59,36 @@ class ResilientGiteaClient(
         }
     }
 
+    private fun fallbackPage(
+        organization: String,
+        repository: String,
+        requestParams: Map<String, Any>,
+        reason: String,
+    ): GiteaEntityList<GiteaCommit> {
+        val page = delegate.getCommits(organization, repository, requestParams + ("files" to false))
+        logBrokenPage(organization, repository, requestParams, page.values.size, reason)
+        return GiteaEntityList(
+            page.hasMore,
+            page.values.map { commit -> commit.copy(files = emptyList()) },
+        )
+    }
+
     private fun logBrokenPage(
         organization: String,
         repository: String,
         requestParams: Map<String, Any>,
         commitsCount: Int,
-        e: Throwable,
+        reason: String,
     ) {
         val repoKey = "$organization/$repository"
         if (warnedRepositories.add(repoKey)) {
             log.warn(
-                "Gitea returned broken JSON for {}/{} page {} of {} ({}); {} commits indexed without files." +
-                    FURTHER_OCCURRENCES,
+                "Gitea returned broken JSON for {}/{} page {} of {} ({}); {} commits indexed without files.",
                 organization,
                 repository,
                 requestParams["page"],
                 requestParams["sha"],
-                e.causeName(),
+                reason,
                 commitsCount,
             )
         } else {
@@ -85,7 +98,7 @@ class ResilientGiteaClient(
                 repository,
                 requestParams["page"],
                 requestParams["sha"],
-                e.causeName(),
+                reason,
                 commitsCount,
             )
         }
@@ -100,8 +113,7 @@ class ResilientGiteaClient(
         val repoKey = "$organization/$repository"
         if (warnedRepositories.add(repoKey)) {
             log.warn(
-                "Gitea returned broken JSON for {}/{} commit {} ({}); commit indexed without files." +
-                    FURTHER_OCCURRENCES,
+                "Gitea returned broken JSON for {}/{} commit {} ({}); commit indexed without files.",
                 organization,
                 repository,
                 sha,
@@ -118,6 +130,8 @@ class ResilientGiteaClient(
         }
     }
 
+    private fun GiteaEntityList<GiteaCommit>.isSuspiciousEmptyPage() = values.isEmpty() && hasMore != false
+
     private fun Throwable.causeName() = cause?.javaClass?.simpleName ?: javaClass.simpleName
 
     private fun Map<String, Any>.isFilesRequested() = this["files"]?.toString()?.toBoolean() ?: true
@@ -130,9 +144,6 @@ class ResilientGiteaClient(
         }
 
     companion object {
-        private const val FURTHER_OCCURRENCES =
-            " Further occurrences for this repository will be logged at DEBUG"
-
         private val log = LoggerFactory.getLogger(ResilientGiteaClient::class.java)
     }
 }
