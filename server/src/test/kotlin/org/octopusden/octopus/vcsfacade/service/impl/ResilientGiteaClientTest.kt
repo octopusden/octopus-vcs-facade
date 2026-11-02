@@ -175,6 +175,25 @@ class ResilientGiteaClientTest {
     }
 
     @Test
+    fun `getCommits recovers empty last page`() {
+        val first = commit("c1")
+        doAnswer { invocation ->
+            val params = invocation.getArgument<Map<String, Any>>(2)
+            if (params["files"] == true) {
+                GiteaEntityList(false, emptyList())
+            } else {
+                GiteaEntityList(false, listOf(first))
+            }
+        }.`when`(delegate).getCommits(anyString(), anyString(), anyMap<String, Any>())
+
+        val commits = client.getCommits(ORG, REPOSITORY, mapOf("files" to true, "page" to 1))
+
+        assertEquals(listOf("c1"), commits.values.map { it.sha })
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits.values.first().files)
+        verify(delegate, never()).getCommit(anyString(), anyString(), anyString(), anyMap<String, Any>())
+    }
+
+    @Test
     fun `failed fallback is propagated`() {
         doAnswer { invocation ->
             val params = invocation.getArgument<Map<String, Any>>(3)

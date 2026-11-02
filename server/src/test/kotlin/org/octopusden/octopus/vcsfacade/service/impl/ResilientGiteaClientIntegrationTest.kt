@@ -32,28 +32,37 @@ class ResilientGiteaClientIntegrationTest {
         }
         server.createContext("/api/v1/repos/org/repository/commits") { exchange ->
             commitsListRequests.incrementAndGet()
-            val query = exchange.requestURI.query.orEmpty()
-            if (query.contains("files=true")) {
-                exchange.respond(200, COMMITS_TRUNCATED)
-            } else {
-                exchange.respond(200, COMMITS)
-            }
+            handleCommits(exchange)
         }
         server.createContext("/api/v1/repos/org/repository/git/commits/") { exchange ->
             commitRequests.incrementAndGet()
-            val query = exchange.requestURI.query.orEmpty()
-            val sha = exchange.requestURI.path.substringAfterLast('/')
-            when {
-                sha == "c2" && query.contains("files=true") -> exchange.respond(200, COMMIT_C2)
-                sha == "c2" -> exchange.respond(200, COMMIT_C2_WITHOUT_FILES)
-                sha == "c1" && query.contains("files=true") -> exchange.respond(200, COMMIT_C1_TRUNCATED)
-                sha == "c1" -> exchange.respond(200, COMMIT_C1_WITHOUT_FILES)
-                sha == "empty" && query.contains("files=true") -> exchange.respond(200, "")
-                sha == "empty" -> exchange.respond(200, COMMIT_EMPTY_WITHOUT_FILES)
-                else -> exchange.respond(404, """{"message":"not found"}""")
-            }
+            handleCommit(exchange)
         }
         server.start()
+    }
+
+    private fun handleCommits(exchange: HttpExchange) {
+        val query = exchange.requestURI.query.orEmpty()
+        when {
+            query.contains("sha=empty-last-page") && query.contains("files=true") -> exchange.respond(200, "")
+            query.contains("sha=empty-last-page") -> exchange.respond(200, COMMITS)
+            query.contains("files=true") -> exchange.respond(200, COMMITS_TRUNCATED)
+            else -> exchange.respond(200, COMMITS)
+        }
+    }
+
+    private fun handleCommit(exchange: HttpExchange) {
+        val query = exchange.requestURI.query.orEmpty()
+        val sha = exchange.requestURI.path.substringAfterLast('/')
+        when {
+            sha == "c2" && query.contains("files=true") -> exchange.respond(200, COMMIT_C2)
+            sha == "c2" -> exchange.respond(200, COMMIT_C2_WITHOUT_FILES)
+            sha == "c1" && query.contains("files=true") -> exchange.respond(200, COMMIT_C1_TRUNCATED)
+            sha == "c1" -> exchange.respond(200, COMMIT_C1_WITHOUT_FILES)
+            sha == "empty" && query.contains("files=true") -> exchange.respond(200, "")
+            sha == "empty" -> exchange.respond(200, COMMIT_EMPTY_WITHOUT_FILES)
+            else -> exchange.respond(404, """{"message":"not found"}""")
+        }
     }
 
     @AfterEach
@@ -70,6 +79,23 @@ class ResilientGiteaClientIntegrationTest {
         assertEquals(listOf("c2", "c1"), commits.map { it.sha })
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[0].files)
         assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), commits[1].files)
+        assertEquals(2, commitsListRequests.get())
+        assertEquals(0, commitRequests.get())
+    }
+
+    @Test
+    fun `real Feign client recovers empty last page`() {
+        val client = ResilientGiteaClient(GiteaClassicClient(parametersProvider()))
+
+        val page = client.getCommits(
+            ORG,
+            REPOSITORY,
+            mapOf("sha" to "empty-last-page", "page" to 1, "files" to true),
+        )
+
+        assertEquals(listOf("c2", "c1"), page.values.map { it.sha })
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), page.values.first().files)
+        assertEquals(emptyList<GiteaCommit.GiteaCommitAffectedFile>(), page.values.last().files)
         assertEquals(2, commitsListRequests.get())
         assertEquals(0, commitRequests.get())
     }

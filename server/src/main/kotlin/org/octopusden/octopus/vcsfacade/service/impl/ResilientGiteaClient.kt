@@ -19,13 +19,21 @@ class ResilientGiteaClient(
         organization: String,
         repository: String,
         requestParams: Map<String, Any>,
-    ): GiteaEntityList<GiteaCommit> {
+    ): GiteaEntityList<GiteaCommit> =
         if (!requestParams.isFilesRequested()) {
-            return delegate.getCommits(organization, repository, requestParams)
+            delegate.getCommits(organization, repository, requestParams)
+        } else {
+            getCommitsWithFilesFallback(organization, repository, requestParams)
         }
-        return try {
+
+    private fun getCommitsWithFilesFallback(
+        organization: String,
+        repository: String,
+        requestParams: Map<String, Any>,
+    ): GiteaEntityList<GiteaCommit> =
+        try {
             val page = delegate.getCommits(organization, repository, requestParams)
-            if (page.isSuspiciousEmptyPage()) {
+            if (page.values.isEmpty()) {
                 fallbackPage(organization, repository, requestParams, "empty page")
             } else {
                 page
@@ -36,7 +44,6 @@ class ResilientGiteaClient(
             }
             fallbackPage(organization, repository, requestParams, e.causeName())
         }
-    }
 
     override fun getCommit(
         organization: String,
@@ -129,8 +136,6 @@ class ResilientGiteaClient(
             )
         }
     }
-
-    private fun GiteaEntityList<GiteaCommit>.isSuspiciousEmptyPage() = values.isEmpty() && hasMore != false
 
     private fun Throwable.causeName() = cause?.javaClass?.simpleName ?: javaClass.simpleName
 

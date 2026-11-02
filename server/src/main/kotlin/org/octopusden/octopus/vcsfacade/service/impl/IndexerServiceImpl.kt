@@ -224,80 +224,133 @@ class IndexerServiceImpl(
             log.trace("Suppress repositories scan submitting on non-master instance")
         }
 
-    internal fun scan(repositoryDocument: RepositoryDocument) =
+    fun scan(repositoryDocument: RepositoryDocument) =
         try {
-            val vcsService = vcsManager.findVcsServiceById(repositoryDocument.vcsServiceId)
-            val foundRepositoryDocument = vcsService?.let {
-                if (it.indexing) {
-                    it.findRepository(repositoryDocument.group, repositoryDocument.name)?.toDocument(it)
-                } else {
-                    null
-                }
-            }
-            if (foundRepositoryDocument == repositoryDocument) { // IMPORTANT: found repository could be renamed one
-                with(RepositoryInfoDocument(foundRepositoryDocument, false, Date())) {
-                    log.debug("Update {} repository info in index", repository.sshUrl)
-                    openSearchService.saveRepositoriesInfo(sequenceOf(this))
-                    log.debug("Update {} repository refs in index", repository.sshUrl)
-                    val foundRefsIds = openSearchService.findRefsIdsByRepositoryId(repository.id)
-                    val savedBranchesIds = openSearchService.saveRefs(
-                        vcsService.getBranches(repository.group, repository.name).map { it.toDocument(repository) },
-                    )
-                    val savedTagsIds = try {
-                        openSearchService.saveRefs(
-                            vcsService.getTags(repository.group, repository.name).map { it.toDocument(repository) },
-                        )
-                    } catch (e: Exception) {
-                        log.warn("Failed to get tags for {} repository: {}", repository.sshUrl, e.toString())
-                        log.debug("Failed to get tags for {} repository", repository.sshUrl, e)
-                        null
-                    }
-                    if (savedTagsIds != null) {
-                        openSearchService.deleteRefsByIds(foundRefsIds - savedBranchesIds - savedTagsIds)
-                    } else {
-                        log.warn(
-                            "Skip stale refs cleanup for {} repository because tags could not be read",
-                            repository.sshUrl,
-                        )
-                    }
-                    log.debug("Update {} repository commits in index", repository.sshUrl)
-                    val foundCommitsIds = openSearchService.findCommitsIdsByRepositoryId(repository.id)
-                    val savedCommitsIds = openSearchService.saveCommits(
-                        vcsService
-                            .getBranchesCommitGraph(repository.group, repository.name)
-                            .map { it.toDocument(repository) },
-                    )
-                    openSearchService.deleteCommitsByIds(foundCommitsIds - savedCommitsIds)
-                    log.debug("Update {} repository pull requests in index", repository.sshUrl)
-                    val foundPullRequestsIds = openSearchService.findPullRequestsIdsByRepositoryId(repository.id)
-                    val savedPullRequestsIds = openSearchService.savePullRequests(
-                        vcsService.getPullRequests(repository.group, repository.name).map { it.toDocument(repository) },
-                    )
-                    openSearchService.deletePullRequestsByIds(foundPullRequestsIds - savedPullRequestsIds)
-                }
+            val resolved = resolveRepository(repositoryDocument)
+            if (resolved != null && resolved.repositoryDocument == repositoryDocument) {
+                indexRepository(resolved)
             } else {
-                log.debug("Remove {} repository pull-requests from index", repositoryDocument.sshUrl)
-                openSearchService.deletePullRequestsByRepositoryId(repositoryDocument.id)
-                log.debug("Remove {} repository commits from index", repositoryDocument.sshUrl)
-                openSearchService.deleteCommitsByRepositoryId(repositoryDocument.id)
-                log.debug("Remove {} repository refs from index", repositoryDocument.sshUrl)
-                openSearchService.deleteRefsByRepositoryId(repositoryDocument.id)
-                log.debug("Remove {} repository info from index", repositoryDocument.sshUrl)
-                openSearchService.deleteRepositoryInfoById(repositoryDocument.id)
+                removeRepositoryFromIndex(repositoryDocument)
             }
             log.info("Scanning of {} repository completed successfully", repositoryDocument.sshUrl)
         } catch (e: Exception) {
-            if (e.isAccessDenied()) {
-                log.warn("Scanning of {} repository skipped: access denied", repositoryDocument.sshUrl)
-                log.debug("Access denied details for {} repository", repositoryDocument.sshUrl, e)
-                openSearchService.saveRepositoriesInfo(
-                    sequenceOf(RepositoryInfoDocument(repositoryDocument, false, Date())),
-                )
-            } else {
-                log.error("Scanning of ${repositoryDocument.sshUrl} repository ended in failure", e)
-                openSearchService.saveRepositoriesInfo(sequenceOf(RepositoryInfoDocument(repositoryDocument)))
-            }
+            handleScanFailure(repositoryDocument, e)
         }
+
+    private fun resolveRepository(repositoryDocument: RepositoryDocument): ResolvedRepository? {
+        val vcsService = vcsManager.findVcsServiceById(repositoryDocument.vcsServiceId) ?: return null
+        if (!vcsService.indexing) {
+            return null
+        }
+        val foundRepositoryDocument = vcsService
+            .findRepository(repositoryDocument.group, repositoryDocument.name)
+            ?.toDocument(vcsService)
+            ?: return null
+        return ResolvedRepository(vcsService, foundRepositoryDocument)
+    }
+
+    private fun indexRepository(resolved: ResolvedRepository) {
+        val repository = resolved.repositoryDocument
+        val vcsService = resolved.vcsService
+        log.debug("Update {} repository info in index", repository.sshUrl)
+        openSearchService.saveRepositoriesInfo(
+            sequenceOf(RepositoryInfoDocument(repository, false, Date())),
+        )
+        updateRefs(repository, vcsService)
+        updateCommits(repository, vcsService)
+        updatePullRequests(repository, vcsService)
+    }
+
+    private fun updateRefs(
+        repository: RepositoryDocument,
+        vcsService: VcsService,
+    ) {
+        log.debug("Update {} repository refs in index", repository.sshUrl)
+        val foundRefsIds = openSearchService.findRefsIdsByRepositoryId(repository.id)
+        val savedBranchesIds = openSearchService.saveRefs(
+            vcsService.getBranches(repository.group, repository.name).map { it.toDocument(repository) },
+        )
+        val savedTagsIds = saveTags(repository, vcsService)
+        if (savedTagsIds != null) {
+            openSearchService.deleteRefsByIds(foundRefsIds - savedBranchesIds - savedTagsIds)
+        } else {
+            log.warn(
+                "Skip stale refs cleanup for {} repository because tags could not be read",
+                repository.sshUrl,
+            )
+        }
+    }
+
+    private fun saveTags(
+        repository: RepositoryDocument,
+        vcsService: VcsService,
+    ): Set<String>? =
+        try {
+            openSearchService.saveRefs(
+                vcsService.getTags(repository.group, repository.name).map { it.toDocument(repository) },
+            )
+        } catch (e: Exception) {
+            log.warn("Failed to get tags for {} repository: {}", repository.sshUrl, e.toString())
+            null
+        }
+
+    private fun updateCommits(
+        repository: RepositoryDocument,
+        vcsService: VcsService,
+    ) {
+        log.debug("Update {} repository commits in index", repository.sshUrl)
+        val foundCommitsIds = openSearchService.findCommitsIdsByRepositoryId(repository.id)
+        val savedCommitsIds = openSearchService.saveCommits(
+            vcsService
+                .getBranchesCommitGraph(repository.group, repository.name)
+                .map { it.toDocument(repository) },
+        )
+        openSearchService.deleteCommitsByIds(foundCommitsIds - savedCommitsIds)
+    }
+
+    private fun updatePullRequests(
+        repository: RepositoryDocument,
+        vcsService: VcsService,
+    ) {
+        log.debug("Update {} repository pull requests in index", repository.sshUrl)
+        val foundPullRequestsIds = openSearchService.findPullRequestsIdsByRepositoryId(repository.id)
+        val savedPullRequestsIds = openSearchService.savePullRequests(
+            vcsService.getPullRequests(repository.group, repository.name).map { it.toDocument(repository) },
+        )
+        openSearchService.deletePullRequestsByIds(foundPullRequestsIds - savedPullRequestsIds)
+    }
+
+    private fun removeRepositoryFromIndex(repositoryDocument: RepositoryDocument) {
+        log.debug("Remove {} repository pull-requests from index", repositoryDocument.sshUrl)
+        openSearchService.deletePullRequestsByRepositoryId(repositoryDocument.id)
+        log.debug("Remove {} repository commits from index", repositoryDocument.sshUrl)
+        openSearchService.deleteCommitsByRepositoryId(repositoryDocument.id)
+        log.debug("Remove {} repository refs from index", repositoryDocument.sshUrl)
+        openSearchService.deleteRefsByRepositoryId(repositoryDocument.id)
+        log.debug("Remove {} repository info from index", repositoryDocument.sshUrl)
+        openSearchService.deleteRepositoryInfoById(repositoryDocument.id)
+    }
+
+    private fun handleScanFailure(
+        repositoryDocument: RepositoryDocument,
+        e: Exception,
+    ) {
+        if (e.isAccessDenied()) {
+            log.warn("Scanning of {} repository skipped: access denied", repositoryDocument.sshUrl)
+            log.debug("Access denied details for {} repository", repositoryDocument.sshUrl, e)
+            openSearchService.saveRepositoriesInfo(
+                sequenceOf(RepositoryInfoDocument(repositoryDocument, false, Date())),
+            )
+        } else {
+            log.error("Scanning of ${repositoryDocument.sshUrl} repository ended in failure", e)
+            openSearchService.saveRepositoriesInfo(sequenceOf(RepositoryInfoDocument(repositoryDocument)))
+        }
+    }
+
+    private data class ResolvedRepository(
+        val vcsService: VcsService,
+        val repositoryDocument: RepositoryDocument,
+    )
 
     companion object {
         private val log = LoggerFactory.getLogger(IndexerServiceImpl::class.java)

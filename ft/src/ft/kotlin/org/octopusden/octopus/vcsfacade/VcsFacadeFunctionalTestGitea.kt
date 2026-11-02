@@ -177,6 +177,25 @@ class VcsFacadeFunctionalTestGitea :
     }
 
     @Test
+    fun invalidUtf8FilenameSmallRepositoryIndexingTest() {
+        val repository = "repository-2-invalid-utf8-small"
+        importInvalidUtf8Repository(repository, "test-repository-invalid-utf8-small.zip")
+        val sshUrl = testService.sshUrl(GROUP, repository)
+
+        client.reindexRepository(sshUrl)
+
+        awaitCommits(ISSUE_SMALL_BAD, 1)
+        awaitCommits(ISSUE_SMALL_GOOD, 1)
+
+        Assertions.assertEquals(1, findCommitsByIssueKeys(setOf(ISSUE_SMALL_BAD)).size)
+        Assertions.assertEquals(1, findCommitsByIssueKeys(setOf(ISSUE_SMALL_GOOD)).size)
+
+        val indexedBad = findCommitsWithFilesByIssueKeys(setOf(ISSUE_SMALL_BAD), null)
+        Assertions.assertEquals(1, indexedBad.size)
+        Assertions.assertTrue(indexedBad.single().files.isEmpty())
+    }
+
+    @Test
     fun invalidUtf8FilenameRepositoryIndexingTest() {
         val repository = "repository-2-invalid-utf8-index"
         importInvalidUtf8Repository(repository)
@@ -199,13 +218,16 @@ class VcsFacadeFunctionalTestGitea :
         Assertions.assertFalse(indexedGood.single().files.isEmpty())
     }
 
-    private fun importInvalidUtf8Repository(repository: String) {
+    private fun importInvalidUtf8Repository(
+        repository: String,
+        fixture: String = "test-repository-invalid-utf8.zip",
+    ) {
         testClient.importRepository(
             testService.sshUrl(GROUP, repository),
             File.createTempFile("VcsFacadeFunctionalTestGitea-", "-invalid-utf8.zip").apply {
                 outputStream().use {
                     VcsFacadeFunctionalTestGitea::class.java.classLoader
-                        .getResourceAsStream("test-repository-invalid-utf8.zip")!!
+                        .getResourceAsStream(fixture)!!
                         .copyTo(it)
                 }
             },
@@ -226,6 +248,8 @@ class VcsFacadeFunctionalTestGitea :
     companion object {
         private const val ISSUE_BAD = "ISSUE-7000"
         private const val ISSUE_GOOD = "ISSUE-7001"
+        private const val ISSUE_SMALL_BAD = "ISSUE-7100"
+        private const val ISSUE_SMALL_GOOD = "ISSUE-7101"
 
         private const val ASSIGNEE = "test-assignee"
         private const val REVIEWER = "test-reviewer"
