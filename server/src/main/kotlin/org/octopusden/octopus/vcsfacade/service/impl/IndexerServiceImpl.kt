@@ -287,11 +287,25 @@ class IndexerServiceImpl(
             }
             log.info("Scanning of {} repository completed successfully", repositoryDocument.sshUrl)
         } catch (e: Exception) {
-            log.error("Scanning of ${repositoryDocument.sshUrl} repository ended in failure", e)
-            openSearchService.saveRepositoriesInfo(sequenceOf(RepositoryInfoDocument(repositoryDocument)))
+            if (e.isAccessDenied()) {
+                log.warn("Scanning of {} repository skipped: access denied", repositoryDocument.sshUrl)
+                log.debug("Access denied details for {} repository", repositoryDocument.sshUrl, e)
+                openSearchService.saveRepositoriesInfo(
+                    sequenceOf(RepositoryInfoDocument(repositoryDocument, false, Date())),
+                )
+            } else {
+                log.error("Scanning of ${repositoryDocument.sshUrl} repository ended in failure", e)
+                openSearchService.saveRepositoriesInfo(sequenceOf(RepositoryInfoDocument(repositoryDocument)))
+            }
         }
 
     companion object {
         private val log = LoggerFactory.getLogger(IndexerServiceImpl::class.java)
+
+        private fun Throwable.isAccessDenied() =
+            generateSequence(this) { it.cause }.any {
+                it.message?.contains("user should have any permission to read repository", ignoreCase = true) == true ||
+                    it.message?.contains("permissions of site admin", ignoreCase = true) == true
+            }
     }
 }

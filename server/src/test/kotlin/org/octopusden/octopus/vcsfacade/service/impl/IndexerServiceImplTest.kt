@@ -1,8 +1,12 @@
 package org.octopusden.octopus.vcsfacade.service.impl
 
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
@@ -17,6 +21,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.document.RepositoryDocument
+import org.octopusden.octopus.vcsfacade.document.RepositoryInfoDocument
 import org.octopusden.octopus.vcsfacade.service.OpenSearchService
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.octopusden.octopus.vcsfacade.service.VcsService
@@ -90,6 +95,36 @@ class IndexerServiceImplTest {
     }
 
     @Test
+    fun `scan does not retry repository when access denied`() {
+        val savedInfos = captureSavedRepositoryInfos()
+        `when`(vcsService.findRepository(GROUP, REPOSITORY)).thenThrow(
+            IllegalStateException(
+                "user should have any permission to read repository or permissions of site admin",
+            ),
+        )
+
+        indexerService.scan(repositoryDocument)
+
+        val info = savedInfos.single()
+        assertFalse(info.scanRequired)
+        assertNotNull(info.lastScanAt)
+        verify(openSearchService, never()).saveCommits(anyArg())
+        verify(openSearchService, never()).saveRefs(anyArg())
+    }
+
+    @Test
+    fun `scan marks repository for retry on unexpected error`() {
+        val savedInfos = captureSavedRepositoryInfos()
+        `when`(vcsService.findRepository(GROUP, REPOSITORY)).thenThrow(IllegalStateException("unexpected"))
+
+        indexerService.scan(repositoryDocument)
+
+        assertTrue(savedInfos.single().scanRequired)
+        verify(openSearchService, never()).saveCommits(anyArg())
+        verify(openSearchService, never()).saveRefs(anyArg())
+    }
+
+    @Test
     fun `scan removes stale refs when tags are read`() {
         doReturn(setOf("branch-id", "tag-id", "stale-id"))
             .`when`(openSearchService)
@@ -107,6 +142,16 @@ class IndexerServiceImplTest {
         verify(openSearchService, times(1)).deleteRefsByIds(setOf("stale-id"))
         verify(openSearchService, times(1)).saveCommits(anyArg())
         verify(openSearchService, times(1)).savePullRequests(anyArg())
+    }
+
+    private fun captureSavedRepositoryInfos(): MutableList<RepositoryInfoDocument> {
+        val savedInfos = mutableListOf<RepositoryInfoDocument>()
+        doAnswer { invocation ->
+            val sequence = invocation.arguments[0] as Sequence<*>
+            savedInfos.addAll(sequence.filterIsInstance<RepositoryInfoDocument>().toList())
+            emptySet<String>()
+        }.`when`(openSearchService).saveRepositoriesInfo(anyArg())
+        return savedInfos
     }
 
     @Suppress("UNCHECKED_CAST")
