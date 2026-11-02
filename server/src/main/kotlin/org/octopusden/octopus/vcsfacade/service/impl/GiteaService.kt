@@ -48,11 +48,13 @@ import java.util.Date
 class GiteaService(
     vcsServiceProperties: VcsProperties.Service,
 ) : VcsService(vcsServiceProperties) {
-    private val client: GiteaClient = GiteaClassicClient(object : ClientParametersProvider {
-        override fun getApiUrl() = httpUrl
+    private val client: GiteaClient = ResilientGiteaClient(
+        GiteaClassicClient(object : ClientParametersProvider {
+            override fun getApiUrl() = httpUrl
 
-        override fun getAuth() = vcsServiceProperties.getCredentialProvider()
-    })
+            override fun getAuth() = vcsServiceProperties.getCredentialProvider()
+        }),
+    )
 
     override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
@@ -442,7 +444,7 @@ class GiteaService(
 
         private fun GiteaCommit.toCommitWithFiles(repository: Repository) =
             with(toCommit(repository)) {
-                val fileChanges = files!!.map {
+                val fileChanges = files.orEmpty().map {
                     FileChange(
                         when (it.status) {
                             GiteaCommit.GiteaCommitAffectedFileStatus.ADDED -> FileChangeType.ADD
