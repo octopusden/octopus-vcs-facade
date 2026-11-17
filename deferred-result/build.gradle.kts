@@ -34,6 +34,7 @@ dependencies {
     api("com.fasterxml.jackson.core:jackson-databind")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(kotlin("test"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 kotlin {
@@ -49,6 +50,9 @@ sourceSets {
 
 configurations["integrationTestImplementation"].extendsFrom(configurations.testImplementation.get())
 configurations["integrationTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+configurations["integrationTestRuntimeOnly"].dependencies.add(
+    dependencies.create("org.junit.platform:junit-platform-launcher"),
+)
 
 val valkeyLocalPort = 16379
 val valkeyPortForwardProcess = AtomicReference<Process>()
