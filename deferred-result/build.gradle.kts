@@ -15,10 +15,6 @@ val commonOkdParameters = mapOf(
     "DOCKER_REGISTRY" to "dockerRegistry".getExt(),
 )
 
-repositories {
-    mavenCentral()
-}
-
 ocTemplate {
     workDir.set(layout.buildDirectory.dir("oc-template"))
     clusterDomain.set("okdClusterDomain".getExt())
