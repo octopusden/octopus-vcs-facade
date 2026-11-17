@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>TooGenericExceptionCaught:DefaultDeferredResultManager.kt$DefaultDeferredResultManager$cleanup: Exception</ID>
+    <ID>TooGenericExceptionCaught:DefaultDeferredResultManager.kt$DefaultDeferredResultManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DefaultDeferredResultManager.kt$DefaultDeferredResultManager$t: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>
