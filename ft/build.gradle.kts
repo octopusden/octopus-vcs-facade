@@ -19,6 +19,7 @@ fun String.getPort() =
         "gitea" -> 3000
         "opensearch" -> 9200
         "vcs-facade" -> 8080
+        "valkey" -> 6379
         else -> throw Exception("Unknown service '$this'")
     }
 
@@ -66,6 +67,11 @@ ocTemplate {
         }
     }
 
+    service("valkey") {
+        templateFile.set(rootProject.layout.projectDirectory.file("okd/valkey.yaml"))
+        parameters.set(commonOkdParameters + mapOf("VALKEY_IMAGE_TAG" to properties["valkey.image-tag"] as String))
+    }
+
     service("vcs-facade") {
         templateFile.set(rootProject.layout.projectDirectory.file("okd/vcs-facade.yaml"))
         parameters.set(
@@ -74,6 +80,7 @@ ocTemplate {
                 "VCS_FACADE_VCS_TYPE" to "testProfile".getExt(),
                 "VCS_FACADE_VCS_HOST" to getOkdExternalHost("testProfile".getExt()),
                 "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch"),
+                "DEFERRED_RESULT_VALKEY_HOST" to "${ocTemplate.getPod("valkey")}-service",
                 "APPLICATION_DEV_CONTENT" to layout.projectDirectory
                     .dir("docker/application-vcs-facade.yml")
                     .asFile
@@ -89,9 +96,9 @@ ocTemplate {
             ),
         )
         if ("testProfile".getExt() == "gitea") {
-            dependsOn.set(listOf("gitea", "opensearch"))
+            dependsOn.set(listOf("gitea", "opensearch", "valkey"))
         } else {
-            dependsOn.set(listOf("bitbucket"))
+            dependsOn.set(listOf("bitbucket", "valkey"))
         }
     }
 }
@@ -116,6 +123,7 @@ configure<ComposeExtension> {
             "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"],
             "GITEA_IMAGE_TAG" to properties["gitea.image-tag"],
             "OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"],
+            "VALKEY_IMAGE_TAG" to properties["valkey.image-tag"],
             "VCS_FACADE_IMAGE_TAG" to version as String,
         ),
     )

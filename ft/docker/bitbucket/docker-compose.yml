@@ -7,6 +7,8 @@ services:
     depends_on:
       bitbucket:
         condition: service_started
+      valkey:
+        condition: service_started
     ports:
       - "8080:8080"
     volumes:
@@ -17,6 +19,7 @@ services:
       - SPRING_PROFILES_ACTIVE=ft,bitbucket
       - SPRING_CLOUD_CONFIG_ENABLED=false
       - VCS_FACADE_VCS_HOST=bitbucket:7990
+      - DEFERRED_RESULT_VALKEY_HOST=valkey
 
   bitbucket:
     container_name: vcs-facade-ft-bitbucket
@@ -55,3 +58,9 @@ services:
       POSTGRES_USER: bitbucket
       POSTGRES_PASSWORD: bitbucket
       POSTGRES_DB: bitbucket
+
+  valkey:
+    container_name: vcs-facade-ft-valkey
+    image: ${DOCKER_REGISTRY}/valkey/valkey:${VALKEY_IMAGE_TAG}
+    ports:
+      - "6379:6379"
