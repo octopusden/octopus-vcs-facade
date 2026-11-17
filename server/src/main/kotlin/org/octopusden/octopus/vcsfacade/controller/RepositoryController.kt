@@ -8,6 +8,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
+import org.octopusden.octopus.vcsfacade.service.RequestProcessor
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.slf4j.LoggerFactory
 import org.springframework.format.annotation.DateTimeFormat

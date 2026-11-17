@@ -1,7 +1,6 @@
 package org.octopusden.octopus.vcsfacade.deferred.result.serialize
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.octopusden.octopus.vcsfacade.deferred.result.serialize.DeferredResultSerializer
 import org.octopusden.octopus.vcsfacade.deferred.result.core.model.DeferredResult
 import org.octopusden.octopus.vcsfacade.deferred.result.core.model.DeferredResultStatus
 import java.lang.reflect.Type

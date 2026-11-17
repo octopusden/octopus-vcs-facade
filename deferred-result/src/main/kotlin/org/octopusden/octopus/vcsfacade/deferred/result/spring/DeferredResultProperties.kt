@@ -9,7 +9,7 @@ data class DeferredResultProperties(
     val enabled: Boolean = false,
     val namespace: String = "deferred-result",
     val processingTtl: Duration = Duration.ofMinutes(15),
-    val resultTtl: Duration = Duration.ofMinutes(15),
+    val resultTtl: Duration = Duration.ofMinutes(5),
     val publishRetry: PublishRetryPolicy = PublishRetryPolicy(),
     val valkey: Valkey = Valkey(),
     val executor: Executor = Executor(),
@@ -37,6 +37,8 @@ data class DeferredResultProperties(
         val corePoolSize: Int = 4,
         val maxPoolSize: Int = 8,
         val queueCapacity: Int = 100,
-        val keepAliveSeconds: Int = 60,
+        val keepAliveSeconds: Int? = null,
+        val allowCoreThreadTimeout: Boolean? = null,
+        val preStartAllCoreThreads: Boolean? = null,
     )
 }

@@ -54,13 +54,14 @@ class DeferredResultAutoConfiguration {
         ThreadPoolTaskExecutor().apply {
             val executor = properties.executor
 
-            corePoolSize = executor.corePoolSize
-            maxPoolSize = executor.maxPoolSize
-            queueCapacity = executor.queueCapacity
-            keepAliveSeconds = executor.keepAliveSeconds
-            setThreadNamePrefix(DEFERRED_RESULT_THREAD_NAME_PREFIX)
+            executor.corePoolSize.let { corePoolSize = it }
+            executor.maxPoolSize.let { maxPoolSize = it }
+            executor.queueCapacity.let { queueCapacity = it }
+            executor.keepAliveSeconds?.let { keepAliveSeconds = it }
+            executor.allowCoreThreadTimeout?.let { setAllowCoreThreadTimeOut(it) }
+            executor.preStartAllCoreThreads?.let { setPrestartAllCoreThreads(it) }
 
-            initialize()
+            setThreadNamePrefix(DEFERRED_RESULT_THREAD_NAME_PREFIX)
         }
 
     @Bean

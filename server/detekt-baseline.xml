@@ -10,7 +10,6 @@
     <ID>ForbiddenComment:CommitDocument.kt$CommitDocument$// TODO: Sometimes a commit contains enormous number of affected files. Is it better to store files in separate index?</ID>
     <ID>ForbiddenComment:GiteaService.kt$GiteaService$// TODO: add "useColon" parameter?</ID>
     <ID>ForbiddenComment:IndexerController.kt$IndexerController$// TODO: support BitBucket webhooks</ID>
-    <ID>ForbiddenComment:RepositoryController.kt$RepositoryController$// TODO: use some concurrent map with timed entry eviction</ID>
     <ID>ForbiddenComment:VcsManager.kt$VcsManager$// TODO: allow to use both http and ssh repository url (renaming `sshUrl` to `repositoryUrl`)</ID>
     <ID>ImplicitDefaultLocale:IndexerController.kt$IndexerController$String.format("%02X", b)</ID>
     <ID>MaxLineLength:CommitDocument.kt$CommitDocument$"CommitDocument(id=$id, repository=$repository, hash=$hash, message=$message, date=$date, author=$author, parents=$parents, link=$link)"</ID>
@@ -19,7 +18,6 @@
     <ID>SwallowedException:BaseVcsFacadeUnitTest.kt$BaseVcsFacadeUnitTest$e: Exception</ID>
     <ID>SwallowedException:BitbucketService.kt$BitbucketService$e: NotFoundException</ID>
     <ID>SwallowedException:GiteaService.kt$GiteaService$e: NotFoundException</ID>
-    <ID>SwallowedException:RepositoryController.kt$RepositoryController$e: ExecutionException</ID>
     <ID>TooGenericExceptionCaught:IndexerServiceImpl.kt$IndexerServiceImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VcsManagerImpl.kt$VcsManagerImpl$e: Exception</ID>
     <ID>TooGenericExceptionThrown:BaseVcsFacadeUnitTest.kt$BaseVcsFacadeUnitTest.Companion$throw Exception("System property 'test.vcs-facade-host' must be defined")</ID>

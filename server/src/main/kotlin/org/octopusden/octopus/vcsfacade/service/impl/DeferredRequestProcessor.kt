@@ -1,10 +1,11 @@
-package org.octopusden.octopus.vcsfacade.controller
+package org.octopusden.octopus.vcsfacade.service.impl
 
 import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.deferred.result.core.DeferredResultManager
 import org.octopusden.octopus.vcsfacade.deferred.result.core.model.DeferredResult
 import org.octopusden.octopus.vcsfacade.deferred.result.core.model.DeferredResultStatus
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
+import org.octopusden.octopus.vcsfacade.service.RequestProcessor
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.lang.reflect.Type

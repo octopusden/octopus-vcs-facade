@@ -1,14 +1,15 @@
-package org.octopusden.octopus.vcsfacade.controller
+package org.octopusden.octopus.vcsfacade.service.impl
 
 import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
+import org.octopusden.octopus.vcsfacade.service.RequestProcessor
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.stereotype.Component
-import java.util.Date
 import java.lang.reflect.Type
+import java.util.Date
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
@@ -63,7 +64,7 @@ class LocalRequestProcessor(
             @Suppress("UNCHECKED_CAST")
             return requestJobs.remove(requestId)!!.get() as T
         } catch (e: ExecutionException) {
-            throw e.cause!!
+            throw e.cause ?: e
         }
     }
 

@@ -1,4 +1,4 @@
-package org.octopusden.octopus.vcsfacade.controller
+package org.octopusden.octopus.vcsfacade.service
 
 import java.lang.reflect.Type
 

@@ -1,44 +1,13 @@
-# deferred-result
+# **deferred-result**
 
-Лёгкая библиотека для "at most once" выполнения операций в приложениях из нескольких инстансов.
+A lightweight library for **at-most-once** execution of operations in multi-instance applications.
 
-Позволяет запускать тяжёлую операцию **ровно один раз** по всему кластеру.
-Если ключ уже есть — операция не запускается, а сразу отдаётся сохранённый результат
-(даже если он был посчитан на другом инстансе).
+Ensures that a resource-intensive operation is executed only once across the entire cluster.
 
-## Основная идея
+If a key already exists, the operation is not executed again. Instead, the stored result is returned immediately, even if it was computed by another instance.
 
-- Тяжёлая операция (например, анализ репозитория) выполняется только на одном инстансе.
-- Все остальные инстансы либо ждут результата, либо сразу получают его из хранилища.
-- Нет дублирования работы.
+## **Core Idea**
 
-## Основной API
-
-```kotlin
-val deferred = deferredResultManager.execute(requestId, String::class.java) {
-    // тяжёлая операция
-    vcsManager.getRepository(sshUrl)
-}
-
-val result = deferredResultManager.get(requestId, String::class.java)
-```
-
-## Автоконфигурация (Spring Boot)
-
-```yaml
-deferred-result:
-  enabled: true
-  namespace: "vcs-facade:deferred-result"
-  processing-ttl: 15m
-  result-ttl: 15m
-  valkey:
-    host: localhost
-    port: 6379
-```
-
-## Важные моменты
-
-- Операция захватывается атомарно через Valkey/Redis (setIfAbsent).
-- Используется `ownerId` + `compareAndSet` для защиты от race conditions.
-- Для хранения результата и "захвата" используются два TTL параметра.
-- Если операция ещё выполняется — возвращается статус `PROCESSING`.
+- A resource-intensive operation (e.g., repository analysis) is executed on only one instance.
+- All other instances either wait for the result or retrieve it directly from storage.
+- No duplicate execution.

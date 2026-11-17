@@ -5,7 +5,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class JobConfig(private val jobProperties: JobProperties) {
+class JobConfig(
+    private val jobProperties: JobProperties,
+) {
     @ConfigurationProperties("vcs-facade.job")
     data class JobProperties(
         val fastWorkTimoutSecs: Int,

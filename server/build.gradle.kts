@@ -123,15 +123,14 @@ val valkeyPortForward = tasks.register("valkeyPortForward") {
             namespace,
             "svc/$service",
             "$valkeyLocalPort:6379",
-        )
-            .redirectErrorStream(true)
+        ).redirectErrorStream(true)
             .start()
 
         Thread.sleep(2_000)
 
         if (!process.isAlive) {
             throw GradleException(
-                "Failed to start port-forward to $service in namespace $namespace"
+                "Failed to start port-forward to $service in namespace $namespace",
             )
         }
 
