@@ -1,18 +1,15 @@
 package org.octopusden.octopus.vcsfacade.controller
 
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
 import org.octopusden.octopus.vcsfacade.client.common.Constants
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
-import org.octopusden.octopus.vcsfacade.config.JobConfig
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
-import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -26,21 +23,13 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.Date
 import java.util.UUID
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 
 @RestController
 @RequestMapping("rest/api/2/repository")
 class RepositoryController(
-    private val jobProperties: JobConfig.JobProperties,
     private val vcsManager: VcsManager,
-    @Qualifier("jobExecutor") private val jobExecutor: AsyncTaskExecutor,
+    private val requestProcessor: RequestProcessor,
 ) {
-    private val requestJobs = ConcurrentHashMap<String, Future<*>>()
-
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getRepository(
         @RequestParam("sshUrl") sshUrl: String,
@@ -64,7 +53,7 @@ class RepositoryController(
             toHashOrRef,
             sshUrl,
         )
-        RepositoryResponse(vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef))
+        RepositoryResponse(vcsManager.getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef).toList())
     }.data.sorted()
 
     @GetMapping("commits/files", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -86,6 +75,7 @@ class RepositoryController(
         RepositoryResponse(
             vcsManager
                 .getCommitsWithFiles(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+                .toList()
                 .map { it.mapFilesList(commitFilesLimit) },
         )
     }.data.sorted()
@@ -128,6 +118,7 @@ class RepositoryController(
         RepositoryResponse(
             vcsManager
                 .getCommits(sshUrl, fromHashOrRef, fromDate, toHashOrRef)
+                .toList()
                 .flatMap { IssueKeyParser.findIssueKeys(it.message) }
                 .distinct(),
         )
@@ -140,7 +131,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Get tags{} in {} repository", names?.joinToString(prefix = " with names {", postfix = "}") ?: "", sshUrl)
-        RepositoryResponse(vcsManager.getTags(sshUrl, names))
+        RepositoryResponse(vcsManager.getTags(sshUrl, names).toList())
     }.data.sorted()
 
     @PostMapping("tags", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -220,7 +211,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find branches by issue keys {}", issueKeys)
-        RepositoryResponse(vcsManager.findBranches(issueKeys))
+        RepositoryResponse(vcsManager.findBranches(issueKeys).toList())
     }.data.sorted()
 
     @GetMapping("commits/find", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -229,7 +220,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits by issue keys {}", issueKeys)
-        RepositoryResponse(vcsManager.findCommits(issueKeys))
+        RepositoryResponse(vcsManager.findCommits(issueKeys).toList())
     }.data.sorted()
 
     @GetMapping("commits/files/find", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -240,7 +231,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find commits with files (limit {}) by issue keys {}", commitFilesLimit, issueKeys)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(issueKeys).map { it.mapFilesList(commitFilesLimit) },
+            vcsManager.findCommitsWithFiles(issueKeys).toList().map { it.mapFilesList(commitFilesLimit) },
         )
     }.data.sorted()
 
@@ -250,7 +241,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.info("Find pull requests by issue keys {}", issueKeys)
-        RepositoryResponse(vcsManager.findPullRequests(issueKeys))
+        RepositoryResponse(vcsManager.findPullRequests(issueKeys).toList())
     }.data.sorted()
 
     @Deprecated(
@@ -276,7 +267,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find branches by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findBranches(setOf(issueKey)))
+        RepositoryResponse(vcsManager.findBranches(setOf(issueKey)).toList())
     }.data.sorted()
 
     @Deprecated(
@@ -289,7 +280,7 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find commits by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findCommits(setOf(issueKey)))
+        RepositoryResponse(vcsManager.findCommits(setOf(issueKey)).toList())
     }.data.sorted()
 
     @Deprecated(
@@ -304,7 +295,7 @@ class RepositoryController(
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(setOf(issueKey)).map { it.mapFilesList(commitFilesLimit) },
+            vcsManager.findCommitsWithFiles(setOf(issueKey)).toList().map { it.mapFilesList(commitFilesLimit) },
         )
     }.data.sorted()
 
@@ -318,49 +309,13 @@ class RepositoryController(
         @RequestHeader(Constants.DEFERRED_RESULT_HEADER, required = false) requestId: String?,
     ) = processRequest(requestId ?: UUID.randomUUID().toString()) {
         log.warn("Deprecated call! Find pull requests by issue key {}", issueKey)
-        RepositoryResponse(vcsManager.findPullRequests(setOf(issueKey)))
+        RepositoryResponse(vcsManager.findPullRequests(setOf(issueKey)).toList())
     }.data.sorted()
 
-    private fun <T> processRequest(
+    private inline fun <reified T : Any> processRequest(
         requestId: String,
-        func: () -> T,
-    ): T {
-        with(
-            requestJobs.computeIfAbsent(requestId) { newRequest ->
-                log.debug("Submit request {}", newRequest)
-                val future = jobExecutor.submit(
-                    Callable {
-                        log.trace("Start executing request {}", newRequest)
-                        val result = func.invoke()
-                        log.trace("Finish executing request {}", newRequest)
-                        result
-                    },
-                )
-                val waitThreshold = Date(Date().time + (jobProperties.fastWorkTimoutSecs * 1000))
-                while (Date().before(waitThreshold) && !future.isDone) {
-                    TimeUnit.MILLISECONDS.sleep(200)
-                }
-                future
-            },
-        ) {
-            if (!isDone) {
-                throw JobProcessingException(
-                    "Request $requestId is still processing",
-                    requestId,
-                    Date(Date().time + (jobProperties.retryIntervalSecs * 1000)),
-                )
-            }
-        }
-        log.debug("Collect request {} result", requestId)
-        try {
-            // TODO: use some concurrent map with timed entry eviction
-            // Repeatable deferred result request could be routed to another instance if application runs in multi-nodes
-            @Suppress("UNCHECKED_CAST")
-            return requestJobs.remove(requestId)!!.get() as T
-        } catch (e: ExecutionException) {
-            throw e.cause!!
-        }
-    }
+        noinline func: () -> T,
+    ): T = requestProcessor.process(requestId, jacksonTypeRef<T>().type, func)
 
     companion object {
         private val log = LoggerFactory.getLogger(RepositoryController::class.java)

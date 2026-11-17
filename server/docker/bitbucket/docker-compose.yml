@@ -38,3 +38,9 @@ services:
       POSTGRES_USER: bitbucket
       POSTGRES_PASSWORD: bitbucket
       POSTGRES_DB: bitbucket
+
+  valkey:
+    container_name: vcs-facade-ut-valkey
+    image: ${DOCKER_REGISTRY}/valkey/valkey:${VALKEY_IMAGE_TAG}
+    ports:
+      - "6379:6379"

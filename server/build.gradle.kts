@@ -1,5 +1,7 @@
 import com.avast.gradle.dockercompose.ComposeExtension
+import org.gradle.api.GradleException
 import java.util.Base64
+import java.util.concurrent.atomic.AtomicReference
 
 plugins {
     id("org.springframework.boot")
@@ -52,7 +54,6 @@ ocTemplate {
             parameters.set(commonOkdParameters + mapOf("OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"] as String))
         }
     }
-
     group("bitbucketServices").apply {
         enabled.set("testProfile".getExt() == "bitbucket")
         service("bitbucket") {
@@ -65,6 +66,11 @@ ocTemplate {
                 ),
             )
         }
+    }
+
+    service("valkey") {
+        templateFile.set(rootProject.layout.projectDirectory.file("okd/valkey.yaml"))
+        parameters.set(commonOkdParameters + mapOf("VALKEY_IMAGE_TAG" to properties["valkey.image-tag"] as String))
     }
 }
 
@@ -85,6 +91,7 @@ configure<ComposeExtension> {
             "POSTGRES_IMAGE_TAG" to properties["postgres.image-tag"],
             "GITEA_IMAGE_TAG" to properties["gitea.image-tag"],
             "OPENSEARCH_IMAGE_TAG" to properties["opensearch.image-tag"],
+            "VALKEY_IMAGE_TAG" to properties["valkey.image-tag"],
         ),
     )
 }
@@ -94,6 +101,49 @@ tasks["composeUp"].doLast {
         exec {
             setCommandLine("docker", "exec", "vcs-facade-ut-gitea", "/script/add_admin.sh")
         }.assertNormalExitValue()
+    }
+}
+
+val valkeyLocalPort = 16379
+val valkeyPortForwardProcess = AtomicReference<Process>()
+
+val valkeyPortForward = tasks.register("valkeyPortForward") {
+    group = "verification"
+    description = "Starts oc port-forward to the Valkey service deployed in OKD"
+    dependsOn("ocCreate")
+
+    doLast {
+        val namespace = ocTemplate.namespace.get()
+        val service = "${ocTemplate.getPod("valkey")}-service"
+
+        val process = ProcessBuilder(
+            "oc",
+            "port-forward",
+            "-n",
+            namespace,
+            "svc/$service",
+            "$valkeyLocalPort:6379",
+        )
+            .redirectErrorStream(true)
+            .start()
+
+        Thread.sleep(2_000)
+
+        if (!process.isAlive) {
+            throw GradleException(
+                "Failed to start port-forward to $service in namespace $namespace"
+            )
+        }
+
+        valkeyPortForwardProcess.set(process)
+    }
+}
+
+val valkeyPortForwardStop = tasks.register("valkeyPortForwardStop") {
+    group = "verification"
+    description = "Stops the oc port-forward to the Valkey service"
+    doLast {
+        valkeyPortForwardProcess.getAndSet(null)?.destroy()
     }
 }
 
@@ -110,11 +160,20 @@ tasks.withType<Test> {
         "okd" -> {
             systemProperties["test.opensearch-host"] = ocTemplate.getOkdHost("opensearch") + ":80"
             systemProperties["test.vcs-host"] = ocTemplate.getOkdHost("testProfile".getExt())
+            systemProperties["test.valkey-host"] = "localhost"
+            systemProperties["test.valkey-port"] = valkeyLocalPort
+            dependsOn(valkeyPortForward)
+            finalizedBy(valkeyPortForwardStop)
             ocTemplate.isRequiredBy(this)
+            tasks.named("ocDelete") {
+                mustRunAfter(valkeyPortForwardStop)
+            }
         }
         "docker" -> {
             systemProperties["test.opensearch-host"] = "opensearch".getDockerHost()
             systemProperties["test.vcs-host"] = "testProfile".getExt().getDockerHost()
+            systemProperties["test.valkey-host"] = "localhost"
+            systemProperties["test.valkey-port"] = 6379
             dockerCompose.isRequiredBy(this)
         }
     }
@@ -128,6 +187,7 @@ springBoot {
 
 dependencies {
     implementation(project(":common"))
+    implementation(project(":deferred-result"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-aop")
