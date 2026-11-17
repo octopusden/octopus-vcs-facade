@@ -2,6 +2,9 @@ import java.net.InetAddress
 import java.time.Duration
 import java.util.zip.CRC32
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -109,6 +112,14 @@ subprojects {
             }
         }
     }
+    // The same BOM would also pull the Kotlin Gradle plugin's own tool classpaths (compiler, compiler
+    // plugins, build tools) down to the runtime Kotlin, and the 2.x plugin cannot run a 1.9 compiler.
+    // Let them resolve the versions the plugin requests.
+    configurations.matching { it.name.startsWith("kotlin") && it.name.contains("Classpath") }.configureEach {
+        resolutionStrategy.eachDependency {
+            requested.version?.takeIf { it.isNotEmpty() }?.let { useVersion(it) }
+        }
+    }
 
     repositories {
         mavenCentral()
@@ -127,10 +138,24 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().configureEach {
-        kotlinOptions {
-            freeCompilerArgs += "-Xjsr305=strict"
-            suppressWarnings = true
-            jvmTarget = "21"
+        compilerOptions {
+            freeCompilerArgs.add("-Xjsr305=strict")
+            suppressWarnings.set(true)
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
+    }
+
+    // The Kotlin Gradle plugin (kotlin-plugin.version) is newer than the Kotlin runtime these modules
+    // ship with and run on (kotlin.version). Hold the compiler to the runtime's level so the bytecode
+    // and metadata stay what consumers of the published modules can read, and no call can reach a
+    // stdlib API newer than the stdlib on the classpath.
+    extensions.configure<KotlinJvmProjectExtension> {
+        // The version the plugin gives kotlin-stdlib / kotlin-reflect and its own constraints on them;
+        // it defaults to the plugin's version, which would leak into the published POMs and modules.
+        coreLibrariesVersion = providers.gradleProperty("kotlin.version").get()
+        compilerOptions {
+            languageVersion.set(KotlinVersion.KOTLIN_1_9)
+            apiVersion.set(KotlinVersion.KOTLIN_1_9)
         }
     }
 

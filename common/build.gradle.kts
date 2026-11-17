@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -46,9 +47,7 @@ java {
 }
 
 tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
 }
 
 dependencies {
@@ -56,5 +55,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testImplementation("org.junit.jupiter:junit-jupiter-params")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    // Gradle no longer puts the JUnit Platform launcher on the test runtime classpath itself.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }
