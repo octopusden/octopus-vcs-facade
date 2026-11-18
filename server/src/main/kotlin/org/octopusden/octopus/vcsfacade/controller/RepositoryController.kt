@@ -234,7 +234,7 @@ class RepositoryController(
     ) = processRequest(requestId) {
         log.info("Find commits with files (limit {}) by issue keys {}", commitFilesLimit, issueKeys)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(issueKeys).toList().map { it.mapFilesList(commitFilesLimit) },
+            vcsManager.findCommitsWithFiles(issueKeys).map { it.mapFilesList(commitFilesLimit) }.toList(),
         )
     }.data.sorted()
 
@@ -298,7 +298,7 @@ class RepositoryController(
     ) = processRequest(requestId) {
         log.warn("Deprecated call! Find commits with files (limit {}) by issue key {}", commitFilesLimit, issueKey)
         RepositoryResponse(
-            vcsManager.findCommitsWithFiles(setOf(issueKey)).toList().map { it.mapFilesList(commitFilesLimit) },
+            vcsManager.findCommitsWithFiles(setOf(issueKey)).map { it.mapFilesList(commitFilesLimit) }.toList(),
         )
     }.data.sorted()
 
@@ -327,7 +327,7 @@ class RepositoryController(
                 } catch (_: IllegalArgumentException) {
                     throw ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "Invalid request ID",
+                        "Invalid request ID. Use UUID.",
                     )
                 }
             } ?: UUID.randomUUID().toString(),
