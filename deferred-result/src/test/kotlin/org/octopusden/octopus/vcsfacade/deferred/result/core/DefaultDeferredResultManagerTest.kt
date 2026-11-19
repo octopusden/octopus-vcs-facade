@@ -10,9 +10,11 @@ import org.octopusden.octopus.vcsfacade.deferred.result.serialize.JacksonDeferre
 import org.octopusden.octopus.vcsfacade.deferred.result.storage.DeferredResultStorage
 import java.time.Duration
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Delayed
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -94,6 +96,86 @@ class DefaultDeferredResultManagerTest {
 
             assertTrue(storage.awaitCancellation(5, TimeUnit.SECONDS))
             assertFalse(storage.hasMarker("request"))
+        } finally {
+            scheduler.shutdownNow()
+            scheduler.awaitTermination(5, TimeUnit.SECONDS)
+        }
+    }
+
+    @Test
+    fun usesConfiguredCancelRetryIntervalAndRetriesAcrossFailures() {
+        val storage =
+            FakeStorage(renewalError = IllegalStateException("valkey unavailable")).apply {
+                cancelFailuresRemaining = 3
+            }
+        val scheduler = ManualScheduler()
+
+        try {
+            val manager =
+                newManager(
+                    storage,
+                    scheduler,
+                    processingTtl = Duration.ofMillis(600),
+                    cancelRetryInterval = Duration.ofMillis(100),
+                )
+
+            manager.execute("request", String::class.java) { "value" }
+
+            assertEquals(2, scheduler.recorded.size)
+            val heartbeat = scheduler.recorded[0]
+            val cancelRetry = scheduler.recorded[1]
+            assertEquals(200, heartbeat.unit.toMillis(heartbeat.delay))
+            assertEquals(100, cancelRetry.unit.toMillis(cancelRetry.initialDelay))
+            assertEquals(100, cancelRetry.unit.toMillis(cancelRetry.delay))
+            assertEquals(0, cancelRetry.future.cancelCount)
+
+            cancelRetry.command.run()
+            assertEquals(0, cancelRetry.future.cancelCount)
+            assertTrue(storage.hasMarker("request"))
+
+            cancelRetry.command.run()
+            assertEquals(0, cancelRetry.future.cancelCount)
+            assertTrue(storage.hasMarker("request"))
+
+            cancelRetry.command.run()
+            assertEquals(1, cancelRetry.future.cancelCount)
+            assertFalse(storage.hasMarker("request"))
+            assertTrue(storage.awaitCancellation(1, TimeUnit.MILLISECONDS))
+        } finally {
+            scheduler.shutdownNow()
+            scheduler.awaitTermination(5, TimeUnit.SECONDS)
+        }
+    }
+
+    @Test
+    fun stopsRetryingCancellationAfterLeaseBudget() {
+        val storage =
+            FakeStorage(renewalError = IllegalStateException("valkey unavailable")).apply {
+                cancelFailuresRemaining = 100
+            }
+        val scheduler = ManualScheduler()
+
+        try {
+            val manager =
+                newManager(
+                    storage,
+                    scheduler,
+                    processingTtl = Duration.ofMillis(600),
+                    cancelRetryInterval = Duration.ofMillis(100),
+                )
+
+            manager.execute("request", String::class.java) { "value" }
+
+            val cancelRetry = scheduler.recorded[1]
+
+            repeat(5) {
+                cancelRetry.command.run()
+                assertEquals(0, cancelRetry.future.cancelCount)
+            }
+
+            cancelRetry.command.run()
+            assertEquals(1, cancelRetry.future.cancelCount)
+            assertTrue(storage.hasMarker("request"))
         } finally {
             scheduler.shutdownNow()
             scheduler.awaitTermination(5, TimeUnit.SECONDS)
@@ -192,5 +274,53 @@ class DefaultDeferredResultManagerTest {
             timeout: Long,
             unit: TimeUnit,
         ): Boolean = cancellationLatch.await(timeout, unit)
+    }
+
+    private class ManualTask : ScheduledFuture<Any> {
+        var cancelCount = 0
+            private set
+
+        override fun cancel(mayInterruptIfRunning: Boolean): Boolean {
+            cancelCount++
+            return true
+        }
+
+        override fun isCancelled(): Boolean = cancelCount > 0
+
+        override fun isDone(): Boolean = cancelCount > 0
+
+        override fun get(): Any? = null
+
+        override fun get(
+            timeout: Long,
+            unit: TimeUnit,
+        ): Any? = null
+
+        override fun getDelay(unit: TimeUnit): Long = 0
+
+        override fun compareTo(other: Delayed): Int = 0
+    }
+
+    private class ManualScheduler : ScheduledExecutorService by Executors.newSingleThreadScheduledExecutor() {
+        val recorded = mutableListOf<RecordedTask>()
+
+        class RecordedTask(
+            val command: Runnable,
+            val initialDelay: Long,
+            val delay: Long,
+            val unit: TimeUnit,
+            val future: ManualTask = ManualTask(),
+        )
+
+        override fun scheduleWithFixedDelay(
+            command: Runnable,
+            initialDelay: Long,
+            delay: Long,
+            unit: TimeUnit,
+        ): ScheduledFuture<*> {
+            val task = RecordedTask(command, initialDelay, delay, unit)
+            recorded.add(task)
+            return task.future
+        }
     }
 }
