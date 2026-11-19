@@ -6,13 +6,13 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestIdException
 import org.octopusden.octopus.vcsfacade.dto.RepositoryResponse
 import org.octopusden.octopus.vcsfacade.issue.IssueKeyParser
 import org.octopusden.octopus.vcsfacade.service.RequestProcessor
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.slf4j.LoggerFactory
 import org.springframework.format.annotation.DateTimeFormat
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 import java.util.Date
 import java.util.UUID
 
@@ -325,10 +324,7 @@ class RepositoryController(
                 try {
                     UUID.fromString(it).toString()
                 } catch (_: IllegalArgumentException) {
-                    throw ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Invalid request ID. Use UUID.",
-                    )
+                    throw InvalidRequestIdException("Invalid request ID. Use UUID.")
                 }
             } ?: UUID.randomUUID().toString(),
             jacksonTypeRef<T>().type,
