@@ -9,6 +9,8 @@ services:
         condition: service_started
       opensearch:
         condition: service_healthy
+      valkey:
+        condition: service_started
     ports:
       - "8080:8080"
     volumes:
@@ -20,6 +22,7 @@ services:
       - SPRING_CLOUD_CONFIG_ENABLED=false
       - VCS_FACADE_VCS_HOST=gitea:3000
       - VCS_FACADE_OPENSEARCH_HOST=opensearch:9200
+      - DEFERRED_RESULT_VALKEY_HOST=valkey
 
   gitea:
     image: ${DOCKER_REGISTRY}/gitea/gitea:${GITEA_IMAGE_TAG}
@@ -48,3 +51,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+  valkey:
+    container_name: vcs-facade-ft-valkey
+    image: ${DOCKER_REGISTRY}/valkey/valkey:${VALKEY_IMAGE_TAG}
+    ports:
+      - "6379:6379"

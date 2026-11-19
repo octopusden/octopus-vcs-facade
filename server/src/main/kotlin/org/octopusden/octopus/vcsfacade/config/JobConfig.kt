@@ -12,7 +12,7 @@ class JobConfig(
     data class JobProperties(
         val fastWorkTimoutSecs: Int,
         val retryIntervalSecs: Int,
-        val executor: ExecutorProperties?,
+        val executor: ExecutorProperties? = null,
     )
 
     @Bean

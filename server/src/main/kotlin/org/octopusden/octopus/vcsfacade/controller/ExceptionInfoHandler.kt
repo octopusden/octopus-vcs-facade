@@ -4,6 +4,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.RetryResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeErrorCode
 import org.octopusden.octopus.vcsfacade.client.common.exception.ArgumentsNotCompatibleException
+import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestIdException
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.exception.InvalidSignatureException
 import org.octopusden.octopus.vcsfacade.exception.JobProcessingException
@@ -43,6 +44,11 @@ class ExceptionInfoHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ResponseBody
     fun handleInvalidSignature(exception: InvalidSignatureException) = handleError(VcsFacadeErrorCode.OTHER, exception)
+
+    @ExceptionHandler(InvalidRequestIdException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    fun handleInvalidRequestId(exception: InvalidRequestIdException) = handleError(VcsFacadeErrorCode.OTHER, exception)
 
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

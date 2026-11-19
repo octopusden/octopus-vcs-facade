@@ -2,3 +2,8 @@ vcs-facade:
   job:
     fast-work-timout-secs: 30
     retry-interval-secs: 1
+deferred-result:
+  enabled: true
+  valkey:
+    host: ${test.valkey-host:localhost}
+    port: ${test.valkey-port:6379}

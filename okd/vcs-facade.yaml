@@ -45,6 +45,8 @@ objects:
               value: ${VCS_FACADE_OPENSEARCH_HOST}
             - name: VCS_FACADE_VCS_HOST
               value: ${VCS_FACADE_VCS_HOST}
+            - name: DEFERRED_RESULT_VALKEY_HOST
+              value: ${DEFERRED_RESULT_VALKEY_HOST}
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -110,6 +112,9 @@ parameters:
     required: true
   - description: Opensearch host
     name: VCS_FACADE_OPENSEARCH_HOST
+    required: true
+  - description: Deferred result Valkey host
+    name: DEFERRED_RESULT_VALKEY_HOST
     required: true
   - description: application-dev.yml content
     name: APPLICATION_DEV_CONTENT
