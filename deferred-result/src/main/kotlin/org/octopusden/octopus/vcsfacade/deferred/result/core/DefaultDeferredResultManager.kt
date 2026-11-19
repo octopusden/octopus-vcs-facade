@@ -107,9 +107,23 @@ class DefaultDeferredResultManager(
                 if (!owned) log.warn("Skipping request {} after losing its processing marker", requestId)
             }
         } catch (e: Exception) {
-            log.error("Skipping request {} because ownership could not be verified", requestId, e)
+            log.error("Skipping request {} because ownership could not be verified; cancelling marker", requestId, e)
+            cancelOwnedMarker(requestId, processingValue, e)
             false
         }
+
+    private fun cancelOwnedMarker(
+        requestId: String,
+        processingValue: String,
+        cause: Exception,
+    ) {
+        try {
+            deferredResultStorage.cancelProcessing(requestId, processingValue)
+        } catch (cleanup: Exception) {
+            cause.addSuppressed(cleanup)
+            log.error("Failed to cancel processing marker for request {}; it will expire", requestId, cleanup)
+        }
+    }
 
     private fun <T : Any> deserialize(
         requestId: String,
