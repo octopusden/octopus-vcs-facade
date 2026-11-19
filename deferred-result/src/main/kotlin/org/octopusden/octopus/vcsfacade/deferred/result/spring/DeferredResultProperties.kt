@@ -8,7 +8,7 @@ import java.time.Duration
 data class DeferredResultProperties(
     val enabled: Boolean = false,
     val namespace: String = "deferred-result",
-    val processingTtl: Duration = Duration.ofMinutes(15),
+    val processingTtl: Duration = Duration.ofMinutes(5),
     val resultTtl: Duration = Duration.ofMinutes(5),
     val publishRetry: PublishRetryPolicy = PublishRetryPolicy(),
     val valkey: Valkey = Valkey(),

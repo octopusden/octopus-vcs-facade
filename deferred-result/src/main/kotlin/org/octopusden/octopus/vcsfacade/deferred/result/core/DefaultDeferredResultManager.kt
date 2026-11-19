@@ -11,21 +11,21 @@ import org.slf4j.LoggerFactory
 import java.lang.reflect.Type
 import java.time.Duration
 import java.util.UUID
-import java.util.concurrent.CancellationException
 import java.util.concurrent.Executor
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
 
 class DefaultDeferredResultManager(
     private val deferredResultStorage: DeferredResultStorage,
     private val serializer: DeferredResultSerializer,
     private val executor: Executor,
-    private val renewalScheduler: ScheduledExecutorService,
     private val processingTtl: Duration,
+    private val renewalScheduler: ScheduledExecutorService,
     private val resultTtl: Duration,
     private val publishRetry: PublishRetryPolicy = PublishRetryPolicy(),
 ) : DeferredResultManager {
+    private val lease = ProcessingLease(deferredResultStorage, renewalScheduler, processingTtl)
+
     override fun <T : Any> execute(
         requestId: String,
         type: Type,
@@ -45,33 +45,36 @@ class DefaultDeferredResultManager(
         )
 
         if (!deferredResultStorage.tryStartProcessing(requestId, processingValue, processingTtl)) {
-            return get(requestId, type) ?: processing(requestId)
+            return get(requestId, type)
+                ?: DeferredResult(
+                    requestId = requestId,
+                    status = DeferredResultStatus.PROCESSING,
+                )
         }
 
-        var renewal: ScheduledFuture<*>? = null
+        var heartbeat: ScheduledFuture<*>? = null
         try {
-            val heartbeat = scheduleRenewal(requestId, processingValue)
-            renewal = heartbeat
+            heartbeat = lease.startHeartbeat(requestId, processingValue)
+            val activeHeartbeat = heartbeat
             executor.execute {
                 try {
-                    if (renewMarker(requestId, processingValue)) {
+                    if (lease.verifyOwnership(requestId, processingValue)) {
                         executeOperation(requestId, ownerId, processingValue, operation)
                     }
                 } finally {
-                    heartbeat.cancel(false)
+                    activeHeartbeat.cancel(false)
                 }
             }
         } catch (e: Exception) {
-            renewal?.cancel(false)
-            try {
-                deferredResultStorage.cancelProcessing(requestId, processingValue)
-            } catch (cleanup: Exception) {
-                e.addSuppressed(cleanup)
-            }
+            heartbeat?.cancel(false)
+            lease.cancel(requestId, processingValue, e)
             throw e
         }
 
-        return processing(requestId)
+        return DeferredResult(
+            requestId = requestId,
+            status = DeferredResultStatus.PROCESSING,
+        )
     }
 
     override fun <T : Any> get(
@@ -81,49 +84,6 @@ class DefaultDeferredResultManager(
         deferredResultStorage.find(requestId)?.let {
             deserialize(requestId, it, type)
         }
-
-    private fun scheduleRenewal(
-        requestId: String,
-        processingValue: String,
-    ): ScheduledFuture<*> {
-        val interval = (processingTtl.toMillis() / RENEWAL_INTERVAL_DIVISOR).coerceAtLeast(1)
-        return renewalScheduler.scheduleWithFixedDelay({
-            val owned = try {
-                deferredResultStorage.renewProcessing(requestId, processingValue, processingTtl)
-            } catch (e: Exception) {
-                log.warn("Failed to renew processing marker for request {}", requestId, e)
-                return@scheduleWithFixedDelay
-            }
-            if (!owned) throw CancellationException("Processing marker replaced or expired")
-        }, interval, interval, TimeUnit.MILLISECONDS)
-    }
-
-    private fun renewMarker(
-        requestId: String,
-        processingValue: String,
-    ): Boolean =
-        try {
-            deferredResultStorage.renewProcessing(requestId, processingValue, processingTtl).also { owned ->
-                if (!owned) log.warn("Skipping request {} after losing its processing marker", requestId)
-            }
-        } catch (e: Exception) {
-            log.error("Skipping request {} because ownership could not be verified; cancelling marker", requestId, e)
-            cancelOwnedMarker(requestId, processingValue, e)
-            false
-        }
-
-    private fun cancelOwnedMarker(
-        requestId: String,
-        processingValue: String,
-        cause: Exception,
-    ) {
-        try {
-            deferredResultStorage.cancelProcessing(requestId, processingValue)
-        } catch (cleanup: Exception) {
-            cause.addSuppressed(cleanup)
-            log.error("Failed to cancel processing marker for request {}; it will expire", requestId, cleanup)
-        }
-    }
 
     private fun <T : Any> deserialize(
         requestId: String,
@@ -217,16 +177,9 @@ class DefaultDeferredResultManager(
         }
     }
 
-    private fun <T : Any> processing(requestId: String): DeferredResult<T> =
-        DeferredResult(
-            requestId = requestId,
-            status = DeferredResultStatus.PROCESSING,
-        )
-
     companion object {
         private val log = LoggerFactory.getLogger(DefaultDeferredResultManager::class.java)
 
-        private const val RENEWAL_INTERVAL_DIVISOR = 3L
         private const val SERIALIZATION_ERROR_CODE = "SERIALIZATION_ERROR"
     }
 }

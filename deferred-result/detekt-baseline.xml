@@ -2,7 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>TooGenericExceptionCaught:DefaultDeferredResultManager.kt$DefaultDeferredResultManager$cleanup: Exception</ID>
     <ID>TooGenericExceptionCaught:DefaultDeferredResultManager.kt$DefaultDeferredResultManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ProcessingLease.kt$ProcessingLease$e: Exception</ID>
   </CurrentIssues>
 </SmellBaseline>
