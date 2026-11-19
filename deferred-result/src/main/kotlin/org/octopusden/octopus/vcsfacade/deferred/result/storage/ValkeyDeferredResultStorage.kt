@@ -15,6 +15,19 @@ class ValkeyDeferredResultStorage(
         ttl: Duration,
     ): Boolean = bucket(requestId).setIfAbsent(processingValue, ttl)
 
+    override fun renewProcessing(
+        requestId: String,
+        expectedValue: String,
+        ttl: Duration,
+    ): Boolean =
+        bucket(requestId)
+            .compareAndSet(
+                CompareAndSetArgs
+                    .expected(expectedValue)
+                    .set(expectedValue)
+                    .timeToLive(ttl),
+            )
+
     override fun completeProcessing(
         requestId: String,
         expectedValue: String,

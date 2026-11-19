@@ -17,6 +17,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import java.util.concurrent.Executor
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledThreadPoolExecutor
 
 @AutoConfiguration
 @EnableConfigurationProperties(DeferredResultProperties::class)
@@ -64,6 +66,13 @@ class DeferredResultAutoConfiguration {
             setThreadNamePrefix(DEFERRED_RESULT_THREAD_NAME_PREFIX)
         }
 
+    @Bean(name = [RENEWAL_SCHEDULER], destroyMethod = "shutdownNow")
+    @ConditionalOnMissingBean(name = [RENEWAL_SCHEDULER])
+    fun deferredResultHeartbeatScheduler(): ScheduledExecutorService =
+        ScheduledThreadPoolExecutor(1) { task -> Thread(task, "deferred-result-heartbeat") }.apply {
+            removeOnCancelPolicy = true
+        }
+
     @Bean
     @ConditionalOnMissingBean
     fun deferredResultManager(
@@ -71,18 +80,21 @@ class DeferredResultAutoConfiguration {
         deferredResultSerializer: DeferredResultSerializer,
         @Qualifier(DEFERRED_RESULT_EXECUTOR)
         executor: Executor,
+        @Qualifier(RENEWAL_SCHEDULER) renewalScheduler: ScheduledExecutorService,
         properties: DeferredResultProperties,
     ): DeferredResultManager =
         DefaultDeferredResultManager(
             deferredResultStorage = deferredResultStorage,
             serializer = deferredResultSerializer,
             executor = executor,
+            renewalScheduler = renewalScheduler,
             processingTtl = properties.processingTtl,
             resultTtl = properties.resultTtl,
             publishRetry = properties.publishRetry,
         )
 
     companion object {
+        const val RENEWAL_SCHEDULER = "deferredResultHeartbeatScheduler"
         const val DEFERRED_RESULT_EXECUTOR = "deferredResultExecutor"
         const val DEFERRED_RESULT_THREAD_NAME_PREFIX = "deferred-result-"
     }

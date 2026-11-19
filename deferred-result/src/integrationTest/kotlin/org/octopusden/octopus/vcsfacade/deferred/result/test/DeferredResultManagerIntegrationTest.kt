@@ -139,8 +139,8 @@ class DeferredResultManagerIntegrationTest {
         val pending = mutableListOf<Runnable>()
         val stale = newManager(processingTtl = Duration.ofMillis(200), executor = Executor { pending.add(it) })
         val current = newManager(executor = Executor { it.run() })
-        stale.execute(requestId, String::class.java) { "stale" }
-        await().atMost(Duration.ofSeconds(10)).until { stale.get<String>(requestId, String::class.java) == null }
+        stale.execute<String>(requestId, String::class.java) { throw AssertionError("Stale operation ran") }
+        bucket(requestId).delete()
         current.execute(requestId, String::class.java) { "fresh" }
         pending.single().run()
         assertEquals("fresh", current.get<String>(requestId, String::class.java)?.result)
@@ -235,6 +235,48 @@ class DeferredResultManagerIntegrationTest {
 
         assertFalse(storage.completeProcessing(requestId, staleValue, newCompletedValue(), Duration.ofSeconds(30)))
         assertEquals(completedValue, storage.find(requestId))
+    }
+
+    @Test
+    fun renewProcessingExtendsLeaseForOwner() {
+        val requestId = newRequestId()
+        val processingValue = newProcessingValue()
+
+        assertTrue(storage.tryStartProcessing(requestId, processingValue, Duration.ofSeconds(2)))
+        Thread.sleep(700)
+        val remainingBefore = bucket(requestId).remainTimeToLive()
+
+        assertTrue(storage.renewProcessing(requestId, processingValue, Duration.ofSeconds(5)))
+        val remainingAfter = bucket(requestId).remainTimeToLive()
+
+        assertEquals(processingValue, bucket(requestId).get())
+        assertTrue(remainingAfter > remainingBefore)
+        assertTrue(remainingAfter in 1L..Duration.ofSeconds(5).toMillis())
+    }
+
+    @Test
+    fun renewProcessingFailsAfterMarkerReplaced() {
+        val requestId = newRequestId()
+        val firstValue = newProcessingValue()
+        val secondValue = newProcessingValue()
+
+        assertTrue(storage.tryStartProcessing(requestId, firstValue, Duration.ofSeconds(30)))
+        storage.cancelProcessing(requestId, firstValue)
+        assertTrue(storage.tryStartProcessing(requestId, secondValue, Duration.ofSeconds(30)))
+
+        assertFalse(storage.renewProcessing(requestId, firstValue, Duration.ofSeconds(30)))
+        assertEquals(secondValue, bucket(requestId).get())
+    }
+
+    @Test
+    fun renewProcessingFailsAfterMarkerExpires() {
+        val requestId = newRequestId()
+        val processingValue = newProcessingValue()
+
+        assertTrue(storage.tryStartProcessing(requestId, processingValue, Duration.ofMillis(100)))
+        await().atMost(Duration.ofSeconds(10)).until { storage.find(requestId) == null }
+
+        assertFalse(storage.renewProcessing(requestId, processingValue, Duration.ofSeconds(30)))
     }
 
     @Test
@@ -535,7 +577,7 @@ class DeferredResultManagerIntegrationTest {
 
     @Test
     @Timeout(60)
-    fun processingExpiresAndAllowsAnotherAttempt() {
+    fun renewsProcessingWhileQueuedAndRunning() {
         val requestId = newRequestId()
         val pending = ConcurrentLinkedQueue<Runnable>()
         val manager = newManager(
@@ -543,18 +585,22 @@ class DeferredResultManagerIntegrationTest {
             executor = Executor { pending.add(it) },
         )
 
-        manager.execute(requestId, String::class.java) { "first" }
-        assertEquals(1, pending.size)
+        val other = newManager(executor = Executor { it.run() })
 
-        await().atMost(Duration.ofSeconds(10)).until { storage.find(requestId) == null }
+        fun retry() {
+            val result = other.execute<String>(requestId, String::class.java) { throw AssertionError("Duplicate execution") }
+            assertEquals(DeferredResultStatus.PROCESSING, result.status)
+        }
 
-        manager.execute(requestId, String::class.java) { "second" }
-        assertEquals(2, pending.size)
-
-        pending.last().run()
-        pending.first().run()
-
-        assertEquals("second", manager.get<String>(requestId, String::class.java)?.result)
+        manager.execute(requestId, String::class.java) {
+            Thread.sleep(700)
+            retry()
+            "first"
+        }
+        Thread.sleep(700)
+        retry()
+        pending.single().run()
+        assertEquals("first", manager.get<String>(requestId, String::class.java)?.result)
     }
 
     @Test
@@ -589,6 +635,7 @@ class DeferredResultManagerIntegrationTest {
             deferredResultStorage = ValkeyDeferredResultStorage(redissonClient, NAMESPACE),
             serializer = JacksonDeferredResultSerializer(objectMapper),
             executor = executor,
+            renewalScheduler = renewalScheduler,
             processingTtl = processingTtl,
             resultTtl = resultTtl,
             publishRetry = publishRetry,
@@ -616,6 +663,7 @@ class DeferredResultManagerIntegrationTest {
 
         private lateinit var redisson: RedissonClient
         private lateinit var storage: ValkeyDeferredResultStorage
+        private val renewalScheduler = Executors.newSingleThreadScheduledExecutor()
         private lateinit var operationExecutor: ExecutorService
 
         @BeforeAll
@@ -632,6 +680,7 @@ class DeferredResultManagerIntegrationTest {
             if (::redisson.isInitialized) {
                 redisson.keys.deleteByPattern("$NAMESPACE:*")
             }
+            renewalScheduler.shutdownNow()
             if (::operationExecutor.isInitialized) {
                 operationExecutor.shutdownNow()
             }

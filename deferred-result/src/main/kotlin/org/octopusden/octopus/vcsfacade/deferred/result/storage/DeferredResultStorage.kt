@@ -9,6 +9,12 @@ interface DeferredResultStorage {
         ttl: Duration,
     ): Boolean
 
+    fun renewProcessing(
+        requestId: String,
+        expectedValue: String,
+        ttl: Duration,
+    ): Boolean = completeProcessing(requestId, expectedValue, expectedValue, ttl)
+
     fun completeProcessing(
         requestId: String,
         expectedValue: String,

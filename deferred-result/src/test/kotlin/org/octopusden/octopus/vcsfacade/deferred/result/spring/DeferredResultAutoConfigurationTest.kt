@@ -25,7 +25,7 @@ class DeferredResultAutoConfigurationTest {
             assertThat(context).hasSingleBean(DeferredResultManager::class.java)
             assertThat(context).hasSingleBean(DeferredResultStorage::class.java)
             assertThat(context).hasBean(DeferredResultAutoConfiguration.DEFERRED_RESULT_EXECUTOR)
-            assertThat(context).doesNotHaveBean("deferredResultHeartbeatScheduler")
+            assertThat(context).hasBean(DeferredResultAutoConfiguration.RENEWAL_SCHEDULER)
         }
     }
 

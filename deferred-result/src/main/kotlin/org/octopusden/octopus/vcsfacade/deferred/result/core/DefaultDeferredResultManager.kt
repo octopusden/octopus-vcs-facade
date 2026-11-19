@@ -11,12 +11,17 @@ import org.slf4j.LoggerFactory
 import java.lang.reflect.Type
 import java.time.Duration
 import java.util.UUID
+import java.util.concurrent.CancellationException
 import java.util.concurrent.Executor
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 class DefaultDeferredResultManager(
     private val deferredResultStorage: DeferredResultStorage,
     private val serializer: DeferredResultSerializer,
     private val executor: Executor,
+    private val renewalScheduler: ScheduledExecutorService,
     private val processingTtl: Duration,
     private val resultTtl: Duration,
     private val publishRetry: PublishRetryPolicy = PublishRetryPolicy(),
@@ -43,11 +48,21 @@ class DefaultDeferredResultManager(
             return get(requestId, type) ?: processing(requestId)
         }
 
+        var renewal: ScheduledFuture<*>? = null
         try {
+            val heartbeat = scheduleRenewal(requestId, processingValue)
+            renewal = heartbeat
             executor.execute {
-                executeOperation(requestId, ownerId, processingValue, operation)
+                try {
+                    if (renewMarker(requestId, processingValue)) {
+                        executeOperation(requestId, ownerId, processingValue, operation)
+                    }
+                } finally {
+                    heartbeat.cancel(false)
+                }
             }
         } catch (e: Exception) {
+            renewal?.cancel(false)
             try {
                 deferredResultStorage.cancelProcessing(requestId, processingValue)
             } catch (cleanup: Exception) {
@@ -65,6 +80,35 @@ class DefaultDeferredResultManager(
     ): DeferredResult<T>? =
         deferredResultStorage.find(requestId)?.let {
             deserialize(requestId, it, type)
+        }
+
+    private fun scheduleRenewal(
+        requestId: String,
+        processingValue: String,
+    ): ScheduledFuture<*> {
+        val interval = (processingTtl.toMillis() / RENEWAL_INTERVAL_DIVISOR).coerceAtLeast(1)
+        return renewalScheduler.scheduleWithFixedDelay({
+            val owned = try {
+                deferredResultStorage.renewProcessing(requestId, processingValue, processingTtl)
+            } catch (e: Exception) {
+                log.warn("Failed to renew processing marker for request {}", requestId, e)
+                return@scheduleWithFixedDelay
+            }
+            if (!owned) throw CancellationException("Processing marker replaced or expired")
+        }, interval, interval, TimeUnit.MILLISECONDS)
+    }
+
+    private fun renewMarker(
+        requestId: String,
+        processingValue: String,
+    ): Boolean =
+        try {
+            deferredResultStorage.renewProcessing(requestId, processingValue, processingTtl).also { owned ->
+                if (!owned) log.warn("Skipping request {} after losing its processing marker", requestId)
+            }
+        } catch (e: Exception) {
+            log.error("Skipping request {} because ownership could not be verified", requestId, e)
+            false
         }
 
     private fun <T : Any> deserialize(
@@ -168,6 +212,7 @@ class DefaultDeferredResultManager(
     companion object {
         private val log = LoggerFactory.getLogger(DefaultDeferredResultManager::class.java)
 
+        private const val RENEWAL_INTERVAL_DIVISOR = 3L
         private const val SERIALIZATION_ERROR_CODE = "SERIALIZATION_ERROR"
     }
 }
