@@ -14,7 +14,7 @@ class ProcessingLease(
     private val storage: DeferredResultStorage,
     private val scheduler: ScheduledExecutorService,
     private val ttl: Duration,
-    private val cancelRetryAttempts: Int = CANCEL_RETRY_ATTEMPTS,
+    private val cancelRetryInterval: Duration,
 ) {
     fun startHeartbeat(
         requestId: String,
@@ -67,13 +67,9 @@ class ProcessingLease(
         requestId: String,
         processingValue: String,
     ) {
-        if (cancelRetryAttempts <= 0) {
-            log.warn("Giving up cancelling processing marker for request {}; it will expire", requestId)
-            return
-        }
-
-        val interval = interval()
-        val remaining = AtomicInteger(cancelRetryAttempts)
+        val interval = cancelRetryInterval.toMillis().coerceAtLeast(1)
+        val attempts = ((ttl.toMillis() + interval - 1) / interval).toInt().coerceAtLeast(1)
+        val remaining = AtomicInteger(attempts)
         lateinit var future: ScheduledFuture<*>
         try {
             future =
@@ -99,7 +95,6 @@ class ProcessingLease(
 
     companion object {
         private const val RENEWAL_INTERVAL_DIVISOR = 3L
-        private const val CANCEL_RETRY_ATTEMPTS = 3
         private val log = LoggerFactory.getLogger(ProcessingLease::class.java)
     }
 }

@@ -627,6 +627,7 @@ class DeferredResultManagerIntegrationTest {
     private fun newManager(
         processingTtl: Duration = Duration.ofSeconds(30),
         resultTtl: Duration = RESULT_TTL,
+        cancelRetryInterval: Duration = Duration.ofSeconds(10),
         executor: Executor = operationExecutor,
         publishRetry: PublishRetryPolicy = PublishRetryPolicy(maxAttempts = 3, delay = Duration.ofMillis(50)),
         redissonClient: RedissonClient = redisson,
@@ -638,6 +639,7 @@ class DeferredResultManagerIntegrationTest {
             renewalScheduler = renewalScheduler,
             processingTtl = processingTtl,
             resultTtl = resultTtl,
+            cancelRetryInterval = cancelRetryInterval,
             publishRetry = publishRetry,
         )
 

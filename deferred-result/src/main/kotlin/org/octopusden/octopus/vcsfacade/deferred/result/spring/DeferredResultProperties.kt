@@ -10,6 +10,7 @@ data class DeferredResultProperties(
     val namespace: String = "deferred-result",
     val processingTtl: Duration = Duration.ofMinutes(5),
     val resultTtl: Duration = Duration.ofMinutes(5),
+    val cancelRetryInterval: Duration = Duration.ofSeconds(10),
     val publishRetry: PublishRetryPolicy = PublishRetryPolicy(),
     val valkey: Valkey = Valkey(),
     val executor: Executor = Executor(),
@@ -20,6 +21,9 @@ data class DeferredResultProperties(
         }
         require(resultTtl.toMillis() > 0) {
             "deferred-result.result-ttl ($resultTtl) must be at least one millisecond"
+        }
+        require(cancelRetryInterval.toMillis() > 0) {
+            "deferred-result.cancel-retry-interval ($cancelRetryInterval) must be at least one millisecond"
         }
     }
 

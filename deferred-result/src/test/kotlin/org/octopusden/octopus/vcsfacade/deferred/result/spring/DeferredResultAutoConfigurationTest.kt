@@ -59,16 +59,22 @@ class DeferredResultAutoConfigurationTest {
 
     @Test
     fun bindsIndependentTtls() {
-        runner.withPropertyValues("deferred-result.processing-ttl=20m", "deferred-result.result-ttl=5m").run { context ->
-            val properties = context.getBean(DeferredResultProperties::class.java)
-            assertThat(properties.processingTtl).isEqualTo(java.time.Duration.ofMinutes(20))
-            assertThat(properties.resultTtl).isEqualTo(java.time.Duration.ofMinutes(5))
-        }
+        runner
+            .withPropertyValues(
+                "deferred-result.processing-ttl=20m",
+                "deferred-result.result-ttl=5m",
+                "deferred-result.cancel-retry-interval=15s",
+            ).run { context ->
+                val properties = context.getBean(DeferredResultProperties::class.java)
+                assertThat(properties.processingTtl).isEqualTo(java.time.Duration.ofMinutes(20))
+                assertThat(properties.resultTtl).isEqualTo(java.time.Duration.ofMinutes(5))
+                assertThat(properties.cancelRetryInterval).isEqualTo(java.time.Duration.ofSeconds(15))
+            }
     }
 
     @Test
     fun rejectsNonPositiveTtls() {
-        listOf("processing-ttl", "result-ttl").forEach { property ->
+        listOf("processing-ttl", "result-ttl", "cancel-retry-interval").forEach { property ->
             runner.withPropertyValues("deferred-result.$property=0ms").run { context ->
                 assertThat(context).hasFailed()
             }

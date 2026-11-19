@@ -90,6 +90,7 @@ class DeferredResultAutoConfiguration {
             renewalScheduler = renewalScheduler,
             processingTtl = properties.processingTtl,
             resultTtl = properties.resultTtl,
+            cancelRetryInterval = properties.cancelRetryInterval,
             publishRetry = properties.publishRetry,
         )
 

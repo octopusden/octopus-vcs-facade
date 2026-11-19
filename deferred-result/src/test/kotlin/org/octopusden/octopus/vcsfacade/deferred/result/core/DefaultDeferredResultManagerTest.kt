@@ -104,6 +104,7 @@ class DefaultDeferredResultManagerTest {
         storage: DeferredResultStorage,
         scheduler: ScheduledExecutorService,
         processingTtl: Duration = Duration.ofSeconds(30),
+        cancelRetryInterval: Duration = Duration.ofMillis(100),
     ): DeferredResultManager =
         DefaultDeferredResultManager(
             deferredResultStorage = storage,
@@ -112,6 +113,7 @@ class DefaultDeferredResultManagerTest {
             renewalScheduler = scheduler,
             processingTtl = processingTtl,
             resultTtl = Duration.ofSeconds(30),
+            cancelRetryInterval = cancelRetryInterval,
         )
 
     private class FakeStorage(

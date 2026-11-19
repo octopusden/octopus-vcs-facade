@@ -12,11 +12,15 @@ Each logical operation must use a unique request ID, which should be reused for 
 4. While the processing marker exists, other instances return `PROCESSING`.
 5. Once the result is published, subsequent requests return the stored outcome until `result-ttl` expires.
 
-## Failure handling
+## **Failure Handling**
 
-If the worker cannot verify marker ownership due to a temporary Valkey outage, it aborts execution and attempts to remove its marker. Failed removal attempts are retried in the background, allowing subsequent requests to acquire a new marker without waiting for the lease to expire once removal succeeds.
+If a worker cannot verify ownership of the processing marker due to a temporary Valkey outage, it aborts execution and attempts to remove the marker.
 
-If the owning instance stops, pauses, or loses access to Valkey long enough for the processing marker to expire, another instance may acquire a new marker and execute the operation.
+If removal fails, the worker retries in the background at the configured `cancel-retry-interval` until the lease expires. 
+Once the marker is removed, another request can acquire it without waiting for the full lease duration.
+
+If the owning instance stops, pauses, or loses access to Valkey long enough for the marker to expire,
+another instance can acquire a new marker and execute the operation.
 
 ## Limitations
 
@@ -41,6 +45,7 @@ All configuration properties use the `deferred-result` prefix.
 | `namespace` | `deferred-result` | Prefix for Valkey keys. |
 | `processing-ttl` | `5m` | Processing marker lease duration, renewed at intervals of approximately one-third of this value. |
 | `result-ttl` | `5m` | How long a published result is retained. |
+| `cancel-retry-interval` | `10s` | Delay between background cancellation retries of the processing marker. |
 | `publish-retry.max-attempts` | `5` | Maximum number of attempts to publish a result. |
 | `publish-retry.delay` | `1500ms` | Delay between result publication attempts. |
 | `valkey.host` | `localhost` | Valkey server hostname. |

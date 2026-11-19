@@ -22,9 +22,16 @@ class DefaultDeferredResultManager(
     private val processingTtl: Duration,
     private val renewalScheduler: ScheduledExecutorService,
     private val resultTtl: Duration,
+    private val cancelRetryInterval: Duration,
     private val publishRetry: PublishRetryPolicy = PublishRetryPolicy(),
 ) : DeferredResultManager {
-    private val lease = ProcessingLease(deferredResultStorage, renewalScheduler, processingTtl)
+    private val lease =
+        ProcessingLease(
+            deferredResultStorage,
+            renewalScheduler,
+            processingTtl,
+            cancelRetryInterval,
+        )
 
     override fun <T : Any> execute(
         requestId: String,
