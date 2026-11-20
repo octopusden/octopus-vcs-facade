@@ -44,8 +44,9 @@ any write after the first commit; providers other than Bitbucket and Gitea.
 
 ### D2. The marker
 
-- An opaque string from the caller: non-blank, a single line, at most 255 characters (the
-  smallest description limit of the supported providers; the ft suite confirms it on both).
+- An opaque string from the caller: non-blank, a single line, at most 255 characters (taken as
+  the smaller description limit of the two providers; the ft suite stores a 255-character
+  marker on both).
 - Written **as the repository description in the create call** (needs external-systems-client
   2.1.0), and as a `Provisioning-Marker: <marker>` trailer on the root commit.
 - vcs-facade compares markers for exact equality and never parses them.
@@ -104,10 +105,14 @@ Read the state first, then:
 - Commit author and committer come from settings (`vcs-facade.provisioning.commit-author.*`).
   The message is the request's `commitMessage` (default `Initial content`) followed by a blank
   line and the `Provisioning-Marker` trailer.
-- `branch` is required when content is sent. Gitea gets it as `default_branch` in the create
-  call; on Bitbucket the ft suite checks that the first pushed branch becomes the default, and
-  if not, the default branch is set after the push (the marker is already in place, so a crash
-  there leaves a recognisable repository).
+- **`branch` is required on every create and sets the default branch in the create call**:
+  `defaultBranch` on Bitbucket, `default_branch` on Gitea. Bitbucket does not take the default
+  branch from the first push: an empty repository's default is the name given at create, else
+  the instance-wide default, and pushing another branch leaves the default pointing at a branch
+  that does not exist. `BitbucketCreateRepository` already has `defaultBranch`, but defaults it
+  to `master` when the caller sets nothing, so leaving `branch` optional would make Bitbucket
+  and Gitea disagree. Requiring it costs the caller nothing: the target branch always comes
+  from CRS.
 
 ### D6. Zip checks
 
@@ -126,13 +131,30 @@ executable bits survive.
 
 ### D7. Security, credentials and allow-list
 
-- **Authentication only on the new endpoints.** A security filter chain matches the three paths;
-  every other path stays `permitAll`. Disabled, the chain is not created and no issuer settings
-  are needed.
-- Permission `CREATE_REPOSITORIES`, resolved from token roles through `octopus-security.roles`,
-  as in the components registry (`octopus-security-common` from octopus-cloud-commons). If that
-  library cannot be limited to these paths, use Spring's OAuth2 resource server directly and bind
-  the same `octopus-security.roles` map. Either way the setting has the same shape as in CRS.
+- **`octopus-security-common`** (octopus-cloud-commons 2.0.20, built on the same Spring Boot
+  3.2.2), wired as the components registry does:
+  - `WebSecurityConfig` extends `CloudCommonWebSecurityConfig` and overrides its `open`
+    `securityFilterChain`. The library's own chain makes `anyRequest().authenticated()`, which
+    would lock every existing endpoint; the override makes the three provisioning paths
+    `authenticated()` and everything else `permitAll()`. CRS overrides it the same way to keep
+    `/rest/api/1-3/**` public.
+  - A `JwtDecoder` bean built from `auth-server.url` and `auth-server.realm` with issuer
+    validation, as in CRS `WebSecurityConfig.jwtDecoder()`.
+  - JSON `401`/`403` bodies through an entry point and an access-denied handler, so callers get
+    the usual `ErrorResponse` rather than an empty body.
+  - A `PermissionEvaluator` extending `BasePermissionEvaluator`; the controllers carry
+    `@PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")`.
+- **How permissions are resolved.** The library does not read roles from the token: on every
+  request `UserInfoGrantedAuthoritiesConverter` calls the auth server's userinfo endpoint and
+  turns its roles into `ROLE_*` authorities, and `SecurityService` maps those through
+  `octopus-security.roles` (keys like `ROLE_<name>`). `AuthServerClient` also fetches the OIDC
+  discovery document when the context starts, so with provisioning enabled the auth server must
+  be reachable at startup; the service fails fast otherwise, as CRS does.
+- **Disabled means no auth wiring at all.** `WebSecurityConfig` and `AuthServerClient` load only
+  when `vcs-facade.provisioning.enabled=true`. Because Spring Security is on the classpath, the
+  disabled case needs its own `permitAll` chain (as CRS `AnonymousSecurityConfig` does);
+  without it Spring Boot's default chain would put basic auth on every endpoint. Disabled, no
+  `auth-server.*` settings are needed.
 - No token → `401`; a token without the permission → `403`.
 - Per VCS service, under `vcs-facade.vcs.services[].provisioning`:
   - a credential (`token`, or `username` and `password`) used only for creating and pushing;
@@ -150,7 +172,7 @@ decodes an unknown code as it does today; `UnknownJsonFieldToleranceTest` covers
 
 | Case | Status | Code |
 |---|---|---|
-| Bad marker, missing `branch` with content | 400 | `INVALID_REQUEST` |
+| Bad marker, missing `branch` | 400 | `INVALID_REQUEST` |
 | Zip check failed | 400 | `INVALID_CONTENT` |
 | Upload over the limit | 413 | `INVALID_CONTENT` |
 | Outside the allow-list / VCS not configured | 403 | `TARGET_NOT_ALLOWED` |
@@ -162,8 +184,13 @@ decodes an unknown code as it does today; `UnknownJsonFieldToleranceTest` covers
 
 ### D9. Functional tests
 
-- A test-only RSA key: the ft server trusts its public key, and the ft suite signs its own tokens
-  with and without the permission. No identity server runs in ft.
+- **A stub auth server instead of Keycloak.** A WireMock container in the ft environment (Docker
+  and OKD) serves the OIDC discovery document, a JWKS for a test-only RSA key, and a userinfo
+  endpoint that answers per bearer token: one token whose roles map to `CREATE_REPOSITORIES`,
+  one whose roles do not. The ft suite signs both tokens with the test key. A self-signed token
+  alone would not be enough, because permissions come from userinfo (D7). CRS uses WireMock the
+  same way in `UserInfoConverterIntegrationTest` and `FatJarStartupIntegrationTest`.
+- Unit tests replace `AuthServerClient` with a mock, as CRS does.
 - Both providers: create with and without content, repeat after success, repeat after a lost
   push (simulated by creating the marked empty repository first), conflict on a foreign
   repository, conflict on foreign content, the description stored by the create call, executable
@@ -178,9 +205,6 @@ decodes an unknown code as it does today; `UnknownJsonFieldToleranceTest` covers
 - **First authenticated endpoints** in vcs-facade: a misconfigured chain could expose or block
   the API. The ft suite asserts that existing endpoints still answer without a token.
 - **Temporary disk**: one unpacked zip per running create, bounded by the size limit.
-
-## Open questions
-
-- Does `octopus-security-common` allow a chain limited to some paths while others stay open (D7)?
-- Does Bitbucket 9.4 make the first pushed branch the default branch of an empty repository (D5)?
-- Bitbucket's description limit: confirm 255 is the smaller of the two (D2).
+- **Auth server on the request path**: every provisioning request makes one userinfo call, and a
+  service with provisioning enabled does not start while the auth server is down. Both match
+  CRS and only touch provisioning traffic.

@@ -82,14 +82,14 @@ when there is none). Any other failure to read SHALL be an error status, never `
 
 ### Requirement: Create writes the marker in the create call
 
-`POST /rest/api/2/repository?sshUrl=` (multipart: `marker`, optional `branch`, optional
+`POST /rest/api/2/repository?sshUrl=` (multipart: `marker`, `branch`, optional
 `commitMessage`, optional `content` zip) SHALL create a missing repository with the marker as its
-description in the same VCS call that creates it, and, when content is sent, push it to `branch`
-as exactly one commit whose message ends with the trailer `Provisioning-Marker: <marker>`. It
-SHALL answer `201`.
+description and `branch` as its default branch, both in the same VCS call that creates it, and,
+when content is sent, push it to `branch` as exactly one commit whose message ends with the
+trailer `Provisioning-Marker: <marker>`. It SHALL answer `201`.
 
-The marker SHALL be non-blank, a single line and at most 255 characters; `branch` SHALL be given
-when content is sent. Otherwise the answer is `400 INVALID_REQUEST` and nothing is created.
+The marker SHALL be non-blank, a single line and at most 255 characters, and `branch` SHALL be
+given. Otherwise the answer is `400 INVALID_REQUEST` and nothing is created.
 
 #### Scenario: Create with content
 
@@ -99,8 +99,20 @@ when content is sent. Otherwise the answer is `400 INVALID_REQUEST` and nothing 
 
 #### Scenario: Create without content
 
-- **WHEN** the repository is missing and the request carries marker `m1` and no zip
-- **THEN** the answer is `201` and the repository exists, empty, with description `m1`
+- **WHEN** the repository is missing and the request carries marker `m1`, branch `main` and no
+  zip
+- **THEN** the answer is `201` and the repository exists, empty, with description `m1` and
+  default branch `main`
+
+#### Scenario: Branch missing
+
+- **WHEN** the request carries a marker but no `branch`
+- **THEN** the answer is `400 INVALID_REQUEST` and no repository is created
+
+#### Scenario: Longest marker
+
+- **WHEN** the repository is missing and the marker is 255 characters long
+- **THEN** the answer is `201` and the description equals the marker exactly
 
 #### Scenario: Executable bits are kept
 

@@ -20,8 +20,9 @@
 - **Repository state**: missing, or the repository's marker, default branch, whether it has
   commits, and the marker trailer on its root commit. A read that fails is an error, never
   "missing".
-- **Create** (multipart): creates the repository with the marker as its description in the create
-  call, and pushes the optional zip as one commit carrying the marker as a trailer.
+- **Create** (multipart): creates the repository with the marker as its description and the
+  requested branch as its default branch, both in the create call, and pushes the optional zip
+  as one commit carrying the marker as a trailer.
 
 **Create is safe to repeat**
 - Missing: create, mark, push. Carrying the request's marker: finish what is missing, or answer
@@ -36,7 +37,9 @@
   Executable bits are kept. Its size is limited.
 - Each VCS has an allow-list of projects or organisations; targets outside it get `403`.
 - The new endpoints need a token carrying the `CREATE_REPOSITORIES` permission, mapped from roles
-  through `octopus-security.roles`. Only service accounts are meant to have it.
+  through `octopus-security.roles` with `octopus-security-common`, as in the components registry.
+  Only service accounts are meant to have it. With provisioning enabled, the service needs the
+  auth server (`auth-server.url`, `auth-server.realm`) at startup.
 - Each VCS has a separate provisioning credential with repository-create rights; the existing
   read credential is not used to write.
 - `vcs-facade.provisioning.enabled=false` by default. Disabled, the new endpoints do not exist
@@ -48,8 +51,9 @@
 ### Dependencies
 
 - octopus-external-systems-client **2.1.0** (released): the Bitbucket and Gitea clients can set a
-  repository's description (and visibility, default branch on Gitea) in the create call. This
-  change moves `external-systems-client.version` from 2.0.106 to 2.1.0.
+  repository's description, visibility and default branch in the create call. This change moves
+  `external-systems-client.version` from 2.0.106 to 2.1.0.
+- octopus-cloud-commons **2.0.20** (`octopus-security-common`), new to vcs-facade.
 - The contract is consumed by `octopus-component-provisioning-service`; no other caller changes.
 - ADR-025 is still Proposed. If its decision 1 changes before it is accepted, this change follows.
 
@@ -59,8 +63,8 @@
   security configuration, settings (`vcs-facade.provisioning.*`).
 - `common`: request/response DTOs and new `VcsFacadeErrorCode` values.
 - `client`: the three calls on `VcsFacadeClient`.
-- `ft`: create, repeat, conflict and lost-response scenarios on Bitbucket and Gitea; a test token
-  issuer.
+- `ft`: create, repeat, conflict and lost-response scenarios on Bitbucket and Gitea; a WireMock
+  stub auth server in the Docker and OKD test environments.
 - `gradle.properties`: `external-systems-client.version`; new dependencies (JGit, a zip library
   that exposes Unix modes, the security starter).
 - `README.md`: the provisioning settings and behaviour.
