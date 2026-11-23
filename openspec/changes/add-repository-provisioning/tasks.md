@@ -4,12 +4,14 @@
 
 ## 1. Dependencies and settings
 
-- [ ] 1.1 Move `external-systems-client.version` to 2.1.0; `./gradlew build` and both `ft`
-      profiles still pass unchanged.
-- [ ] 1.2 Add JGit, Apache Commons Compress, `octopus-security-common` 2.0.20 with
+- [x] 1.1 Move `external-systems-client.version` to 2.1.0; `./gradlew build` still passes
+      unchanged.
+- [ ] 1.2 Both `ft` profiles (`bitbucket` and `gitea`) still pass unchanged after the move.
+- [ ] 1.3 Add JGit, Apache Commons Compress, `octopus-security-common` 2.0.20 with
       `spring-boot-starter-security`, `spring-security-oauth2-resource-server` and
       `spring-security-oauth2-jose`; WireMock for tests.
-- [ ] 1.3 `ProvisioningProperties` (`vcs-facade.provisioning.enabled`, `max-content-size`,
+      Note: dependencies are added in the group that first uses them.
+- [x] 1.4 `ProvisioningProperties` (`vcs-facade.provisioning.enabled`, `max-content-size`,
       `commit-author.name`/`email`) and per-service `provisioning` (`token` or
       `username`/`password`, `allowed-groups`). Test: binding, defaults (`enabled=false`, 50 MB),
       a service without `provisioning` still binds.

@@ -21,6 +21,7 @@ data class VcsProperties(
         val password: String?,
         val healthCheck: HealthCheck?,
         val indexing: Boolean = true,
+        val provisioning: Provisioning? = null,
     ) {
         fun getCredentialProvider() =
             if (token != null) {
@@ -38,6 +39,13 @@ data class VcsProperties(
             } else {
                 throw IllegalStateException("Auth token or username/password must be specified")
             }
+
+        data class Provisioning(
+            val token: String? = null,
+            val username: String? = null,
+            val password: String? = null,
+            val allowedGroups: Set<String> = emptySet(),
+        )
 
         data class HealthCheck(
             val group: String,
