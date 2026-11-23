@@ -30,6 +30,22 @@ vcs-facade:
           max-pool-size: 1
           queue-capacity: 10
           pre-start-all-core-threads: true
+deferred-result:
+  enabled: ${DEFERRED_RESULT_ENABLED:false}
+  namespace: "vcs-facade:deferred-result"
+  result-ttl: 30m
+  processing-ttl: 30m
+  valkey:
+    database: 0
+    connection-pool-size: 16
+    connection-minimum-idle-size: 4
+    host: ${DEFERRED_RESULT_VALKEY_HOST:localhost}
+    port: ${DEFERRED_RESULT_VALKEY_PORT:6379}
+  executor:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 100
+    keep-alive-seconds: 60
 
 logging:
   level:
