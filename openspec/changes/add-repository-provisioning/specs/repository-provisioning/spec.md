@@ -9,7 +9,14 @@ provisioning is enabled or not, and SHALL NOT require a token.
 #### Scenario: Disabled by default
 
 - **WHEN** the service runs without `vcs-facade.provisioning.enabled`
-- **THEN** `POST /rest/api/2/repository` answers `404` and no repository is created
+- **THEN** `GET /rest/api/2/groups` and `GET /rest/api/2/repository/state` answer `404`,
+  `POST /rest/api/2/repository` answers `405` (the path serves the existing repository read),
+  and no repository is created
+
+#### Scenario: Existing responses unchanged when disabled
+
+- **WHEN** provisioning is disabled and a caller sends an existing request
+- **THEN** the status, body and headers are the same as before this change
 
 #### Scenario: Existing endpoints stay open when enabled
 
@@ -83,7 +90,8 @@ when there is none). Any other failure to read SHALL be an error status, never `
 ### Requirement: Create writes the marker in the create call
 
 `POST /rest/api/2/repository?sshUrl=` (multipart: `marker`, `branch`, optional
-`commitMessage`, optional `content` zip) SHALL create a missing repository with the marker as its
+`commitMessage`, optional `content`: a zip sent as a file part, with a filename, as any HTTP
+client's multipart file upload sends it) SHALL create a missing repository with the marker as its
 description and `branch` as its default branch, both in the same VCS call that creates it, and,
 when content is sent, push it to `branch` as exactly one commit whose message ends with the
 trailer `Provisioning-Marker: <marker>`. It SHALL answer `201`.

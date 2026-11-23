@@ -6,4 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 data class ErrorResponse(
     val errorCode: VcsFacadeErrorCode,
     val errorMessage: String,
+    /**
+     * The repository state a `REPOSITORY_EXISTS` or `REPOSITORY_CONFLICT` answer was decided from.
+     */
+    val repositoryState: RepositoryState? = null,
 )

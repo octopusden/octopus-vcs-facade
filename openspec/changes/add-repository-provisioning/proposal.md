@@ -43,10 +43,13 @@
 - Each VCS has a separate provisioning credential with repository-create rights; the existing
   read credential is not used to write.
 - `vcs-facade.provisioning.enabled=false` by default. Disabled, the new endpoints do not exist
-  and nothing about the service changes.
+  and existing endpoints answer as before, headers included.
 
 **Existing API unchanged**
 - Existing endpoints keep their paths, behaviour and lack of authentication.
+- One fix applies to the whole API: a path nothing is mapped to answers `404 NOT_FOUND` and an
+  unsupported method answers `405`, where both answered `500` before. A switched-off endpoint
+  has to look absent, not broken.
 
 ### Dependencies
 

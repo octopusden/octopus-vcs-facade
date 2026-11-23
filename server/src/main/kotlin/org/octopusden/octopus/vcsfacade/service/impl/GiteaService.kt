@@ -56,6 +56,18 @@ class GiteaService(
         }),
     )
 
+    /**
+     * Creates and pushes with the provisioning credential; `null` when the service has none.
+     * Not wrapped in the retrying client: a create must not be repeated blindly.
+     */
+    val provisioningClient: GiteaClient? = vcsServiceProperties.provisioning?.takeIf { it.hasCredential }?.let { provisioning ->
+        GiteaClassicClient(object : ClientParametersProvider {
+            override fun getApiUrl() = httpUrl
+
+            override fun getAuth() = provisioning.getCredentialProvider(type)
+        })
+    }
+
     override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client

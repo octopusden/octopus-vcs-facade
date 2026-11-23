@@ -19,11 +19,23 @@ abstract class VcsService(
     val id = vcsServiceProperties.id.lowercase()
     val type = vcsServiceProperties.type
     val indexing = vcsServiceProperties.indexing
+    private val provisioning = vcsServiceProperties.provisioning?.takeIf { it.hasCredential }
+    private val provisioningAllowedGroups = provisioning
+        ?.allowedGroups
+        .orEmpty()
+        .map { it.lowercase() }
+        .toSet()
     protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
     private val sshUrlRegex = "${Regex.escape(
         sshUrl,
     )}[:/]${if (type == VcsServiceType.BITBUCKET) "(?:scm/)?" else ""}((?:[^/]+/)+)([^/]+)\\.git".toRegex()
+
+    /**
+     * Whether provisioning may touch [group]: the service has a provisioning credential and lists the group.
+     * [parse] lowercases, so the comparison ignores case (Bitbucket project keys are upper case).
+     */
+    fun isProvisioningAllowed(group: String) = provisioning != null && group.lowercase() in provisioningAllowedGroups
 
     fun isSupported(sshUrl: String) = sshUrlRegex.matches(sshUrl.lowercase())
 

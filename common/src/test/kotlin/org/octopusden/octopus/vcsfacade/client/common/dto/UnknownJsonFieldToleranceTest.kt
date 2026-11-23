@@ -45,6 +45,9 @@ class UnknownJsonFieldToleranceTest {
             """{"index":1,"title":"t","description":"d","author":$USER,"source":"s","target":"t","assignees":[],""" +
                 """"reviewers":[],"status":"OPEN","createdAt":0,"updatedAt":0,"link":"http://l","repository":$REPOSITORY}"""
 
+        private const val REPOSITORY_STATE =
+            """{"status":"PRESENT","marker":"m","defaultBranch":"main","hasCommits":true,"rootCommitMarker":"m"}"""
+
         private const val BRANCHES_SUMMARY = """{"size":1,"updated":0}"""
         private const val COMMITS_SUMMARY = """{"size":1,"latest":0}"""
         private const val PULL_REQUESTS_SUMMARY = """{"size":1,"updated":0,"status":"OPEN"}"""
@@ -86,6 +89,13 @@ class UnknownJsonFieldToleranceTest {
                 Arguments.of(CreatePullRequest::class.java, """{"sourceBranch":"s","targetBranch":"t","title":"ti","description":"d"}"""),
                 Arguments.of(CreateTag::class.java, """{"name":"v1.0","hashOrRef":"master","message":"m"}"""),
                 Arguments.of(ErrorResponse::class.java, """{"errorCode":"OTHER","errorMessage":"m"}"""),
+                Arguments.of(
+                    ErrorResponse::class.java,
+                    """{"errorCode":"REPOSITORY_EXISTS","errorMessage":"m","repositoryState":$REPOSITORY_STATE}""",
+                ),
+                Arguments.of(GroupExistence::class.java, """{"exists":true}"""),
+                Arguments.of(RepositoryState::class.java, REPOSITORY_STATE),
+                Arguments.of(CreateRepositoryResult::class.java, """{"created":true,"state":$REPOSITORY_STATE}"""),
                 Arguments.of(RetryResponse::class.java, """{"retryAfter":0,"requestId":"r"}"""),
             )
     }

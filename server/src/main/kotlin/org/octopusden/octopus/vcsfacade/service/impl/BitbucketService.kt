@@ -50,6 +50,17 @@ class BitbucketService(
         override fun getAuth() = vcsServiceProperties.getCredentialProvider() as BitbucketCredentialProvider
     })
 
+    /**
+     * Creates and pushes with the provisioning credential; `null` when the service has none.
+     */
+    val provisioningClient: BitbucketClient? = vcsServiceProperties.provisioning?.takeIf { it.hasCredential }?.let { provisioning ->
+        BitbucketClassicClient(object : BitbucketClientParametersProvider {
+            override fun getApiUrl(): String = httpUrl
+
+            override fun getAuth() = provisioning.getCredentialProvider(type) as BitbucketCredentialProvider
+        })
+    }
+
     override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client

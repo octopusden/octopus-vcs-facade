@@ -10,7 +10,7 @@
 - [ ] 1.3 Add JGit, Apache Commons Compress, `octopus-security-common` 2.0.20 with
       `spring-boot-starter-security`, `spring-security-oauth2-resource-server` and
       `spring-security-oauth2-jose`; WireMock for tests.
-      Note: dependencies are added in the group that first uses them.
+      Note: the security dependencies are in; JGit, Commons Compress and WireMock are added in the group that first uses them.
 - [x] 1.4 `ProvisioningProperties` (`vcs-facade.provisioning.enabled`, `max-content-size`,
       `commit-author.name`/`email`) and per-service `provisioning` (`token` or
       `username`/`password`, `allowed-groups`). Test: binding, defaults (`enabled=false`, 50 MB),
@@ -18,35 +18,35 @@
 
 ## 2. Contract in `common` and `client`
 
-- [ ] 2.1 DTOs `GroupExistence`, `RepositoryState` (`status`, `marker`, `defaultBranch`,
+- [x] 2.1 DTOs `GroupExistence`, `RepositoryState` (`status`, `marker`, `defaultBranch`,
       `hasCommits`, `rootCommitMarker`), `CreateRepositoryResult`; extend
       `UnknownJsonFieldToleranceTest` for them.
-- [ ] 2.2 Error codes `REPOSITORY_EXISTS`, `REPOSITORY_CONFLICT`, `REPOSITORY_EMPTY`,
+- [x] 2.2 Error codes `REPOSITORY_EXISTS`, `REPOSITORY_CONFLICT`, `REPOSITORY_EMPTY`,
       `INVALID_CONTENT`, `INVALID_REQUEST`, `TARGET_NOT_ALLOWED` with their exceptions. Test: the
       error decoder maps each to its exception; an unknown code still decodes as today.
-- [ ] 2.3 `VcsFacadeClient`: `getGroupExistence`, `getRepositoryState`, `createRepository`
+- [x] 2.3 `VcsFacadeClient`: `getGroupExistence`, `getRepositoryState`, `createRepository`
       (multipart). Test against a mock server: paths, query, parts, decoding.
 
 ## 3. Off by default and security
 
-- [ ] 3.1 Failing tests with default settings: the three endpoints answer `404`; existing
+- [x] 3.1 Failing tests with default settings: the three endpoints answer `404`; existing
       endpoints answer without a token and without basic auth; the context starts with no
       `auth-server.*` settings.
-- [ ] 3.2 Failing tests with provisioning enabled (`AuthServerClient` mocked): no token → `401`
+- [x] 3.2 Failing tests with provisioning enabled (`AuthServerClient` mocked): no token → `401`
       with a JSON body; token whose roles lack `CREATE_REPOSITORIES` → `403` with a JSON body;
       existing endpoints still answer without a token.
-- [ ] 3.3 `WebSecurityConfig` extending `CloudCommonWebSecurityConfig` with an overridden chain
+- [x] 3.3 `WebSecurityConfig` extending `CloudCommonWebSecurityConfig` with an overridden chain
       (provisioning paths authenticated, the rest `permitAll`), `JwtDecoder` with issuer
       validation, JSON entry point and access-denied handler, `PermissionEvaluator` over
       `BasePermissionEvaluator`; all conditional on `vcs-facade.provisioning.enabled=true`.
-- [ ] 3.4 A `permitAll` chain for the disabled case, so Spring Boot's default security never
+- [x] 3.4 A `permitAll` chain for the disabled case, so Spring Boot's default security never
       applies.
 
 ## 4. Allow-list and credentials
 
-- [ ] 4.1 Failing tests: a group outside `allowed-groups` → `403 TARGET_NOT_ALLOWED` on all three
+- [x] 4.1 Failing tests: a group outside `allowed-groups` → `403 TARGET_NOT_ALLOWED` on all three
       endpoints with no VCS call; a VCS without a provisioning credential → the same.
-- [ ] 4.2 Build a provisioning Bitbucket/Gitea client per service from the provisioning
+- [x] 4.2 Build a provisioning Bitbucket/Gitea client per service from the provisioning
       credential; the existing clients are untouched.
 
 ## 5. Group check

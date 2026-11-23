@@ -13,7 +13,7 @@ class VcsFacadeErrorDecoder(
         response: Response?,
     ): Exception =
         getErrorResponse(response)?.let {
-            it.errorCode.getException(it.errorMessage)
+            it.errorCode.getException(it.errorMessage, it.repositoryState)
         } ?: super.decode(methodKey, response)
 
     private fun getErrorResponse(response: Response?) =
