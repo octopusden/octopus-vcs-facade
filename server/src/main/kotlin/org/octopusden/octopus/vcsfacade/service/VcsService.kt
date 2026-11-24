@@ -7,6 +7,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
@@ -51,6 +52,11 @@ abstract class VcsService(
      * Only the provider's own "not found" means `false`; any other failure propagates.
      */
     abstract fun groupExists(group: String): Boolean
+
+    abstract fun getRepositoryState(
+        group: String,
+        repository: String,
+    ): RepositoryState
 
     abstract fun findRepository(
         group: String,

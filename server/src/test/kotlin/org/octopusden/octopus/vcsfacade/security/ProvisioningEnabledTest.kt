@@ -7,6 +7,7 @@ import org.mockito.Mockito.`when`
 import org.octopusden.cloud.commons.security.client.AuthServerClient
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaOrganization
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.createService
@@ -107,9 +108,9 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
-    fun `a token with the permission reaches the handler on the state read and the create`() {
+    fun `a token with the permission reaches the handler on the create`() {
         serveAllowedGroup()
-        provisioningCalls.filter { it.second != "/rest/api/2/groups" }.forEach { (method, path) ->
+        provisioningCalls.filter { it.first == HttpMethod.POST }.forEach { (method, path) ->
             call(method, path, auth = provisioner).andExpect(status().isNotImplemented)
         }
     }
@@ -138,6 +139,50 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
             .andExpect(status().isInternalServerError)
             .andExpect(jsonPath("$.errorCode").value("OTHER"))
             .andExpect(jsonPath("$.exists").doesNotExist())
+    }
+
+    @Test
+    fun `the state read answers PRESENT with its fields`() {
+        val client = serveAllowedGroup()
+        `when`(client.getRepository("team-a", "repo")).thenReturn(
+            GiteaRepository(
+                id = 1,
+                name = "repo",
+                fullName = "team-a/repo",
+                avatarUrl = "",
+                description = "m-1",
+                defaultBranch = "main",
+                empty = true,
+            ),
+        )
+        call(HttpMethod.GET, "/rest/api/2/repository/state", auth = provisioner)
+            .andExpect(status().isOk)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.status").value("PRESENT"))
+            .andExpect(jsonPath("$.marker").value("m-1"))
+            .andExpect(jsonPath("$.defaultBranch").value("main"))
+            .andExpect(jsonPath("$.hasCommits").value(false))
+            .andExpect(jsonPath("$.rootCommitMarker").doesNotExist())
+    }
+
+    @Test
+    fun `the state read answers MISSING when the provider does not find the repository`() {
+        val client = serveAllowedGroup()
+        `when`(client.getRepository("team-a", "repo")).thenThrow(GiteaNotFoundException("no such repository"))
+        call(HttpMethod.GET, "/rest/api/2/repository/state", auth = provisioner)
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("MISSING"))
+            .andExpect(jsonPath("$.hasCommits").value(false))
+    }
+
+    @Test
+    fun `the state read answers 500 OTHER and no status when the provider fails`() {
+        val client = serveAllowedGroup()
+        `when`(client.getRepository("team-a", "repo")).thenThrow(IllegalStateException("provider down"))
+        call(HttpMethod.GET, "/rest/api/2/repository/state", auth = provisioner)
+            .andExpect(status().isInternalServerError)
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+            .andExpect(jsonPath("$.status").doesNotExist())
     }
 
     @Test

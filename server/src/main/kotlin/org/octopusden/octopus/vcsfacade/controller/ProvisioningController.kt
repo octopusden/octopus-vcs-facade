@@ -1,6 +1,7 @@
 package org.octopusden.octopus.vcsfacade.controller
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
@@ -40,10 +41,10 @@ class ProvisioningController(
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
     fun getRepositoryState(
         @RequestParam("sshUrl") sshUrl: String,
-    ): Nothing {
+    ): RepositoryState {
         log.info("Get the state of repository {}", sshUrl)
-        targetResolver.resolve(sshUrl)
-        throw ProvisioningNotImplementedException("Repository state is not implemented yet")
+        val target = targetResolver.resolve(sshUrl)
+        return target.service.getRepositoryState(target.group, target.repository)
     }
 
     @PostMapping(

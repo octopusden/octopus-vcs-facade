@@ -6,7 +6,7 @@
 
 - [x] 1.1 Move `external-systems-client.version` to 2.1.0; `./gradlew build` still passes
       unchanged.
-- [ ] 1.2 Both `ft` profiles (`bitbucket` and `gitea`) still pass unchanged after the move.
+- [x] 1.2 Both `ft` profiles (`bitbucket` and `gitea`) still pass unchanged after the move.
 - [ ] 1.3 Add JGit, Apache Commons Compress, `octopus-security-common` 2.0.20 with
       `spring-boot-starter-security`, `spring-security-oauth2-resource-server` and
       `spring-security-oauth2-jose`; WireMock for tests.
@@ -57,10 +57,10 @@
 
 ## 6. Repository state
 
-- [ ] 6.1 Failing tests per provider: missing repository and missing group → `MISSING`; present
+- [x] 6.1 Failing tests per provider: missing repository and missing group → `MISSING`; present
       without commits; present with a root trailer; trailer parsing (absent, other trailers,
       trailing whitespace); provider error → `5xx`, never `MISSING`.
-- [ ] 6.2 `GET /rest/api/2/repository/state`: description, default branch, first-parent walk to
+- [x] 6.2 `GET /rest/api/2/repository/state`: description, default branch, first-parent walk to
       the root commit.
 
 ## 7. Zip checks

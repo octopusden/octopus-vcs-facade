@@ -65,6 +65,13 @@ any write after the first commit; providers other than Bitbucket and Gitea.
 - The root commit is the end of the default branch's first-parent history. Repositories at
   provisioning time are young, so walking the history through the provider API is acceptable in
   phase 1.
+- **Bitbucket's `defaultBranch` is partial.** external-systems-client 2.1.0 has no default-branch
+  call, and `BitbucketBranch` drops Bitbucket's `isDefault` flag. vcs-facade walks the default
+  branch's history and names a branch only when exactly one branch points at its head commit
+  (the default branch always does); with several, or with no commits, `defaultBranch` is null.
+  A freshly provisioned repository has one branch, so the answer is right there, and create does
+  not use the field. Follow-up: expose the default branch in the Bitbucket client, then read it
+  directly. Gitea reports `default_branch` itself.
 - Any provider failure answers `5xx` with an error body. Only a provider "not found" for the
   repository becomes `MISSING`; a "not found" for the project or organisation does too.
 

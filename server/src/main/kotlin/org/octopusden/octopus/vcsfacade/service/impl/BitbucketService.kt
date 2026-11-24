@@ -4,6 +4,7 @@ import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClassicCl
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClientParametersProvider
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketCredentialProvider
+import org.octopusden.octopus.infrastructure.bitbucket.client.ENTITY_LIMIT
 import org.octopusden.octopus.infrastructure.bitbucket.client.createPullRequestWithDefaultReviewers
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketCommit
@@ -33,11 +34,15 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
+import org.octopusden.octopus.vcsfacade.service.RootCommitWalk
 import org.octopusden.octopus.vcsfacade.service.VcsService
+import org.octopusden.octopus.vcsfacade.service.presentRepositoryState
 import org.slf4j.LoggerFactory
 import java.util.Date
 
@@ -54,6 +59,36 @@ class BitbucketService(
 
         override fun getAuth() = vcsServiceProperties.getCredentialProvider() as BitbucketCredentialProvider
     })
+
+    override fun getRepositoryState(
+        group: String,
+        repository: String,
+    ): RepositoryState {
+        log.trace("=> getRepositoryState({}, {})", group, repository)
+        val client = checkNotNull(provisioningClient) { "VCS service '$id' has no provisioning credential" }
+        val bitbucketRepository = try {
+            client.getRepository(group, repository)
+        } catch (e: NotFoundException) {
+            // also the answer for a project that does not exist
+            return RepositoryState(RepositoryStatus.MISSING)
+        }
+        // Without `until` the provider lists the default branch. An empty repository has no commits to list:
+        // it answers 404 (or an empty list), which means "no commits" here, not a missing repository.
+        val firstPage = try {
+            client.getCommits(group, repository, mapOf("limit" to ENTITY_LIMIT, "start" to 0))
+        } catch (e: NotFoundException) {
+            null
+        }
+        val head = firstPage?.values?.firstOrNull()
+        val root = firstPage?.takeIf { head != null }?.let { RootCommitWalk.find(bitbucketCommitPages(client, group, repository, it)) }
+        // The client cannot read the default branch itself; it is named only when a single branch points at the head.
+        val defaultBranch = head
+            ?.let { client.getBranches(group, repository).filter { branch -> branch.latestCommit == head.id } }
+            ?.singleOrNull()
+            ?.displayId
+        return presentRepositoryState(bitbucketRepository.description, defaultBranch, root)
+            .also { log.trace("<= getRepositoryState({}, {}): {}", group, repository, it) }
+    }
 
     override fun groupExists(group: String): Boolean {
         log.trace("=> groupExists({})", group)
