@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade.controller
 
+import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
@@ -29,10 +30,10 @@ class ProvisioningController(
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
     fun getGroupExistence(
         @RequestParam("sshUrl") sshUrl: String,
-    ): Nothing {
+    ): GroupExistence {
         log.info("Check the group of {}", sshUrl)
-        targetResolver.resolve(sshUrl)
-        throw ProvisioningNotImplementedException("Group check is not implemented yet")
+        val target = targetResolver.resolve(sshUrl)
+        return GroupExistence(target.service.groupExists(target.group))
     }
 
     @GetMapping("repository/state", produces = [MediaType.APPLICATION_JSON_VALUE])

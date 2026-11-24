@@ -10,8 +10,9 @@ Today vcs-facade:
 - has no authentication on any endpoint;
 - already serves `GET /rest/api/2/repository?sshUrl=` (returns the repository, `404` when it is
   missing);
-- runs requests through `processRequest`, a per-node in-memory job map that answers `202` with a
-  retry hint when a request runs longer than `fastWorkTimoutSecs`;
+- runs requests through a `RequestProcessor` that answers `202` with a retry hint when a request
+  runs longer than `fastWorkTimoutSecs`: an in-memory job map per node by default, or deferred
+  results shared through Valkey when `deferred-result.enabled=true`;
 - reads Bitbucket and Gitea through octopus-external-systems-client, with one credential per VCS.
 
 ## Goals / Non-Goals
@@ -92,10 +93,11 @@ Read the state first, then:
     rejected, read again: our trailer on the root → `200`, anything else →
     `409 REPOSITORY_CONFLICT`.
 - **No write without the marker, no deletes**, in any path.
-- **Synchronous, not through `processRequest`.** The job map is per node and in memory, so a
-  retry routed to another node starts a second create; with a multipart body the client would
-  also re-upload the zip on every poll. Create is safe to repeat by design, so a client timeout
-  followed by a repeat is the recovery path. The zip size limit (D6) bounds the run time.
+- **Synchronous, not through the `RequestProcessor`.** The other endpoints answer `202` with a
+  retry hint when a request runs long, and the caller polls with the same request id. For
+  create that means sending the multipart body, zip included, again on every poll. Create is
+  safe to repeat by design, so a client timeout followed by a repeat is the recovery path. The
+  zip size limit (D6) bounds the run time.
 
 ### D5. The push
 

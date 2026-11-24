@@ -25,7 +25,7 @@ abstract class VcsService(
         .orEmpty()
         .map { it.lowercase() }
         .toSet()
-    protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
+    protected val httpUrl = httpUrlOf(vcsServiceProperties)
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
     private val sshUrlRegex = "${Regex.escape(
         sshUrl,
@@ -45,6 +45,12 @@ abstract class VcsService(
         }
 
     abstract fun getRepositories(): Sequence<Repository>
+
+    /**
+     * Whether the Bitbucket project or Gitea organisation exists, as the provisioning credential sees it.
+     * Only the provider's own "not found" means `false`; any other failure propagates.
+     */
+    abstract fun groupExists(group: String): Boolean
 
     abstract fun findRepository(
         group: String,
@@ -152,4 +158,11 @@ abstract class VcsService(
     abstract fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles>
 
     abstract fun findPullRequests(issueKey: String): Sequence<PullRequest>
+
+    companion object {
+        /**
+         * The API base URL as the services use it.
+         */
+        fun httpUrlOf(vcsServiceProperties: VcsProperties.Service) = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
+    }
 }

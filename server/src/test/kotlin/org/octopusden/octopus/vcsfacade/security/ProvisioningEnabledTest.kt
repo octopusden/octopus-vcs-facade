@@ -2,11 +2,16 @@ package org.octopusden.octopus.vcsfacade.security
 
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.octopusden.cloud.commons.security.client.AuthServerClient
+import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaOrganization
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.createService
+import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
+import org.octopusden.octopus.vcsfacade.service.serviceProperties
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
@@ -24,6 +29,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException as GiteaNotFoundException
 
 /**
  * Provisioning on, the auth server replaced by a mock: the roles come from the token's authorities,
@@ -101,11 +107,37 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
-    fun `a token with the permission reaches the handler on every provisioning call`() {
+    fun `a token with the permission reaches the handler on the state read and the create`() {
         serveAllowedGroup()
-        provisioningCalls.forEach { (method, path) ->
+        provisioningCalls.filter { it.second != "/rest/api/2/groups" }.forEach { (method, path) ->
             call(method, path, auth = provisioner).andExpect(status().isNotImplemented)
         }
+    }
+
+    @Test
+    fun `the group check answers exists true for a group the provider finds`() {
+        serveAllowedGroup().also { `when`(it.getOrganization("team-a")).thenReturn(mock(GiteaOrganization::class.java)) }
+        call(HttpMethod.GET, "/rest/api/2/groups", auth = provisioner)
+            .andExpect(status().isOk)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.exists").value(true))
+    }
+
+    @Test
+    fun `the group check answers exists false when the provider does not find the group`() {
+        serveAllowedGroup().also { `when`(it.getOrganization("team-a")).thenThrow(GiteaNotFoundException("no such organisation")) }
+        call(HttpMethod.GET, "/rest/api/2/groups", auth = provisioner)
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.exists").value(false))
+    }
+
+    @Test
+    fun `the group check answers 5xx and never exists false when the provider fails`() {
+        serveAllowedGroup().also { `when`(it.getOrganization("team-a")).thenThrow(IllegalStateException("provider down")) }
+        call(HttpMethod.GET, "/rest/api/2/groups", auth = provisioner)
+            .andExpect(status().isInternalServerError)
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+            .andExpect(jsonPath("$.exists").doesNotExist())
     }
 
     @Test
@@ -159,9 +191,15 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
         call(HttpMethod.POST, "/rest/api/2/repository/tags").andExpect(status().`is`(org.hamcrest.Matchers.not(401)))
     }
 
-    private fun serveAllowedGroup() {
-        `when`(vcsManager.getVcsServiceForSshUrl(anyString()))
-            .thenReturn(createService(VcsServiceType.GITEA, Provisioning(token = "t", allowedGroups = setOf("team-a"))))
+    /**
+     * Serves a Gitea service that allows `team-a`; the returned mock is its provisioning client.
+     */
+    private fun serveAllowedGroup(): GiteaClient {
+        val client = mock(GiteaClient::class.java)
+        val provisioning = Provisioning(token = "t", allowedGroups = setOf("team-a"))
+        val service = GiteaService(serviceProperties(VcsServiceType.GITEA, provisioning), client)
+        `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenReturn(service)
+        return client
     }
 
     companion object {
