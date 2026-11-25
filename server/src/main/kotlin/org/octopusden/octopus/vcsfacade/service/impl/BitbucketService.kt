@@ -43,6 +43,11 @@ import java.util.Date
 
 class BitbucketService(
     vcsServiceProperties: VcsProperties.Service,
+    /**
+     * Creates and pushes with the provisioning credential; `null` when the service has none.
+     * Tests pass a mock; production takes the default, built from the settings.
+     */
+    val provisioningClient: BitbucketClient? = createProvisioningClient(vcsServiceProperties),
 ) : VcsService(vcsServiceProperties) {
     private val client: BitbucketClient = BitbucketClassicClient(object : BitbucketClientParametersProvider {
         override fun getApiUrl(): String = httpUrl
@@ -465,5 +470,14 @@ class BitbucketService(
 
     companion object {
         private val log = LoggerFactory.getLogger(BitbucketService::class.java)
+
+        private fun createProvisioningClient(vcsServiceProperties: VcsProperties.Service): BitbucketClient? =
+            vcsServiceProperties.provisioning?.takeIf { it.hasCredential }?.let { provisioning ->
+                BitbucketClassicClient(object : BitbucketClientParametersProvider {
+                    override fun getApiUrl(): String = httpUrlOf(vcsServiceProperties)
+
+                    override fun getAuth() = provisioning.getCredentialProvider(vcsServiceProperties.type) as BitbucketCredentialProvider
+                })
+            }
     }
 }

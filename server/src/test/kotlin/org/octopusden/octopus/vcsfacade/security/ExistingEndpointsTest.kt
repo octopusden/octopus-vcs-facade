@@ -13,6 +13,7 @@ import org.octopusden.octopus.vcsfacade.controller.ExceptionInfoHandler
 import org.octopusden.octopus.vcsfacade.controller.ProvisioningController
 import org.octopusden.octopus.vcsfacade.controller.ProvisioningExceptionHandler
 import org.octopusden.octopus.vcsfacade.controller.RepositoryController
+import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
 import org.octopusden.octopus.vcsfacade.service.RequestProcessor
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,6 +48,7 @@ abstract class ExistingEndpointsTest {
         RepositoryController::class,
         ExceptionInfoHandler::class,
         ProvisioningExceptionHandler::class,
+        ProvisioningTargetResolver::class,
         ProvisioningPermissionEvaluator::class,
         WebSecurityConfig::class,
         AnonymousSecurityConfig::class,

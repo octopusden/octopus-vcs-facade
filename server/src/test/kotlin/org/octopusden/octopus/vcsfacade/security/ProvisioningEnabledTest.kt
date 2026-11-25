@@ -1,7 +1,16 @@
 package org.octopusden.octopus.vcsfacade.security
 
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verifyNoInteractions
+import org.mockito.Mockito.`when`
 import org.octopusden.cloud.commons.security.client.AuthServerClient
+import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
+import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
+import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
+import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
+import org.octopusden.octopus.vcsfacade.service.serviceProperties
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
@@ -43,10 +52,11 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     private fun call(
         path: String,
         auth: RequestPostProcessor? = null,
+        sshUrl: String = SSH_URL,
     ): ResultActions =
         mockMvc.perform(
             get(path)
-                .param("sshUrl", SSH_URL)
+                .param("sshUrl", sshUrl)
                 .accept(MediaType.APPLICATION_JSON)
                 .also { builder -> auth?.let { builder.with(it) } },
         )
@@ -84,16 +94,73 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
-    fun `a token with the permission reaches the controller, which answers 501 for now`() {
+    fun `a token with the permission and an allowed target reaches the controller, which answers 501 for now`() {
+        serveAllowedGroup()
         provisioningPaths.forEach { path ->
-            call(path, provisioner)
+            call(path, provisioner, ALLOWED_URL)
                 .andExpect(status().isNotImplemented)
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errorMessage").isNotEmpty)
         }
     }
 
+    @Test
+    fun `a group outside the allow-list answers 403 TARGET_NOT_ALLOWED on both reads and calls no VCS`() {
+        val client = serveAllowedGroup()
+        provisioningPaths.forEach { path ->
+            call(path, provisioner, "ssh://git@gitea.example.org/other/repo.git")
+                .andExpect(status().isForbidden)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
+        }
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `a VCS without a provisioning credential answers 403 TARGET_NOT_ALLOWED on both reads and calls no VCS`() {
+        val client = mock(GiteaClient::class.java)
+        val service = GiteaService(serviceProperties(VcsServiceType.GITEA, null), client)
+        `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenReturn(service)
+        provisioningPaths.forEach { path ->
+            call(path, provisioner, ALLOWED_URL)
+                .andExpect(status().isForbidden)
+                .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
+        }
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `an sshUrl no VCS supports answers 400 INVALID_REQUEST on both reads`() {
+        `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenThrow(IllegalStateException("There is no configured VCS service"))
+        provisioningPaths.forEach { path ->
+            call(path, provisioner, "ssh://git@elsewhere/team-a/repo.git")
+                .andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+        }
+    }
+
+    @Test
+    fun `the permission is checked before the target`() {
+        serveAllowedGroup()
+        call("/rest/api/2/groups", stranger, "ssh://git@gitea.example.org/other/repo.git")
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+    }
+
+    /**
+     * Serves a Gitea service that allows `team-a`; the returned mock is its provisioning client.
+     */
+    private fun serveAllowedGroup(): GiteaClient {
+        val client = mock(GiteaClient::class.java)
+        val provisioning = Provisioning(token = "t", allowedGroups = setOf("team-a"))
+        val service = GiteaService(serviceProperties(VcsServiceType.GITEA, provisioning), client)
+        `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenReturn(service)
+        return client
+    }
+
     companion object {
         private const val SSH_URL = "ssh://git@host/team-a/repo.git"
+        private const val ALLOWED_URL = "ssh://git@gitea.example.org/team-a/repo.git"
     }
 }

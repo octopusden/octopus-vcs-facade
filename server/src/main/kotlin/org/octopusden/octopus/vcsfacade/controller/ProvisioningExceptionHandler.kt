@@ -2,6 +2,8 @@ package org.octopusden.octopus.vcsfacade.controller
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeErrorCode
+import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestException
+import org.octopusden.octopus.vcsfacade.client.common.exception.TargetNotAllowedException
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -28,6 +30,28 @@ class ProvisioningExceptionHandler {
     fun handleAccessDenied(exception: AccessDeniedException): ErrorResponse {
         log.debug("Access denied", exception)
         return ErrorResponse(VcsFacadeErrorCode.OTHER, exception.message ?: "Forbidden")
+    }
+
+    @ExceptionHandler(TargetNotAllowedException::class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ResponseBody
+    fun handleTargetNotAllowed(exception: TargetNotAllowedException): ErrorResponse {
+        log.warn("Target not allowed: {}", exception.message)
+        return ErrorResponse(
+            VcsFacadeErrorCode.TARGET_NOT_ALLOWED,
+            exception.message ?: VcsFacadeErrorCode.TARGET_NOT_ALLOWED.defaultMessage,
+        )
+    }
+
+    @ExceptionHandler(InvalidRequestException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    fun handleInvalidRequest(exception: InvalidRequestException): ErrorResponse {
+        log.warn("Invalid request: {}", exception.message)
+        return ErrorResponse(
+            VcsFacadeErrorCode.INVALID_REQUEST,
+            exception.message ?: VcsFacadeErrorCode.INVALID_REQUEST.defaultMessage,
+        )
     }
 
     @ExceptionHandler(ProvisioningNotImplementedException::class)

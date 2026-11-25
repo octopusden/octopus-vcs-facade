@@ -4,6 +4,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
+import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.security.access.prepost.PreAuthorize
@@ -15,18 +16,21 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * Repository provisioning reads; exists only when `vcs-facade.provisioning.enabled=true`.
  *
- * Every call needs the `CREATE_REPOSITORIES` permission.
+ * Every call first needs the `CREATE_REPOSITORIES` permission, then a target the allow-list accepts.
  */
 @RestController
 @RequestMapping("rest/api/2")
 @ConditionalOnProvisioningEnabled
-class ProvisioningController {
+class ProvisioningController(
+    private val provisioningTargetResolver: ProvisioningTargetResolver,
+) {
     @GetMapping("groups", produces = [MediaType.APPLICATION_JSON_VALUE])
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
     fun getGroupExistence(
         @RequestParam("sshUrl") sshUrl: String,
     ): GroupExistence {
         log.info("Check the group of {}", sshUrl)
+        provisioningTargetResolver.resolve(sshUrl)
         throw ProvisioningNotImplementedException("The group check is not implemented yet")
     }
 
@@ -36,6 +40,7 @@ class ProvisioningController {
         @RequestParam("sshUrl") sshUrl: String,
     ): RepositoryState {
         log.info("Get the state of repository {}", sshUrl)
+        provisioningTargetResolver.resolve(sshUrl)
         throw ProvisioningNotImplementedException("The repository state read is not implemented yet")
     }
 

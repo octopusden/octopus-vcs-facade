@@ -53,9 +53,9 @@ The change is archived after the third pull request is merged.
 
 ## 4. Allow-list and credentials
 
-- [ ] 4.1 Failing tests: a group outside `allowed-groups` → `403 TARGET_NOT_ALLOWED` on both read
+- [x] 4.1 Failing tests: a group outside `allowed-groups` → `403 TARGET_NOT_ALLOWED` on both read
       endpoints with no VCS call; a VCS without a provisioning credential → the same.
-- [ ] 4.2 Build a provisioning Bitbucket/Gitea client per service from the provisioning
+- [x] 4.2 Build a provisioning Bitbucket/Gitea client per service from the provisioning
       credential; the existing clients are untouched.
 
 ## 5. Group check

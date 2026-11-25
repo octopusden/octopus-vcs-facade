@@ -47,6 +47,12 @@ import java.util.Date
 
 class GiteaService(
     vcsServiceProperties: VcsProperties.Service,
+    /**
+     * Creates and pushes with the provisioning credential; `null` when the service has none.
+     * Not wrapped in the retrying client: a create must not be repeated blindly.
+     * Tests pass a mock; production takes the default, built from the settings.
+     */
+    val provisioningClient: GiteaClient? = createProvisioningClient(vcsServiceProperties),
 ) : VcsService(vcsServiceProperties) {
     private val client: GiteaClient = ResilientGiteaClient(
         GiteaClassicClient(object : ClientParametersProvider {
@@ -407,6 +413,15 @@ class GiteaService(
 
     companion object {
         private val log = LoggerFactory.getLogger(GiteaService::class.java)
+
+        private fun createProvisioningClient(vcsServiceProperties: VcsProperties.Service): GiteaClient? =
+            vcsServiceProperties.provisioning?.takeIf { it.hasCredential }?.let { provisioning ->
+                GiteaClassicClient(object : ClientParametersProvider {
+                    override fun getApiUrl() = httpUrlOf(vcsServiceProperties)
+
+                    override fun getAuth() = provisioning.getCredentialProvider(vcsServiceProperties.type)
+                })
+            }
 
         fun GiteaBranch.toBranch(repository: Repository) =
             Branch(
