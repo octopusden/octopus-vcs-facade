@@ -30,8 +30,8 @@ class ProvisioningController(
         @RequestParam("sshUrl") sshUrl: String,
     ): GroupExistence {
         log.info("Check the group of {}", sshUrl)
-        provisioningTargetResolver.resolve(sshUrl)
-        throw ProvisioningNotImplementedException("The group check is not implemented yet")
+        val target = provisioningTargetResolver.resolve(sshUrl)
+        return GroupExistence(target.service.groupExists(target.group))
     }
 
     @GetMapping("repository/state", produces = [MediaType.APPLICATION_JSON_VALUE])

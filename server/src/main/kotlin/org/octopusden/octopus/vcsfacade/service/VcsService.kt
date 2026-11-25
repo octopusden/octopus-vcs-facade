@@ -46,6 +46,12 @@ abstract class VcsService(
 
     abstract fun getRepositories(): Sequence<Repository>
 
+    /**
+     * Whether the Bitbucket project or Gitea organisation exists, as the provisioning credential sees it.
+     * Only the provider's own "not found" means `false`; any other failure propagates.
+     */
+    abstract fun groupExists(group: String): Boolean
+
     abstract fun findRepository(
         group: String,
         repository: String,

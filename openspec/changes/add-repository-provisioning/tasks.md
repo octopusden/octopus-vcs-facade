@@ -60,9 +60,9 @@ The change is archived after the third pull request is merged.
 
 ## 5. Group check
 
-- [ ] 5.1 Failing tests per provider: existing group → `exists: true`; provider "not found" →
+- [x] 5.1 Failing tests per provider: existing group → `exists: true`; provider "not found" →
       `exists: false`; provider error → `5xx`.
-- [ ] 5.2 `GET /rest/api/2/groups` via Bitbucket `getProject` and Gitea `getOrganization`.
+- [x] 5.2 `GET /rest/api/2/groups` via Bitbucket `getProject` and Gitea `getOrganization`.
 
 ## 6. Repository state
 

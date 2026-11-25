@@ -108,6 +108,8 @@ class VcsServiceSshUrlParsingTest {
     ) : VcsService(properties) {
         override fun getRepositories(): Sequence<Repository> = TODO()
 
+        override fun groupExists(group: String): Boolean = TODO()
+
         override fun findRepository(
             group: String,
             repository: String,

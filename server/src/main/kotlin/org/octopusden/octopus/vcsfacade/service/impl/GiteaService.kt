@@ -62,6 +62,17 @@ class GiteaService(
         }),
     )
 
+    override fun groupExists(group: String): Boolean {
+        log.trace("=> groupExists({})", group)
+        val client = checkNotNull(provisioningClient) { "VCS service '$id' has no provisioning credential" }
+        return try {
+            client.getOrganization(group)
+            true
+        } catch (e: NotFoundException) {
+            false
+        }.also { log.trace("<= groupExists({}): {}", group, it) }
+    }
+
     override fun getRepositories(): Sequence<Repository> {
         log.trace("=> getRepositories()")
         return client

@@ -7,6 +7,7 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.octopusden.cloud.commons.security.client.AuthServerClient
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
+import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaOrganization
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
@@ -25,6 +26,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException as GiteaNotFoundException
 
 /**
  * Provisioning on, the auth server replaced by a mock: the roles come from the token's authorities,
@@ -94,14 +96,38 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
-    fun `a token with the permission and an allowed target reaches the controller, which answers 501 for now`() {
+    fun `a token with the permission and an allowed target reaches the state read, which answers 501 for now`() {
         serveAllowedGroup()
-        provisioningPaths.forEach { path ->
-            call(path, provisioner, ALLOWED_URL)
-                .andExpect(status().isNotImplemented)
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errorMessage").isNotEmpty)
-        }
+        call("/rest/api/2/repository/state", provisioner, ALLOWED_URL)
+            .andExpect(status().isNotImplemented)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorMessage").isNotEmpty)
+    }
+
+    @Test
+    fun `the group check answers exists true for a group the provider finds`() {
+        serveAllowedGroup().also { `when`(it.getOrganization("team-a")).thenReturn(mock(GiteaOrganization::class.java)) }
+        call("/rest/api/2/groups", provisioner, ALLOWED_URL)
+            .andExpect(status().isOk)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.exists").value(true))
+    }
+
+    @Test
+    fun `the group check answers exists false when the provider does not find the group`() {
+        serveAllowedGroup().also { `when`(it.getOrganization("team-a")).thenThrow(GiteaNotFoundException("no such organisation")) }
+        call("/rest/api/2/groups", provisioner, ALLOWED_URL)
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.exists").value(false))
+    }
+
+    @Test
+    fun `the group check answers 500 and never exists false when the provider fails`() {
+        serveAllowedGroup().also { `when`(it.getOrganization("team-a")).thenThrow(IllegalStateException("provider down")) }
+        call("/rest/api/2/groups", provisioner, ALLOWED_URL)
+            .andExpect(status().isInternalServerError)
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+            .andExpect(jsonPath("$.exists").doesNotExist())
     }
 
     @Test
