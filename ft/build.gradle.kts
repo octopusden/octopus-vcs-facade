@@ -21,6 +21,7 @@ fun String.getPort() =
         "gitea" -> 3000
         "opensearch" -> 9200
         "vcs-facade" -> 8080
+        "auth-server" -> 8080
         "valkey" -> 6379
         else -> throw Exception("Unknown service '$this'")
     }
@@ -69,6 +70,20 @@ ocTemplate {
         }
     }
 
+    service("auth-server") {
+        templateFile.set(rootProject.layout.projectDirectory.file("okd/auth-server.yaml"))
+        parameters.set(
+            commonOkdParameters + mapOf(
+                "WIREMOCK_IMAGE_TAG" to properties["wiremock.image-tag"] as String,
+                "AUTH_SERVER_MAPPINGS_CONTENT" to layout.projectDirectory
+                    .dir("docker/auth-server/mappings")
+                    .file("auth-server.json")
+                    .asFile
+                    .readText(),
+            ),
+        )
+    }
+
     service("valkey") {
         templateFile.set(rootProject.layout.projectDirectory.file("okd/valkey.yaml"))
         parameters.set(commonOkdParameters + mapOf("VALKEY_IMAGE_TAG" to properties["valkey.image-tag"] as String))
@@ -83,6 +98,7 @@ ocTemplate {
                 "VCS_FACADE_VCS_HOST" to getOkdExternalHost("testProfile".getExt()),
                 "VCS_FACADE_OPENSEARCH_HOST" to getOkdExternalHost("opensearch"),
                 "DEFERRED_RESULT_VALKEY_HOST" to "${ocTemplate.getPod("valkey")}-service",
+                "AUTH_SERVER_URL" to "http://${getOkdExternalHost("auth-server")}",
                 "APPLICATION_DEV_CONTENT" to layout.projectDirectory
                     .dir("docker/application-vcs-facade.yml")
                     .asFile
@@ -98,9 +114,9 @@ ocTemplate {
             ),
         )
         if ("testProfile".getExt() == "gitea") {
-            dependsOn.set(listOf("gitea", "opensearch", "valkey"))
+            dependsOn.set(listOf("gitea", "opensearch", "valkey", "auth-server"))
         } else {
-            dependsOn.set(listOf("bitbucket", "valkey"))
+            dependsOn.set(listOf("bitbucket", "valkey", "auth-server"))
         }
     }
 }
@@ -128,6 +144,7 @@ configure<ComposeExtension> {
             "GITEA_IMAGE_TAG" to providers.gradleProperty("gitea.image-tag").get(),
             "OPENSEARCH_IMAGE_TAG" to providers.gradleProperty("opensearch.image-tag").get(),
             "VALKEY_IMAGE_TAG" to providers.gradleProperty("valkey.image-tag").get(),
+            "WIREMOCK_IMAGE_TAG" to providers.gradleProperty("wiremock.image-tag").get(),
             "VCS_FACADE_IMAGE_TAG" to version as String,
         ),
     )
@@ -179,6 +196,7 @@ val ft by tasks.creating(Test::class) {
             systemProperties["test.vcs-external-host"] = getOkdExternalHost("testProfile".getExt())
             systemProperties["test.vcs-facade-host"] = ocTemplate.getOkdHost("vcs-facade")
             systemProperties["test.vcs-facade-external-host"] = getOkdExternalHost("vcs-facade")
+            systemProperties["test.auth-server-external-host"] = getOkdExternalHost("auth-server")
             ocTemplate.isRequiredBy(this)
         }
         "docker" -> {
@@ -186,6 +204,7 @@ val ft by tasks.creating(Test::class) {
             systemProperties["test.vcs-external-host"] = "testProfile".getExt().getDockerExternalHost()
             systemProperties["test.vcs-facade-host"] = "vcs-facade".getDockerHost()
             systemProperties["test.vcs-facade-external-host"] = "vcs-facade".getDockerExternalHost()
+            systemProperties["test.auth-server-external-host"] = "auth-server".getDockerExternalHost()
             dockerCompose.isRequiredBy(this)
         }
     }

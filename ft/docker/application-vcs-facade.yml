@@ -2,9 +2,19 @@ vcs-facade:
   job:
     fast-work-timout-secs: 0 #check retry mechanism
     retry-interval-secs: 1
+  provisioning:
+    enabled: true
 deferred-result:
   enabled: true
   namespace: "vcs-facade:deferred-result"
   valkey:
     host: ${DEFERRED_RESULT_VALKEY_HOST:localhost}
     port: 6379
+# The stub auth server of the functional tests (ft/docker/auth-server); realm and role names are known to the tests.
+auth-server:
+  url: ${AUTH_SERVER_URL}
+  realm: ft
+octopus-security:
+  roles:
+    ROLE_FT_PROVISIONER:
+      - CREATE_REPOSITORIES
