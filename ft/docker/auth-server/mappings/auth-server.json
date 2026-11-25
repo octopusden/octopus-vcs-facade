@@ -1,0 +1,89 @@
+{
+  "mappings": [
+    {
+      "name": "OIDC discovery",
+      "priority": 1,
+      "request": {
+        "method": "GET",
+        "urlPath": "/realms/ft/.well-known/openid-configuration"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"issuer\": \"{{request.baseUrl}}/realms/ft\", \"jwks_uri\": \"{{request.baseUrl}}/realms/ft/protocol/openid-connect/certs\", \"userinfo_endpoint\": \"{{request.baseUrl}}/realms/ft/protocol/openid-connect/userinfo\", \"token_endpoint\": \"{{request.baseUrl}}/realms/ft/protocol/openid-connect/token\"}"
+      }
+    },
+    {
+      "name": "userinfo of the token with the permission",
+      "priority": 1,
+      "request": {
+        "method": "GET",
+        "urlPath": "/realms/ft/protocol/openid-connect/userinfo",
+        "headers": {
+          "Authorization": {
+            "matches": "Bearer [^.]+\\.eyJzdWIiOiJmdC1w[^.]*\\.[^.]+"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "roles": [
+            "FT_PROVISIONER"
+          ],
+          "groups": []
+        }
+      }
+    },
+    {
+      "name": "userinfo of the token without the permission",
+      "priority": 1,
+      "request": {
+        "method": "GET",
+        "urlPath": "/realms/ft/protocol/openid-connect/userinfo",
+        "headers": {
+          "Authorization": {
+            "matches": "Bearer [^.]+\\.eyJzdWIiOiJmdC1n[^.]*\\.[^.]+"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "roles": [
+            "FT_GUEST"
+          ],
+          "groups": []
+        }
+      }
+    },
+    {
+      "name": "userinfo of any other token",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/realms/ft/protocol/openid-connect/userinfo"
+      },
+      "response": {
+        "status": 401,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "invalid_token"
+        }
+      }
+    }
+  ]
+}
