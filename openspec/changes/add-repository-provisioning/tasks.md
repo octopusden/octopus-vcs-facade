@@ -26,11 +26,11 @@ The change is archived after the third pull request is merged.
 
 ## 2. Contract in `common` and `client`
 
-- [ ] 2.1 DTOs `GroupExistence` and `RepositoryState` (`status`, `marker`, `defaultBranch`,
+- [x] 2.1 DTOs `GroupExistence` and `RepositoryState` (`status`, `marker`, `defaultBranch`,
       `hasCommits`, `rootCommitMarker`); extend `UnknownJsonFieldToleranceTest` for them.
-- [ ] 2.2 Error codes `INVALID_REQUEST` and `TARGET_NOT_ALLOWED` with their exceptions. Test: the
+- [x] 2.2 Error codes `INVALID_REQUEST` and `TARGET_NOT_ALLOWED` with their exceptions. Test: the
       error decoder maps each to its exception; an unknown code still decodes as today.
-- [ ] 2.3 `VcsFacadeClient`: `getGroupExistence` and `getRepositoryState`. Test against a mock
+- [x] 2.3 `VcsFacadeClient`: `getGroupExistence` and `getRepositoryState`. Test against a mock
       server: paths, query, decoding.
 
 ## 3. Off by default and security
