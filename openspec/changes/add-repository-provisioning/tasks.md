@@ -17,12 +17,10 @@ The change is archived after the third pull request is merged.
 
 ## 1. Dependencies and settings
 
-- [ ] 1.1 Move `external-systems-client.version` to 2.1.0; `./gradlew build` still passes
+- [x] 1.1 Move `external-systems-client.version` to 2.1.0; `./gradlew build` still passes
       unchanged.
 - [ ] 1.2 Both `ft` profiles (`bitbucket` and `gitea`) still pass unchanged after the move.
-- [ ] 1.3 Add `octopus-security-common` 2.0.20 with `spring-boot-starter-security`,
-      `spring-security-oauth2-resource-server` and `spring-security-oauth2-jose`.
-- [ ] 1.4 `ProvisioningProperties` (`vcs-facade.provisioning.enabled`) and per-service
+- [x] 1.3 `ProvisioningProperties` (`vcs-facade.provisioning.enabled`) and per-service
       `provisioning` (`token` or `username`/`password`, `allowed-groups`). Test: binding, default
       `enabled=false`, a service without `provisioning` still binds.
 
@@ -37,6 +35,9 @@ The change is archived after the third pull request is merged.
 
 ## 3. Off by default and security
 
+- [ ] 3.0 Add `octopus-security-common` 2.0.20 with `spring-boot-starter-security`,
+      `spring-security-oauth2-resource-server` and `spring-security-oauth2-jose`, in the same
+      commit as the security chains, so Spring Boot's default security never applies.
 - [ ] 3.1 Failing tests with default settings: the two read endpoints answer `404`; existing
       endpoints answer without a token and without basic auth; the context starts with no
       `auth-server.*` settings; an unmapped path answers `404` and an unsupported method `405`.
