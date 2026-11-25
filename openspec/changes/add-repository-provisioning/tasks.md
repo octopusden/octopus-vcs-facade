@@ -83,8 +83,8 @@ The change is archived after the third pull request is merged.
 
 ## 8. Docs
 
-- [ ] 8.1 README: provisioning settings, permission and allow-list.
-- [ ] 8.2 OpenAPI annotations on the two read endpoints, with every status and error code.
+- [x] 8.1 README: provisioning settings, permission and allow-list.
+- [x] 8.2 OpenAPI annotations on the two read endpoints, with every status and error code.
 
 # Pull request 2: request and zip checks
 
