@@ -33,13 +33,17 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestReviewer
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequestStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryStatus
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.client.common.dto.User
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.DateValue
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
+import org.octopusden.octopus.vcsfacade.service.RootCommitWalk
 import org.octopusden.octopus.vcsfacade.service.VcsService
+import org.octopusden.octopus.vcsfacade.service.presentRepositoryState
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -61,6 +65,25 @@ class GiteaService(
             override fun getAuth() = vcsServiceProperties.getCredentialProvider()
         }),
     )
+
+    override fun getRepositoryState(
+        group: String,
+        repository: String,
+    ): RepositoryState {
+        log.trace("=> getRepositoryState({}, {})", group, repository)
+        val client = checkNotNull(provisioningClient) { "VCS service '$id' has no provisioning credential" }
+        val giteaRepository = try {
+            client.getRepository(group, repository)
+        } catch (e: NotFoundException) {
+            // also the answer for an organisation that does not exist
+            return RepositoryState(RepositoryStatus.MISSING)
+        }
+        val root = giteaRepository
+            .takeUnless { it.empty == true }
+            ?.let { RootCommitWalk.find(giteaCommitPages(client, group, repository, it.defaultBranch)) }
+        return presentRepositoryState(giteaRepository.description, giteaRepository.defaultBranch, root)
+            .also { log.trace("<= getRepositoryState({}, {}): {}", group, repository, it) }
+    }
 
     override fun groupExists(group: String): Boolean {
         log.trace("=> groupExists({})", group)

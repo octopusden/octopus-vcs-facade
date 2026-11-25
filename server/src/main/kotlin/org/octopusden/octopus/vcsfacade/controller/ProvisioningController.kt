@@ -2,7 +2,6 @@ package org.octopusden.octopus.vcsfacade.controller
 
 import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
-import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
 import org.slf4j.LoggerFactory
@@ -40,8 +39,8 @@ class ProvisioningController(
         @RequestParam("sshUrl") sshUrl: String,
     ): RepositoryState {
         log.info("Get the state of repository {}", sshUrl)
-        provisioningTargetResolver.resolve(sshUrl)
-        throw ProvisioningNotImplementedException("The repository state read is not implemented yet")
+        val target = provisioningTargetResolver.resolve(sshUrl)
+        return target.service.getRepositoryState(target.group, target.repository)
     }
 
     companion object {

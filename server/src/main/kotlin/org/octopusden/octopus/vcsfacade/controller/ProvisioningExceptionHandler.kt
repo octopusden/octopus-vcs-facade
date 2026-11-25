@@ -4,7 +4,6 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeErrorCode
 import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestException
 import org.octopusden.octopus.vcsfacade.client.common.exception.TargetNotAllowedException
-import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
@@ -52,14 +51,6 @@ class ProvisioningExceptionHandler {
             VcsFacadeErrorCode.INVALID_REQUEST,
             exception.message ?: VcsFacadeErrorCode.INVALID_REQUEST.defaultMessage,
         )
-    }
-
-    @ExceptionHandler(ProvisioningNotImplementedException::class)
-    @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
-    @ResponseBody
-    fun handleNotImplemented(exception: ProvisioningNotImplementedException): ErrorResponse {
-        log.info("Not implemented: {}", exception.message)
-        return ErrorResponse(VcsFacadeErrorCode.OTHER, exception.message ?: "Not Implemented")
     }
 
     companion object {

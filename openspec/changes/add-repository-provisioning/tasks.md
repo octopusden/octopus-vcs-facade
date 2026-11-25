@@ -66,10 +66,10 @@ The change is archived after the third pull request is merged.
 
 ## 6. Repository state
 
-- [ ] 6.1 Failing tests per provider: missing repository and missing group → `MISSING`; present
+- [x] 6.1 Failing tests per provider: missing repository and missing group → `MISSING`; present
       without commits; present with a root trailer; trailer parsing (absent, other trailers,
       trailing whitespace); provider error → `5xx`, never `MISSING`.
-- [ ] 6.2 `GET /rest/api/2/repository/state`: description, default branch, first-parent walk to
+- [x] 6.2 `GET /rest/api/2/repository/state`: description, default branch, first-parent walk to
       the root commit.
 
 ## 7. Functional tests (both providers)
