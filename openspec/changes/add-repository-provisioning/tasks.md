@@ -35,20 +35,20 @@ The change is archived after the third pull request is merged.
 
 ## 3. Off by default and security
 
-- [ ] 3.0 Add `octopus-security-common` 2.0.20 with `spring-boot-starter-security`,
+- [x] 3.0 Add `octopus-security-common` 2.0.20 with `spring-boot-starter-security`,
       `spring-security-oauth2-resource-server` and `spring-security-oauth2-jose`, in the same
       commit as the security chains, so Spring Boot's default security never applies.
-- [ ] 3.1 Failing tests with default settings: the two read endpoints answer `404`; existing
+- [x] 3.1 Failing tests with default settings: the two read endpoints answer `404`; existing
       endpoints answer without a token and without basic auth; the context starts with no
       `auth-server.*` settings; an unmapped path answers `404` and an unsupported method `405`.
-- [ ] 3.2 Failing tests with provisioning enabled (`AuthServerClient` mocked): no token → `401`
+- [x] 3.2 Failing tests with provisioning enabled (`AuthServerClient` mocked): no token → `401`
       with a JSON body; token whose roles lack `CREATE_REPOSITORIES` → `403` with a JSON body;
       existing endpoints still answer without a token.
-- [ ] 3.3 `WebSecurityConfig` extending `CloudCommonWebSecurityConfig` with an overridden chain
+- [x] 3.3 `WebSecurityConfig` extending `CloudCommonWebSecurityConfig` with an overridden chain
       (provisioning paths authenticated, the rest `permitAll`), `JwtDecoder` with issuer
       validation, JSON entry point and access-denied handler, `PermissionEvaluator` over
       `BasePermissionEvaluator`; all conditional on `vcs-facade.provisioning.enabled=true`.
-- [ ] 3.4 A `permitAll` chain for the disabled case, so Spring Boot's default security never
+- [x] 3.4 A `permitAll` chain for the disabled case, so Spring Boot's default security never
       applies.
 
 ## 4. Allow-list and credentials

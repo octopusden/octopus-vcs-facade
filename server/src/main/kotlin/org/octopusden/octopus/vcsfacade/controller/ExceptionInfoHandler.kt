@@ -12,10 +12,12 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
+import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import org.octopusden.octopus.infrastructure.bitbucket.client.exception.NotFoundException as BitBucketNotFoundException
 import org.octopusden.octopus.infrastructure.gitea.client.exception.NotFoundException as GiteaNotFoundException
 
@@ -49,6 +51,20 @@ class ExceptionInfoHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     fun handleInvalidRequestId(exception: InvalidRequestIdException) = handleError(VcsFacadeErrorCode.OTHER, exception)
+
+    // A path or method nothing is mapped to: without these the catch-all below answers 500, so a switched-off
+    // endpoint would not look absent.
+    @ExceptionHandler(NoResourceFoundException::class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    fun handleNoResource(exception: NoResourceFoundException) =
+        ErrorResponse(VcsFacadeErrorCode.NOT_FOUND, exception.message ?: "Not Found")
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    @ResponseBody
+    fun handleMethodNotSupported(exception: HttpRequestMethodNotSupportedException) =
+        ErrorResponse(VcsFacadeErrorCode.OTHER, exception.message ?: "Method Not Allowed")
 
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
