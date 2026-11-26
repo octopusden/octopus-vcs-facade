@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade.security
 
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
@@ -9,6 +10,7 @@ import org.octopusden.cloud.commons.security.client.AuthServerClient
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaOrganization
 import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
+import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
@@ -23,6 +25,8 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.RequestPostProcessor
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -75,6 +79,14 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
+    fun `a HEAD without a token answers 401 on both reads`() {
+        // Spring MVC serves HEAD from the GET handlers, so security has to cover it too.
+        provisioningPaths.forEach { path ->
+            mockMvc.perform(head(path).param("sshUrl", SSH_URL)).andExpect(status().isUnauthorized)
+        }
+    }
+
+    @Test
     fun `a rejected token answers 401 with a JSON body`() {
         mockMvc
             .perform(
@@ -94,6 +106,21 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errorMessage").isNotEmpty)
         }
+    }
+
+    @Test
+    fun `a wrong method on a provisioning path passes security and answers 405`() {
+        provisioningPaths.forEach { path ->
+            mockMvc.perform(post(path).param("sshUrl", SSH_URL)).andExpect(status().isMethodNotAllowed)
+        }
+    }
+
+    @Test
+    fun `an existing GET carries no Spring Security response headers`() {
+        `when`(vcsManager.getRepository(anyString())).thenReturn(Repository(SSH_URL, "http://host/team-a/repo"))
+        val response = mockMvc.perform(get("/rest/api/2/repository").param("sshUrl", SSH_URL)).andReturn().response
+        listOf("Cache-Control", "Pragma", "Expires", "X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection")
+            .forEach { assertFalse(response.containsHeader(it), "$it is set: ${response.getHeaders(it)}") }
     }
 
     @Test

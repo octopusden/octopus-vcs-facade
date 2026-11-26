@@ -45,10 +45,10 @@ The change is archived after the third pull request is merged.
       with a JSON body; token whose roles lack `CREATE_REPOSITORIES` → `403` with a JSON body;
       existing endpoints still answer without a token.
 - [x] 3.3 `WebSecurityConfig` extending `CloudCommonWebSecurityConfig` with an overridden chain
-      (provisioning paths authenticated, the rest `permitAll`), `JwtDecoder` with issuer
+      (matching only the provisioning requests, which are authenticated; the rest passes no filter), `JwtDecoder` with issuer
       validation, JSON entry point and access-denied handler, `PermissionEvaluator` over
       `BasePermissionEvaluator`; all conditional on `vcs-facade.provisioning.enabled=true`.
-- [x] 3.4 A `permitAll` chain for the disabled case, so Spring Boot's default security never
+- [x] 3.4 A chain matching no request for the disabled case, so Spring Boot's default security never
       applies.
 
 ## 4. Allow-list and credentials
@@ -94,8 +94,9 @@ The change is archived after the third pull request is merged.
       50 MB); Spring multipart limits follow it.
 - [ ] 9.2 Error code `INVALID_CONTENT` with its exception; `VcsFacadeClient.createRepository`
       (multipart, the zip as a file part). Test against a mock server: path, query, parts.
-- [ ] 9.3 `POST /rest/api/2/repository` behind the same security and allow-list; after the
-      checks below it answers `501` until pull request 3.
+- [ ] 9.3 `POST /rest/api/2/repository` behind the same security and allow-list (added to the
+      chain's matcher and exempted from CSRF with `ignoringRequestMatchers`); after the checks
+      below it answers `501` until pull request 3.
 
 ## 10. Request checks
 

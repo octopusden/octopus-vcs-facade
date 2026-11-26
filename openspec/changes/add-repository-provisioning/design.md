@@ -168,9 +168,11 @@ executable bits survive. Symlinks inside the root are kept as symlinks (`120000`
   3.2.2), wired as the components registry does:
   - `WebSecurityConfig` extends `CloudCommonWebSecurityConfig` and overrides its `open`
     `securityFilterChain`. The library's own chain makes `anyRequest().authenticated()`, which
-    would lock every existing endpoint; the override makes the three provisioning paths
-    `authenticated()` and everything else `permitAll()`. CRS overrides it the same way to keep
-    `/rest/api/1-3/**` public.
+    would lock every existing endpoint; the override matches only the provisioning requests
+    (`GET` and `HEAD` on the two read paths, `POST` on the create path) and makes them
+    `authenticated()`. Every other request matches no chain and passes no security filter. CSRF
+    protection stays on and never checks the reads; the create, authenticated by a bearer token
+    alone, is exempted with `ignoringRequestMatchers`, as Spring advises for token-only APIs.
   - A `JwtDecoder` bean built from `auth-server.url` and `auth-server.realm` with issuer
     validation, as in CRS `WebSecurityConfig.jwtDecoder()`.
   - JSON `401`/`403` bodies through an entry point and an access-denied handler, so callers get

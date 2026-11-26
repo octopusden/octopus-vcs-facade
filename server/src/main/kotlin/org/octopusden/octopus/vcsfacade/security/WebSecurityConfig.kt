@@ -26,12 +26,16 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.access.AccessDeniedHandler
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher
+import org.springframework.security.web.util.matcher.OrRequestMatcher
 
 /**
  * Security of the repository provisioning endpoints, loaded only when provisioning is enabled.
  *
  * The library's own chain authenticates every request, which would lock the existing, public endpoints.
- * This one authenticates the provisioning calls (method and exact path) and leaves the rest open.
+ * This one matches only the provisioning calls (method and exact path) and authenticates them. Every other
+ * request matches no chain, so it passes no security filter and gets no Spring Security headers.
+ * CSRF protection stays on; it only ever checks unsafe methods, and the matched calls are all GET.
  * What a caller may do is decided on the method, by `@PreAuthorize` on the controller.
  *
  * `AuthServerClient` reads the auth server's OpenID configuration when the context starts, so the auth
@@ -49,13 +53,15 @@ class WebSecurityConfig(
     @Bean
     override fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
         http
-            .authorizeHttpRequests { auth ->
-                auth
-                    .requestMatchers(HttpMethod.GET, "/rest/api/2/groups", "/rest/api/2/repository/state")
-                    .authenticated()
-                    .anyRequest()
-                    .permitAll()
-            }.oauth2ResourceServer { oauth2 ->
+            .securityMatcher(
+                // HEAD too: Spring MVC serves it from the GET handlers.
+                OrRequestMatcher(
+                    PROVISIONING_PATHS.flatMap { path ->
+                        listOf(HttpMethod.GET, HttpMethod.HEAD).map { AntPathRequestMatcher.antMatcher(it, path) }
+                    },
+                ),
+            ).authorizeHttpRequests { it.anyRequest().authenticated() }
+            .oauth2ResourceServer { oauth2 ->
                 oauth2
                     .jwt { jwt ->
                         jwt.jwtAuthenticationConverter(
@@ -71,10 +77,6 @@ class WebSecurityConfig(
                 ex.authenticationEntryPoint(jsonAuthenticationEntryPoint())
                 ex.accessDeniedHandler(jsonAccessDeniedHandler())
             }.sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-            // Stateless resource server: every protected call carries a bearer token in a header, which a
-            // cross-site form post cannot set, and the existing POST and DELETE endpoints take no token at all.
-            .csrf { it.disable() }
-            .cors { it.disable() }
             .build()
 
     @Bean
@@ -104,5 +106,9 @@ class WebSecurityConfig(
         return NimbusJwtDecoder.withJwkSetUri("$issuer/protocol/openid-connect/certs").build().apply {
             setJwtValidator(DelegatingOAuth2TokenValidator(JwtValidators.createDefault(), JwtIssuerValidator(issuer)))
         }
+    }
+
+    private companion object {
+        val PROVISIONING_PATHS = listOf("/rest/api/2/groups", "/rest/api/2/repository/state")
     }
 }
