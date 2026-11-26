@@ -161,8 +161,9 @@ abstract class BaseVcsFacadeFunctionalTest(
 
     @Test
     fun existingEndpointStaysOpenTest() {
-        val response = httpGet("/rest/api/2/repository", testService.sshUrl(GROUP, REPOSITORY), null)
-        Assertions.assertEquals(200, response.statusCode(), response.body())
+        // Through the client without a token, which also waits out a deferred (202) answer.
+        val sshUrl = testService.sshUrl(GROUP, REPOSITORY)
+        Assertions.assertEquals(sshUrl, client.getRepository(sshUrl).sshUrl)
     }
 
     private fun httpGet(
@@ -189,15 +190,6 @@ abstract class BaseVcsFacadeFunctionalTest(
 
         private val PROVISIONING_PATHS = listOf("/rest/api/2/groups", "/rest/api/2/repository/state")
 
-        @JvmStatic
-        protected val provisioningClient = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
-            override fun getApiUrl() = "http://$vcsFacadeHost"
-
-            override fun getTimeRetryInMillis() = 180000
-
-            override fun getBearerToken() = ProvisioningTestAuth.withPermission()
-        })
-
         val vcsFacadeHost = System.getProperty("test.vcs-facade-host")
             ?: throw Exception("System property 'test.vcs-facade-host' must be defined")
 
@@ -206,6 +198,16 @@ abstract class BaseVcsFacadeFunctionalTest(
             override fun getApiUrl() = "http://$vcsFacadeHost"
 
             override fun getTimeRetryInMillis() = 180000
+        })
+
+        // Declared after `vcsFacadeHost`: the client reads its URL when it is built.
+        @JvmStatic
+        protected val provisioningClient = ClassicVcsFacadeClient(object : VcsFacadeClientParametersProvider {
+            override fun getApiUrl() = "http://$vcsFacadeHost"
+
+            override fun getTimeRetryInMillis() = 180000
+
+            override fun getBearerToken() = ProvisioningTestAuth.withPermission()
         })
 
         val vcsFacadeExternalHost = System.getProperty("test.vcs-facade-external-host")
