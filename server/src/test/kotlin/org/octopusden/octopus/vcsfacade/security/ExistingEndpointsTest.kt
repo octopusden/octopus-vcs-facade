@@ -8,6 +8,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.JobConfig
+import org.octopusden.octopus.vcsfacade.config.ProvisioningConfig
 import org.octopusden.octopus.vcsfacade.config.ProvisioningProperties
 import org.octopusden.octopus.vcsfacade.controller.ExceptionInfoHandler
 import org.octopusden.octopus.vcsfacade.controller.ProvisioningController
@@ -46,6 +47,7 @@ abstract class ExistingEndpointsTest {
     @Configuration
     @Import(
         ProvisioningController::class,
+        ProvisioningConfig::class,
         RepositoryController::class,
         ExceptionInfoHandler::class,
         ProvisioningExceptionHandler::class,

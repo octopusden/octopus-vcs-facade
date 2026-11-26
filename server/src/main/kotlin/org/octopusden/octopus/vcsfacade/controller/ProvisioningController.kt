@@ -15,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
+import org.octopusden.octopus.vcsfacade.service.ContentValidator
 import org.octopusden.octopus.vcsfacade.service.CreateRequestChecks
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
 import org.slf4j.LoggerFactory
@@ -65,6 +66,7 @@ import org.springframework.web.multipart.MultipartFile
 )
 class ProvisioningController(
     private val provisioningTargetResolver: ProvisioningTargetResolver,
+    private val contentValidator: ContentValidator,
 ) {
     @Operation(
         summary = "Check whether the project or organisation of a repository exists",
@@ -109,7 +111,8 @@ class ProvisioningController(
         summary = "Create a repository, optionally with its first content",
         description = "Takes the repository SSH URL as a query parameter and the marker, default branch, optional commit message " +
             "and optional zip `content` as multipart parts. A blank, multi-line, padded or over-long marker, or a missing branch, " +
-            "answers 400 INVALID_REQUEST. Requires the CREATE_REPOSITORIES permission. " +
+            "answers 400 INVALID_REQUEST; a zip that fails the content rules answers 400 INVALID_CONTENT " +
+            "naming the first offending entry. Requires the CREATE_REPOSITORIES permission. " +
             "Nothing is created yet: after the permission and allow-list checks the call answers 501.",
         security = [SecurityRequirement(name = BEARER_AUTH)],
     )
@@ -127,7 +130,7 @@ class ProvisioningController(
     )
     @PostMapping("repository", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
-    @Suppress("UNUSED_PARAMETER", "UnusedParameter") // commitMessage and content are read by the checks that follow
+    @Suppress("UNUSED_PARAMETER", "UnusedParameter") // commitMessage is read by the create that follows
     fun createRepository(
         @Parameter(description = "SSH URL of the repository, as configured for a VCS service", required = true)
         @RequestParam("sshUrl") sshUrl: String,
@@ -144,12 +147,17 @@ class ProvisioningController(
         @RequestParam("branch", required = false) branch: String?,
         @Parameter(description = "The message of the root commit")
         @RequestParam("commitMessage", required = false) commitMessage: String?,
-        @Parameter(description = "A zip with the initial files, sent as a file part")
+        @Parameter(
+            description = "A zip with the initial files, sent as a file part. 400 INVALID_CONTENT unless it opens as a zip, has no " +
+                "`.git` path segment, no absolute or escaping path, no symlink pointing outside, no duplicate path, " +
+                "and inflates to at most 10 times the size limit in at most 100,000 entries",
+        )
         @RequestPart("content", required = false) content: MultipartFile?,
     ): Nothing {
         val target = provisioningTargetResolver.resolve(sshUrl)
         log.info("Create repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
         CreateRequestChecks.validate(marker, branch)
+        content?.let { contentValidator.validate(it.bytes) }
         throw ProvisioningNotImplementedException("Repository create is not implemented yet")
     }
 

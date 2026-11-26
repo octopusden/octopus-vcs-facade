@@ -5,6 +5,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.VcsFacadeErrorCode
 import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidContentException
 import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestException
 import org.octopusden.octopus.vcsfacade.client.common.exception.TargetNotAllowedException
+import org.octopusden.octopus.vcsfacade.exception.ContentTooLargeException
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -72,7 +73,8 @@ class ProvisioningExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     fun handleInvalidContent(exception: InvalidContentException): ErrorResponse {
-        log.warn("Invalid content: {}", exception.message)
+        // The message names a caller-supplied entry, so it goes to the response, not to the log.
+        log.warn("Invalid content")
         return ErrorResponse(
             VcsFacadeErrorCode.INVALID_CONTENT,
             exception.message ?: VcsFacadeErrorCode.INVALID_CONTENT.defaultMessage,
@@ -84,7 +86,16 @@ class ProvisioningExceptionHandler {
     @ResponseBody
     fun handleUploadTooLarge(exception: MaxUploadSizeExceededException): ErrorResponse {
         log.warn("Upload too large: {}", exception.message)
-        return ErrorResponse(VcsFacadeErrorCode.INVALID_CONTENT, "The content is larger than the limit")
+        return ErrorResponse(VcsFacadeErrorCode.INVALID_CONTENT, UPLOAD_TOO_LARGE)
+    }
+
+    // Defensive: the container's limit normally answers first, and the validator checks the same size again.
+    @ExceptionHandler(ContentTooLargeException::class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    @ResponseBody
+    fun handleContentTooLarge(): ErrorResponse {
+        log.warn("Content too large")
+        return ErrorResponse(VcsFacadeErrorCode.INVALID_CONTENT, UPLOAD_TOO_LARGE)
     }
 
     // Temporary, until the create is implemented.
@@ -100,6 +111,7 @@ class ProvisioningExceptionHandler {
     }
 
     companion object {
+        private const val UPLOAD_TOO_LARGE = "The content is larger than the limit"
         private val log: Logger = LoggerFactory.getLogger(ProvisioningExceptionHandler::class.java)
     }
 }

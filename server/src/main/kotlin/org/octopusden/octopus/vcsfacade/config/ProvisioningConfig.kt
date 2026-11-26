@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.config
 
 import jakarta.servlet.MultipartConfigElement
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
+import org.octopusden.octopus.vcsfacade.service.ContentValidator
 import org.springframework.boot.web.servlet.MultipartConfigFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -37,6 +38,9 @@ class ProvisioningConfig {
      */
     @Bean
     fun multipartResolver(): MultipartResolver = StandardServletMultipartResolver().apply { setResolveLazily(true) }
+
+    @Bean
+    fun contentValidator(properties: ProvisioningProperties): ContentValidator = ContentValidator(properties.maxContentSize.toBytes())
 
     companion object {
         private const val REQUEST_OVERHEAD_BYTES = 64L * 1024

@@ -9,9 +9,9 @@ import org.mockito.Mockito.`when`
 import org.octopusden.cloud.commons.security.client.AuthServerClient
 import org.octopusden.cloud.commons.security.client.dto.UserInfo
 import org.octopusden.octopus.infrastructure.gitea.client.GiteaClient
-import org.octopusden.octopus.vcsfacade.config.ProvisioningConfig
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
+import org.octopusden.octopus.vcsfacade.service.TestZips
 import org.octopusden.octopus.vcsfacade.service.VcsManager
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
 import org.octopusden.octopus.vcsfacade.service.serviceProperties
@@ -40,7 +40,7 @@ import java.net.http.HttpResponse
  * does not do. The limit is 1 KB here.
  */
 @SpringBootTest(
-    classes = [ExistingEndpointsTest.WebTestConfig::class, ProvisioningConfig::class],
+    classes = [ExistingEndpointsTest.WebTestConfig::class],
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
         "vcs-facade.provisioning.enabled=true",
@@ -76,6 +76,7 @@ class ProvisioningUploadLimitTest {
     private fun upload(
         fileSize: Int,
         token: String? = "provisioner",
+        content: ByteArray = ByteArray(fileSize) { 'a'.code.toByte() },
     ): HttpResponse<String> {
         `when`(
             jwtDecoder.decode(anyString()),
@@ -101,7 +102,7 @@ class ProvisioningUploadLimitTest {
                 }
                 text("--$boundary\r\nContent-Disposition: form-data; name=\"content\"; filename=\"content.zip\"\r\n")
                 text("Content-Type: application/zip\r\n\r\n")
-                write(ByteArray(fileSize) { 'a'.code.toByte() })
+                write(content)
                 text("\r\n--$boundary--\r\n")
             }.toByteArray()
         val request = HttpRequest
@@ -125,7 +126,7 @@ class ProvisioningUploadLimitTest {
 
     @Test
     fun `an upload within the limit reaches the handler`() {
-        val response = upload(fileSize = 512)
+        val response = upload(fileSize = 0, content = TestZips.zip { file("a.txt", "x") })
         assertEquals(501, response.statusCode(), response.body())
     }
 

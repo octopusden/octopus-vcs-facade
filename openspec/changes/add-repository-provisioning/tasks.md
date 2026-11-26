@@ -106,10 +106,10 @@ The change is archived after the third pull request is merged.
 
 ## 11. Zip checks
 
-- [ ] 11.1 Failing tests: not a zip; `.git/` entry at the root and nested (`a/.git/HEAD`);
+- [x] 11.1 Failing tests: not a zip; `.git/` entry at the root and nested (`a/.git/HEAD`);
       absolute path; `../` escape; symlink pointing outside; duplicate paths; over the size
       limit → `413`; a valid zip unpacks with its executable bits and internal symlinks.
-- [ ] 11.2 `ContentValidator`, reading the entries with Commons Compress straight from the
+- [x] 11.2 `ContentValidator`, reading the entries with Commons Compress straight from the
       upload (no temporary directory); a zip-bomb guard of 10 times `max-content-size`
       uncompressed and 100,000 entries.
 

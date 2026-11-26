@@ -14,6 +14,7 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
+import org.octopusden.octopus.vcsfacade.service.TestZips
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
 import org.octopusden.octopus.vcsfacade.service.serviceProperties
 import org.springframework.beans.factory.annotation.Autowired
@@ -81,7 +82,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     ): ResultActions =
         mockMvc.perform(
             multipart("/rest/api/2/repository")
-                .file(MockMultipartFile("content", "content.zip", "application/zip", byteArrayOf(0x50, 0x4b)))
+                .file(MockMultipartFile("content", "content.zip", "application/zip", TestZips.zip { file("a.txt") }))
                 .param("sshUrl", sshUrl)
                 .also { builder ->
                     marker?.let { builder.param("marker", it) }
@@ -149,6 +150,54 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
                 .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
         }
         verifyNoInteractions(client)
+    }
+
+    private fun createWithZip(
+        zip: ByteArray,
+        sshUrl: String = ALLOWED_URL,
+        marker: String = "m-1",
+    ) = mockMvc.perform(
+        multipart("/rest/api/2/repository")
+            .file(MockMultipartFile("content", "content.zip", "application/zip", zip))
+            .param("sshUrl", sshUrl)
+            .param("marker", marker)
+            .param("branch", "main")
+            .accept(MediaType.APPLICATION_JSON)
+            .with(provisioner),
+    )
+
+    @Test
+    fun `create with an invalid zip answers 400 INVALID_CONTENT naming the entry and calls no VCS`() {
+        val client = serveAllowedGroup()
+        createWithZip(TestZips.zip { file("ok.txt").file("a/.git/HEAD") })
+            .andExpect(status().isBadRequest)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorCode").value("INVALID_CONTENT"))
+            .andExpect(jsonPath("$.errorMessage").value(org.hamcrest.Matchers.containsString("a/.git/HEAD")))
+        createWithZip("not a zip".toByteArray())
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.errorCode").value("INVALID_CONTENT"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create with a valid zip answers 501 and calls no VCS`() {
+        val client = serveAllowedGroup()
+        createWithZip(TestZips.zip { executable("run.sh").file("src/a.txt").symlink("link", "src/a.txt") })
+            .andExpect(status().isNotImplemented)
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `the request is checked before the zip, the allow-list before both`() {
+        serveAllowedGroup()
+        val badZip = TestZips.zip { file("../x") }
+        createWithZip(badZip, marker = " bad")
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+        createWithZip(badZip, sshUrl = "ssh://git@gitea.example.org/other/repo.git", marker = " bad")
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
     }
 
     @Test
