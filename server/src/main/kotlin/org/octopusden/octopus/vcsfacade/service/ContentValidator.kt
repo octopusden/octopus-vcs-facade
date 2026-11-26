@@ -58,6 +58,12 @@ class ContentValidator(
         return ValidatedZip(content, state.entries, state.namesInZip)
     }
 
+    /** What [read] found: the number of bytes the entry holds, and its content up to the `keep` limit. */
+    private class EntryRead(
+        val size: Long,
+        val kept: ByteArray,
+    )
+
     private class Collected {
         val entries = mutableListOf<ZipContentEntry>()
         val namesInZip = HashMap<String, String>()
@@ -80,31 +86,28 @@ class ContentValidator(
         if (path.isEmpty()) throw reject(name, "has no file name")
         state.declaredTotal += maxOf(entry.size, 0)
         if (state.declaredTotal > maxContentBytes * UNCOMPRESSED_FACTOR) throw tooBig(name)
-        val type = when {
-            kind == SYMLINK -> Type.SYMLINK
-            entry.unixMode and OWNER_EXECUTE != 0 -> Type.EXECUTABLE
-            else -> Type.REGULAR
+        val type = entryType(entry.unixMode)
+        val read = read(zip, entry, state, if (type == Type.SYMLINK) MAX_SYMLINK_TARGET else 0)
+        if (entry.size >= 0 && entry.size != read.size) {
+            throw reject(name, "holds ${read.size} bytes, not the ${entry.size} its header says")
         }
-        val size = read(zip, entry, state, if (type == Type.SYMLINK) MAX_SYMLINK_TARGET else Long.MAX_VALUE) {
-            if (type == Type.SYMLINK) checkSymlink(name, path, String(it, Charsets.UTF_8))
-        }
+        if (type == Type.SYMLINK) checkSymlink(name, path, read)
         claim(name, path, state)
-        state.entries += ZipContentEntry(path.joinToString("/"), type, size)
+        state.entries += ZipContentEntry(path.joinToString("/"), type, read.size)
         state.namesInZip[path.joinToString("/")] = name
     }
 
     /**
      * Reads the entry through to its end, counting what it really holds.
      *
-     * @param keep the content of an entry up to this many bytes, handed to [onContent]
+     * @param keep the content of an entry is kept up to this many bytes
      */
     private fun read(
         zip: ZipFile,
         entry: ZipArchiveEntry,
         state: Collected,
         keep: Long,
-        onContent: (ByteArray) -> Unit,
-    ): Long {
+    ): EntryRead {
         val kept = ByteArrayOutputStream()
         var total = 0L
         zip.getInputStream(entry).use { input ->
@@ -118,19 +121,16 @@ class ContentValidator(
                 if (total <= keep) kept.write(buffer, 0, read)
             }
         }
-        if (entry.size >= 0 && entry.size != total) throw reject(entry.name, "holds $total bytes, not the ${entry.size} its header says")
-        if (keep != Long.MAX_VALUE) {
-            if (total > keep) throw reject(entry.name, "is a symlink with a target of more than $keep bytes")
-            onContent(kept.toByteArray())
-        }
-        return total
+        return EntryRead(total, kept.toByteArray())
     }
 
     private fun checkSymlink(
         name: String,
         path: List<String>,
-        target: String,
+        read: EntryRead,
     ) {
+        if (read.size > MAX_SYMLINK_TARGET) throw reject(name, "is a symlink with a target of more than $MAX_SYMLINK_TARGET bytes")
+        val target = String(read.kept, Charsets.UTF_8)
         if (target.isBlank()) throw reject(name, "is a symlink with no target")
         resolveOrReject(target, name, path.dropLast(1)) { "is a symlink whose target '${target.escaped()}' $it" }
     }
@@ -214,6 +214,13 @@ class ContentValidator(
         private const val MAX_SYMLINK_TARGET = 4096L
         private const val BUFFER_SIZE = 8192
         private val DRIVE = Regex("^[A-Za-z]:")
+
+        private fun entryType(unixMode: Int) =
+            when {
+                unixMode and FILE_TYPE_MASK == SYMLINK -> Type.SYMLINK
+                unixMode and OWNER_EXECUTE != 0 -> Type.EXECUTABLE
+                else -> Type.REGULAR
+            }
     }
 }
 
