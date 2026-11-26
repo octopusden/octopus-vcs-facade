@@ -10,6 +10,7 @@ import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseBody
@@ -17,9 +18,9 @@ import org.springframework.web.bind.annotation.ResponseStatus
 
 /**
  * Errors of the repository provisioning calls. Ordered before [ExceptionInfoHandler], whose catch-all would
- * otherwise answer these with 500.
+ * otherwise answer these with 500. Scoped to [ProvisioningController] so the other endpoints keep their behaviour.
  */
-@ControllerAdvice
+@ControllerAdvice(assignableTypes = [ProvisioningController::class])
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class ProvisioningExceptionHandler {
     // Thrown by `@PreAuthorize` inside the controller call, where Spring Security's filter no longer sees it.
@@ -50,6 +51,17 @@ class ProvisioningExceptionHandler {
         return ErrorResponse(
             VcsFacadeErrorCode.INVALID_REQUEST,
             exception.message ?: VcsFacadeErrorCode.INVALID_REQUEST.defaultMessage,
+        )
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    fun handleMissingParameter(exception: MissingServletRequestParameterException): ErrorResponse {
+        log.warn("Invalid request: {}", exception.message)
+        return ErrorResponse(
+            VcsFacadeErrorCode.INVALID_REQUEST,
+            exception.message,
         )
     }
 

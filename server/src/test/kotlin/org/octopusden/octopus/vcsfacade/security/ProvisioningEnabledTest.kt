@@ -203,6 +203,17 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
+    fun `a missing sshUrl answers 400 INVALID_REQUEST on both reads`() {
+        provisioningPaths.forEach { path ->
+            mockMvc
+                .perform(get(path).accept(MediaType.APPLICATION_JSON).with(provisioner))
+                .andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+        }
+    }
+
+    @Test
     fun `the permission is checked before the target`() {
         serveAllowedGroup()
         call("/rest/api/2/groups", stranger, "ssh://git@gitea.example.org/other/repo.git")
