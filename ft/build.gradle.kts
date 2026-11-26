@@ -222,6 +222,8 @@ dependencies {
     ftImplementation(project(":client"))
     ftImplementation(project(":common"))
     ftImplementation(project(":test-common"))
+    // Writes the test zips with Unix modes, which java.util.zip cannot.
+    ftImplementation("org.apache.commons:commons-compress:${properties["commons-compress.version"]}")
     ftImplementation("org.junit.jupiter:junit-jupiter-engine")
     ftImplementation("org.junit.jupiter:junit-jupiter-params")
     // Gradle no longer puts the JUnit Platform launcher on the test runtime classpath itself.
