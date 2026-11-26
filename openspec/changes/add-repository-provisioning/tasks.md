@@ -100,9 +100,9 @@ The change is archived after the third pull request is merged.
 
 ## 10. Request checks
 
-- [ ] 10.1 Failing tests: blank, multi-line, whitespace-padded or over-255 marker; missing
+- [x] 10.1 Failing tests: blank, multi-line, whitespace-padded or over-255 marker; missing
       `branch` → `400 INVALID_REQUEST`, no VCS call.
-- [ ] 10.2 `CreateRequestChecks`.
+- [x] 10.2 `CreateRequestChecks`.
 
 ## 11. Zip checks
 

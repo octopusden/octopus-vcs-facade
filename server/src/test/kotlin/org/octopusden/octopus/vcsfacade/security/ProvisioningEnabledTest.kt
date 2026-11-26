@@ -76,14 +76,17 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     private fun create(
         auth: RequestPostProcessor? = null,
         sshUrl: String = SSH_URL,
+        marker: String? = "m-1",
+        branch: String? = "main",
     ): ResultActions =
         mockMvc.perform(
             multipart("/rest/api/2/repository")
                 .file(MockMultipartFile("content", "content.zip", "application/zip", byteArrayOf(0x50, 0x4b)))
                 .param("sshUrl", sshUrl)
-                .param("marker", "m-1")
-                .param("branch", "main")
-                .accept(MediaType.APPLICATION_JSON)
+                .also { builder ->
+                    marker?.let { builder.param("marker", it) }
+                    branch?.let { builder.param("branch", it) }
+                }.accept(MediaType.APPLICATION_JSON)
                 .also { builder -> auth?.let { builder.with(it) } },
         )
 
@@ -127,8 +130,33 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     fun `create without any content part still answers 501`() {
         serveAllowedGroup()
         mockMvc
-            .perform(multipart("/rest/api/2/repository").param("sshUrl", ALLOWED_URL).with(provisioner))
-            .andExpect(status().isNotImplemented)
+            .perform(
+                multipart("/rest/api/2/repository")
+                    .param("sshUrl", ALLOWED_URL)
+                    .param("marker", "m-1")
+                    .param("branch", "main")
+                    .with(provisioner),
+            ).andExpect(status().isNotImplemented)
+    }
+
+    @Test
+    fun `create with an invalid marker or a missing branch answers 400 INVALID_REQUEST and calls no VCS`() {
+        val client = serveAllowedGroup()
+        listOf("m 1\nx" to "main", " m-1" to "main", "m".repeat(256) to "main", "m-1" to null, "m-1" to " ", null to "main").forEach {
+            create(provisioner, ALLOWED_URL, it.first, it.second)
+                .andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+        }
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `the allow-list is checked before the request`() {
+        serveAllowedGroup()
+        create(provisioner, "ssh://git@gitea.example.org/other/repo.git", marker = " bad", branch = null)
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
     }
 
     @Test

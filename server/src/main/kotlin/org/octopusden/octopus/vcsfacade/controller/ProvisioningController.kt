@@ -15,6 +15,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
+import org.octopusden.octopus.vcsfacade.service.CreateRequestChecks
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -107,7 +108,8 @@ class ProvisioningController(
     @Operation(
         summary = "Create a repository, optionally with its first content",
         description = "Takes the repository SSH URL as a query parameter and the marker, default branch, optional commit message " +
-            "and optional zip `content` as multipart parts. Requires the CREATE_REPOSITORIES permission. " +
+            "and optional zip `content` as multipart parts. A blank, multi-line, padded or over-long marker, or a missing branch, " +
+            "answers 400 INVALID_REQUEST. Requires the CREATE_REPOSITORIES permission. " +
             "Nothing is created yet: after the permission and allow-list checks the call answers 501.",
         security = [SecurityRequirement(name = BEARER_AUTH)],
     )
@@ -125,14 +127,20 @@ class ProvisioningController(
     )
     @PostMapping("repository", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
-    @Suppress("UNUSED_PARAMETER", "UnusedParameter") // read by the request and content checks that follow
+    @Suppress("UNUSED_PARAMETER", "UnusedParameter") // commitMessage and content are read by the checks that follow
     fun createRepository(
         @Parameter(description = "SSH URL of the repository, as configured for a VCS service", required = true)
         @RequestParam("sshUrl") sshUrl: String,
         // Optional here so an upload over the limit, whose parts are then unreadable, answers 413 and not 400.
-        @Parameter(description = "Stored as the repository description and as a trailer of the root commit")
+        @Parameter(
+            description = "Required, validated by the server (400 INVALID_REQUEST when missing or invalid): non-blank, one line, " +
+                "no leading or trailing whitespace, at most 255 characters. Stored as the repository description " +
+                "and as a trailer of the root commit",
+        )
         @RequestParam("marker", required = false) marker: String?,
-        @Parameter(description = "The default branch of the repository")
+        @Parameter(
+            description = "Required, validated by the server (400 INVALID_REQUEST when missing): the default branch of the repository",
+        )
         @RequestParam("branch", required = false) branch: String?,
         @Parameter(description = "The message of the root commit")
         @RequestParam("commitMessage", required = false) commitMessage: String?,
@@ -141,6 +149,7 @@ class ProvisioningController(
     ): Nothing {
         val target = provisioningTargetResolver.resolve(sshUrl)
         log.info("Create repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
+        CreateRequestChecks.validate(marker, branch)
         throw ProvisioningNotImplementedException("Repository create is not implemented yet")
     }
 
