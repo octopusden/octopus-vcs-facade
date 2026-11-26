@@ -48,7 +48,7 @@ class ProvisioningController(
         ApiResponse(responseCode = "200", description = "The group exists or is reported missing by the VCS"),
         ApiResponse(
             responseCode = "400",
-            description = "INVALID_REQUEST: no configured VCS service supports the SSH URL",
+            description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it",
             content = [Content(schema = Schema(implementation = ErrorResponse::class))],
         ),
         ApiResponse(
@@ -91,7 +91,7 @@ class ProvisioningController(
         ApiResponse(responseCode = "200", description = "The state of the repository, MISSING or PRESENT"),
         ApiResponse(
             responseCode = "400",
-            description = "INVALID_REQUEST: no configured VCS service supports the SSH URL",
+            description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it",
             content = [Content(schema = Schema(implementation = ErrorResponse::class))],
         ),
         ApiResponse(

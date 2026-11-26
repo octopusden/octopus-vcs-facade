@@ -73,7 +73,7 @@ A missing group or repository is a normal `200` answer. Errors:
 
 | Status | Cause                                                                                                                       |
 |--------|-----------------------------------------------------------------------------------------------------------------------------|
-| 400    | `INVALID_REQUEST`: no configured VCS service supports the SSH URL.                                                          |
+| 400    | `INVALID_REQUEST`: the `sshUrl` is missing, or no configured VCS service supports the SSH URL.                              |
 | 401    | No token, or the token is rejected.                                                                                         |
 | 403    | The token lacks `CREATE_REPOSITORIES`, or `TARGET_NOT_ALLOWED`: the VCS has no provisioning credential or the group is not allowed. |
 | 5xx    | The VCS could not be read. This is never answered as "missing".                                                             |
