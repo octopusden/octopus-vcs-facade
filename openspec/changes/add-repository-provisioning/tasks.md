@@ -19,7 +19,7 @@ The change is archived after the third pull request is merged.
 
 - [x] 1.1 Move `external-systems-client.version` to 2.1.0; `./gradlew build` still passes
       unchanged.
-- [ ] 1.2 Both `ft` profiles (`bitbucket` and `gitea`) still pass unchanged after the move.
+- [x] 1.2 Both `ft` profiles (`bitbucket` and `gitea`) still pass unchanged after the move.
 - [x] 1.3 `ProvisioningProperties` (`vcs-facade.provisioning.enabled`) and per-service
       `provisioning` (`token` or `username`/`password`, `allowed-groups`). Test: binding, default
       `enabled=false`, a service without `provisioning` still binds.
@@ -74,12 +74,12 @@ The change is archived after the third pull request is merged.
 
 ## 7. Functional tests (both providers)
 
-- [ ] 7.1 ft environment (Docker and OKD): a WireMock stub auth server serving OIDC discovery, a
+- [x] 7.1 ft environment (Docker and OKD): a WireMock stub auth server serving OIDC discovery, a
       JWKS for a test RSA key, and userinfo per token; the server runs with provisioning enabled,
       provisioning credentials, an allow-list and `auth-server.*` pointing at the stub; the
       suite signs one token with the permission and one without.
-- [ ] 7.2 Group check and state against real providers, including missing ones.
-- [ ] 7.3 Allow-list, `401` and `403` checks; existing endpoints still open.
+- [x] 7.2 Group check and state against real providers, including missing ones.
+- [x] 7.3 Allow-list, `401` and `403` checks; existing endpoints still open.
 
 ## 8. Docs
 
