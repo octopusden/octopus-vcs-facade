@@ -44,7 +44,8 @@ import org.springframework.web.multipart.MultipartFile
 @ApiResponses(
     ApiResponse(
         responseCode = "400",
-        description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it",
+        description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it; on the create also a bad " +
+            "marker or a missing branch. INVALID_CONTENT: on the create, the zip breaks a content rule",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
     ),
     ApiResponse(
@@ -113,7 +114,7 @@ class ProvisioningController(
             "and optional zip `content` as multipart parts. A blank, multi-line, padded or over-long marker, or a missing branch, " +
             "answers 400 INVALID_REQUEST; a zip that fails the content rules answers 400 INVALID_CONTENT " +
             "naming the first offending entry. Requires the CREATE_REPOSITORIES permission. " +
-            "Nothing is created yet: after the permission and allow-list checks the call answers 501.",
+            "Nothing is created yet: once the permission, allow-list, request and content checks pass, the call answers 501.",
         security = [SecurityRequirement(name = BEARER_AUTH)],
     )
     @ApiResponses(

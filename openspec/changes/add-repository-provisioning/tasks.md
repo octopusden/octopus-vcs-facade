@@ -120,8 +120,8 @@ The change is archived after the third pull request is merged.
 
 ## 13. Docs
 
-- [ ] 13.1 README: `max-content-size` and the content rules.
-- [ ] 13.2 OpenAPI annotations on the create endpoint, with the statuses so far.
+- [x] 13.1 README: `max-content-size` and the content rules.
+- [x] 13.2 OpenAPI annotations on the create endpoint, with the statuses so far.
 
 # Pull request 3: create
 
