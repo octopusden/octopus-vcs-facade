@@ -43,6 +43,7 @@ import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
 import org.octopusden.octopus.vcsfacade.service.RootCommitWalk
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.octopusden.octopus.vcsfacade.service.presentRepositoryState
+import org.octopusden.octopus.vcsfacade.service.readOfFoundRepository
 import org.slf4j.LoggerFactory
 import java.util.Date
 
@@ -80,11 +81,19 @@ class BitbucketService(
             null
         }
         val head = firstPage?.values?.firstOrNull()
-        val root = firstPage?.takeIf { head != null }?.let { RootCommitWalk.find(bitbucketCommitPages(client, group, repository, it)) }
+        // From here on the repository is known to exist: a "not found" is a failed read, not a missing repository.
+        val root = firstPage?.takeIf { head != null }?.let {
+            readOfFoundRepository<NotFoundException, _>(group, repository) {
+                RootCommitWalk.find(bitbucketCommitPages(client, group, repository, it))
+            }
+        }
         // The client cannot read the default branch itself; it is named only when a single branch points at the head.
         val defaultBranch = head
-            ?.let { client.getBranches(group, repository).filter { branch -> branch.latestCommit == head.id } }
-            ?.singleOrNull()
+            ?.let {
+                readOfFoundRepository<NotFoundException, _>(group, repository) {
+                    client.getBranches(group, repository).filter { branch -> branch.latestCommit == head.id }
+                }
+            }?.singleOrNull()
             ?.displayId
         return presentRepositoryState(bitbucketRepository.description, defaultBranch, root)
             .also { log.trace("<= getRepositoryState({}, {}): {}", group, repository, it) }

@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.service
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyMap
 import org.mockito.ArgumentMatchers.anyString
@@ -154,6 +155,31 @@ class RepositoryStateProviderTest {
         assertThrows(IllegalStateException::class.java) { gitea.getRepositoryState("team", "repo") }
     }
 
+    @Test
+    fun `gitea not found while reading the history is a failed read and not a missing repository`() {
+        `when`(giteaClient.getRepository("team", "repo")).thenReturn(giteaRepository())
+        `when`(giteaClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(GiteaNotFoundException("gone"))
+        assertFailedRead { gitea.getRepositoryState("team", "repo") }
+    }
+
+    @Test
+    fun `gitea not found on a later page is a failed read`() {
+        `when`(giteaClient.getRepository("team", "repo")).thenReturn(giteaRepository())
+        `when`(giteaClient.getCommits(anyString(), anyString(), anyMap())).thenAnswer { invocation ->
+            if (invocation.getArgument<Map<String, Any>>(2)["page"] == 1) {
+                GiteaEntityList(true, listOf(giteaCommit("b", "second", "a")))
+            } else {
+                throw GiteaNotFoundException("gone")
+            }
+        }
+        assertFailedRead { gitea.getRepositoryState("team", "repo") }
+    }
+
+    private fun assertFailedRead(call: () -> Any?) {
+        val e = assertThrows(IllegalStateException::class.java) { call() }
+        assertTrue(e.cause is GiteaNotFoundException || e.cause is BitbucketNotFoundException, "cause: ${e.cause}")
+    }
+
     // Bitbucket
 
     // The mock is made first: stubbing inside the argument of another stubbing is rejected by Mockito.
@@ -290,5 +316,27 @@ class RepositoryStateProviderTest {
         givenBitbucketRepository()
         `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(IllegalStateException("500"))
         assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
+    }
+
+    @Test
+    fun `bitbucket not found on a later commits page is a failed read and not a missing repository`() {
+        givenBitbucketRepository()
+        `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenAnswer { invocation ->
+            val start = invocation.getArgument<Map<String, Any>>(2)["start"] as Int
+            if (start == 0) {
+                BitbucketEntityList(listOf(bitbucketCommit("c", "third", "b")), 1, false, 0, 100, 1)
+            } else {
+                throw BitbucketNotFoundException("gone")
+            }
+        }
+        assertFailedRead { bitbucket.getRepositoryState("proj", "repo") }
+    }
+
+    @Test
+    fun `bitbucket not found while reading the branches is a failed read`() {
+        givenBitbucketRepository()
+        bitbucketPages(listOf(bitbucketCommit("a", rootMessage)))
+        `when`(bitbucketClient.getBranches(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("gone"))
+        assertFailedRead { bitbucket.getRepositoryState("proj", "repo") }
     }
 }

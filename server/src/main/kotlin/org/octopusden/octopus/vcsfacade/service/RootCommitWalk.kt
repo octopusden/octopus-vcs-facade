@@ -64,3 +64,20 @@ fun presentRepositoryState(
     hasCommits = root != null,
     rootCommitMarker = root?.let { ProvisioningMarker.parse(it.message) },
 )
+
+/**
+ * Runs a read made after the provider has already found the repository. A provider "not found" ([E]) there means
+ * the repository vanished or became unreadable mid-read: that is a failed read, never a missing repository.
+ */
+internal inline fun <reified E : Exception, T> readOfFoundRepository(
+    group: String,
+    repository: String,
+    read: () -> T,
+): T =
+    runCatching(read).getOrElse {
+        throw if (it is E) {
+            IllegalStateException("Repository '$group/$repository' was found but could not be read: ${it.message}", it)
+        } else {
+            it
+        }
+    }

@@ -44,6 +44,7 @@ import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate.HashOrRefValue
 import org.octopusden.octopus.vcsfacade.service.RootCommitWalk
 import org.octopusden.octopus.vcsfacade.service.VcsService
 import org.octopusden.octopus.vcsfacade.service.presentRepositoryState
+import org.octopusden.octopus.vcsfacade.service.readOfFoundRepository
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -80,7 +81,11 @@ class GiteaService(
         }
         val root = giteaRepository
             .takeUnless { it.empty == true }
-            ?.let { RootCommitWalk.find(giteaCommitPages(client, group, repository, it.defaultBranch)) }
+            ?.let {
+                readOfFoundRepository<NotFoundException, _>(group, repository) {
+                    RootCommitWalk.find(giteaCommitPages(client, group, repository, it.defaultBranch))
+                }
+            }
         return presentRepositoryState(giteaRepository.description, giteaRepository.defaultBranch, root)
             .also { log.trace("<= getRepositoryState({}, {}): {}", group, repository, it) }
     }

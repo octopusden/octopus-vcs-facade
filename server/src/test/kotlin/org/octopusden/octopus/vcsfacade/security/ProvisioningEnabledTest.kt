@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.security
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.anyMap
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
@@ -161,6 +162,27 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     fun `the state read answers 500 OTHER and no status when the provider fails`() {
         val client = serveAllowedGroup()
         `when`(client.getRepository("team-a", "repo")).thenThrow(IllegalStateException("provider down"))
+        call("/rest/api/2/repository/state", provisioner, ALLOWED_URL)
+            .andExpect(status().isInternalServerError)
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+            .andExpect(jsonPath("$.status").doesNotExist())
+    }
+
+    @Test
+    fun `the state read answers 500 OTHER and not MISSING when the history disappears after the repository was found`() {
+        val client = serveAllowedGroup()
+        `when`(client.getRepository("team-a", "repo")).thenReturn(
+            GiteaRepository(
+                id = 1,
+                name = "repo",
+                fullName = "team-a/repo",
+                avatarUrl = "",
+                description = "m-1",
+                defaultBranch = "main",
+                empty = false,
+            ),
+        )
+        `when`(client.getCommits(anyString(), anyString(), anyMap())).thenThrow(GiteaNotFoundException("gone"))
         call("/rest/api/2/repository/state", provisioner, ALLOWED_URL)
             .andExpect(status().isInternalServerError)
             .andExpect(jsonPath("$.errorCode").value("OTHER"))

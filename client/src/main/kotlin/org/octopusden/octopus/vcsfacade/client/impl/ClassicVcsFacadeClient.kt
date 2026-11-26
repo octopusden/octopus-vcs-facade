@@ -9,7 +9,6 @@ import feign.Request
 import feign.httpclient.ApacheHttpClient
 import feign.jackson.JacksonDecoder
 import feign.jackson.JacksonEncoder
-import feign.slf4j.Slf4jLogger
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
@@ -17,6 +16,7 @@ import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetryer
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.slf4j.LoggerFactory
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -145,7 +145,7 @@ class ClassicVcsFacadeClient(
                 .builder()
                 .client(ApacheHttpClient())
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
-                .logger(Slf4jLogger(VcsFacadeClient::class.java))
+                .logger(AuthorizationRedactingLogger(LoggerFactory.getLogger(VcsFacadeClient::class.java)))
                 .logLevel(Logger.Level.FULL)
                 .encoder(JacksonEncoder(objectMapper))
                 .requestInterceptor { template ->
