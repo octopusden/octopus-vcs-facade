@@ -27,8 +27,11 @@ services:
   auth-server:
     container_name: vcs-facade-ft-auth-server
     image: ${DOCKER_REGISTRY}/wiremock/wiremock:${WIREMOCK_IMAGE_TAG}
-    # Stub of the auth server for provisioning: OIDC discovery, JWKS and userinfo (see ../auth-server/mappings).
+    # Stub of the auth server for provisioning: OIDC discovery and userinfo (see ../auth-server/mappings).
+    # The key set is registered by the tests at runtime through the admin API, on the published port.
     command: ["--local-response-templating"]
+    ports:
+      - "8090:8080"
     volumes:
       - ./../auth-server/mappings:/home/wiremock/mappings
     healthcheck:

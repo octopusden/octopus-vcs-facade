@@ -19,32 +19,6 @@
       }
     },
     {
-      "name": "JWKS",
-      "priority": 1,
-      "request": {
-        "method": "GET",
-        "urlPath": "/realms/ft/protocol/openid-connect/certs"
-      },
-      "response": {
-        "status": 200,
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "jsonBody": {
-          "keys": [
-            {
-              "kty": "RSA",
-              "use": "sig",
-              "alg": "RS256",
-              "kid": "ft-key",
-              "n": "h3zPUY72ZNZjC27CTD_cmtJW91RAi9EgGinvPuinexI95sW0CS1LDzTZcGblx1WqO45ETFN7dx9xWGJzz4AAhiDlMWSjdffrEra2aqbzfjodcbLQ-_A5bQviB6CIYNdcvUv2CiJEw4TfKULn8RcTkg1OmHlK21f3s1bfCauapsWvGZb4Y2QSNtZQuSIRqs2eZ6HbwgO_ZoP-sVaw9snuZXEdK2r7uQqJorjW12u8fsjph-4gge6Cxdz_kokRWw0nU_uizGtevw9PvSLdExT4wdbQDFb1sS2PrEKPcS58b2ecO2M3n7kSzQfeq1PIIzMzKgZ86xhgG68dDm0fvqYWvw",
-              "e": "AQAB"
-            }
-          ]
-        }
-      }
-    },
-    {
       "name": "userinfo of the token with the permission",
       "priority": 1,
       "request": {

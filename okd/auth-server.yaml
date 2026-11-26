@@ -67,6 +67,16 @@ objects:
       targetPort: 8080
     selector:
       app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-auth-server
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-auth-server-route
+  spec:
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: ${DEPLOYMENT_PREFIX}-auth-server-service
 parameters:
 - description: Unique deployment prefix
   name: DEPLOYMENT_PREFIX

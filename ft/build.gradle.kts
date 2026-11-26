@@ -26,7 +26,8 @@ fun String.getPort() =
         else -> throw Exception("Unknown service '$this'")
     }
 
-fun String.getDockerHost() = "localhost:${getPort()}"
+// The stub auth server is published on 8090: 8080 is taken by vcs-facade.
+fun String.getDockerHost() = if (this == "auth-server") "localhost:8090" else "localhost:${getPort()}"
 
 fun String.getDockerExternalHost() = "$this:${getPort()}"
 
@@ -196,6 +197,7 @@ val ft by tasks.creating(Test::class) {
             systemProperties["test.vcs-external-host"] = getOkdExternalHost("testProfile".getExt())
             systemProperties["test.vcs-facade-host"] = ocTemplate.getOkdHost("vcs-facade")
             systemProperties["test.vcs-facade-external-host"] = getOkdExternalHost("vcs-facade")
+            systemProperties["test.auth-server-host"] = ocTemplate.getOkdHost("auth-server")
             systemProperties["test.auth-server-external-host"] = getOkdExternalHost("auth-server")
             ocTemplate.isRequiredBy(this)
         }
@@ -204,6 +206,7 @@ val ft by tasks.creating(Test::class) {
             systemProperties["test.vcs-external-host"] = "testProfile".getExt().getDockerExternalHost()
             systemProperties["test.vcs-facade-host"] = "vcs-facade".getDockerHost()
             systemProperties["test.vcs-facade-external-host"] = "vcs-facade".getDockerExternalHost()
+            systemProperties["test.auth-server-host"] = "auth-server".getDockerHost()
             systemProperties["test.auth-server-external-host"] = "auth-server".getDockerExternalHost()
             dockerCompose.isRequiredBy(this)
         }
