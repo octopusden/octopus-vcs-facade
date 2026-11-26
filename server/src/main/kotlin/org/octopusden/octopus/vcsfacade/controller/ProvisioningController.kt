@@ -34,6 +34,30 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Repository provisioning", description = "Reads for the component provisioning service")
 // Declared here, not globally, so the scheme appears in the API description only when provisioning is enabled.
 @SecurityScheme(name = ProvisioningController.BEARER_AUTH, type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
+// Error responses shared by every operation of this controller.
+@ApiResponses(
+    ApiResponse(
+        responseCode = "400",
+        description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    ),
+    ApiResponse(
+        responseCode = "401",
+        description = "No token, or the token is rejected",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    ),
+    ApiResponse(
+        responseCode = "403",
+        description = "The token lacks the CREATE_REPOSITORIES permission, or TARGET_NOT_ALLOWED: " +
+            "the VCS has no provisioning credential or the group is not in its allow-list",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    ),
+    ApiResponse(
+        responseCode = "500",
+        description = "The VCS could not be read (error code OTHER)",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+    ),
+)
 class ProvisioningController(
     private val provisioningTargetResolver: ProvisioningTargetResolver,
 ) {
@@ -44,38 +68,15 @@ class ProvisioningController(
             "Requires the CREATE_REPOSITORIES permission.",
         security = [SecurityRequirement(name = BEARER_AUTH)],
     )
-    @ApiResponses(
-        ApiResponse(responseCode = "200", description = "The group exists or is reported missing by the VCS"),
-        ApiResponse(
-            responseCode = "400",
-            description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "401",
-            description = "No token, or the token is rejected",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "403",
-            description = "The token lacks the CREATE_REPOSITORIES permission, or TARGET_NOT_ALLOWED: " +
-                "the VCS has no provisioning credential or the group is not in its allow-list",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "500",
-            description = "The VCS could not be read (error code OTHER)",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-    )
+    @ApiResponse(responseCode = "200", description = "The group exists or is reported missing by the VCS")
     @GetMapping("groups", produces = [MediaType.APPLICATION_JSON_VALUE])
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
     fun getGroupExistence(
         @Parameter(description = "SSH URL of a repository in the group, as configured for a VCS service", required = true)
         @RequestParam("sshUrl") sshUrl: String,
     ): GroupExistence {
-        log.info("Check the group of {}", sshUrl)
         val target = provisioningTargetResolver.resolve(sshUrl)
+        log.info("Check group {} on VCS service {}", target.group, target.service.id)
         return GroupExistence(target.service.groupExists(target.group))
     }
 
@@ -87,38 +88,15 @@ class ProvisioningController(
             "Requires the CREATE_REPOSITORIES permission.",
         security = [SecurityRequirement(name = BEARER_AUTH)],
     )
-    @ApiResponses(
-        ApiResponse(responseCode = "200", description = "The state of the repository, MISSING or PRESENT"),
-        ApiResponse(
-            responseCode = "400",
-            description = "INVALID_REQUEST: the sshUrl is missing or no configured VCS service supports it",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "401",
-            description = "No token, or the token is rejected",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "403",
-            description = "The token lacks the CREATE_REPOSITORIES permission, or TARGET_NOT_ALLOWED: " +
-                "the VCS has no provisioning credential or the group is not in its allow-list",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "500",
-            description = "The VCS could not be read (error code OTHER)",
-            content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-        ),
-    )
+    @ApiResponse(responseCode = "200", description = "The state of the repository, MISSING or PRESENT")
     @GetMapping("repository/state", produces = [MediaType.APPLICATION_JSON_VALUE])
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
     fun getRepositoryState(
         @Parameter(description = "SSH URL of the repository, as configured for a VCS service", required = true)
         @RequestParam("sshUrl") sshUrl: String,
     ): RepositoryState {
-        log.info("Get the state of repository {}", sshUrl)
         val target = provisioningTargetResolver.resolve(sshUrl)
+        log.info("Get the state of repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
         return target.service.getRepositoryState(target.group, target.repository)
     }
 
