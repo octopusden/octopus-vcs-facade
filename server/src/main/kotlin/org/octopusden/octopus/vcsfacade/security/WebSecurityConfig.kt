@@ -35,7 +35,8 @@ import org.springframework.security.web.util.matcher.OrRequestMatcher
  * The library's own chain authenticates every request, which would lock the existing, public endpoints.
  * This one matches only the provisioning calls (method and exact path) and authenticates them. Every other
  * request matches no chain, so it passes no security filter and gets no Spring Security headers.
- * CSRF protection stays on; it only ever checks unsafe methods, and the matched calls are all GET.
+ * CSRF protection stays on and never checks the reads. The create is authenticated by a bearer token alone,
+ * so only that one POST is exempted from it.
  * What a caller may do is decided on the method, by `@PreAuthorize` on the controller.
  *
  * `AuthServerClient` reads the auth server's OpenID configuration when the context starts, so the auth
@@ -58,9 +59,10 @@ class WebSecurityConfig(
                 OrRequestMatcher(
                     PROVISIONING_PATHS.flatMap { path ->
                         listOf(HttpMethod.GET, HttpMethod.HEAD).map { AntPathRequestMatcher.antMatcher(it, path) }
-                    },
+                    } + CREATE_MATCHER,
                 ),
-            ).authorizeHttpRequests { it.anyRequest().authenticated() }
+            ).csrf { it.ignoringRequestMatchers(CREATE_MATCHER) }
+            .authorizeHttpRequests { it.anyRequest().authenticated() }
             .oauth2ResourceServer { oauth2 ->
                 oauth2
                     .jwt { jwt ->
@@ -110,5 +112,6 @@ class WebSecurityConfig(
 
     private companion object {
         val PROVISIONING_PATHS = listOf("/rest/api/2/groups", "/rest/api/2/repository/state")
+        val CREATE_MATCHER = AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/rest/api/2/repository")
     }
 }

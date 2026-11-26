@@ -64,6 +64,7 @@ dependencies {
     api("io.github.openfeign:feign-httpclient")
     api("io.github.openfeign:feign-jackson")
     api("io.github.openfeign:feign-slf4j")
+    implementation("io.github.openfeign.form:feign-form:${properties["feign-form.version"]}")
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
     api("com.fasterxml.jackson.core:jackson-databind")
 

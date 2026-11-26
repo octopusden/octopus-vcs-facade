@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -121,11 +122,11 @@ abstract class ExistingEndpointsTest {
             .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
     }
 
-    // The path exists for the repository read, so a POST there is a wrong method rather than an unknown path.
+    // The path exists for the repository read, so a PUT there is a wrong method rather than an unknown path.
     @Test
     fun `an unsupported method answers 405`() {
         mvc
-            .perform(post("/rest/api/2/repository").param("sshUrl", repository.sshUrl).accept(MediaType.APPLICATION_JSON))
+            .perform(put("/rest/api/2/repository").param("sshUrl", repository.sshUrl).accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isMethodNotAllowed)
     }
 }

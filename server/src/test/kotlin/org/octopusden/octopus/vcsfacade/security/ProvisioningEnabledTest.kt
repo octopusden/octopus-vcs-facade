@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.context.ContextConfiguration
@@ -27,7 +28,9 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.request.RequestPostProcessor
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -68,6 +71,65 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
                 .accept(MediaType.APPLICATION_JSON)
                 .also { builder -> auth?.let { builder.with(it) } },
         )
+
+    // No CSRF token anywhere below: the create is exempted from it.
+    private fun create(
+        auth: RequestPostProcessor? = null,
+        sshUrl: String = SSH_URL,
+    ): ResultActions =
+        mockMvc.perform(
+            multipart("/rest/api/2/repository")
+                .file(MockMultipartFile("content", "content.zip", "application/zip", byteArrayOf(0x50, 0x4b)))
+                .param("sshUrl", sshUrl)
+                .param("marker", "m-1")
+                .param("branch", "main")
+                .accept(MediaType.APPLICATION_JSON)
+                .also { builder -> auth?.let { builder.with(it) } },
+        )
+
+    @Test
+    fun `create without a token answers 401 with a JSON body`() {
+        create()
+            .andExpect(status().isUnauthorized)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorMessage").isNotEmpty)
+    }
+
+    @Test
+    fun `create with a token without the permission answers 403 with a JSON body`() {
+        create(stranger)
+            .andExpect(status().isForbidden)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorMessage").isNotEmpty)
+    }
+
+    @Test
+    fun `create for a group outside the allow-list answers 403 TARGET_NOT_ALLOWED and calls no VCS`() {
+        val client = serveAllowedGroup()
+        create(provisioner, "ssh://git@gitea.example.org/other/repo.git")
+            .andExpect(status().isForbidden)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create for an allowed group answers 501 with a JSON body and calls no VCS`() {
+        val client = serveAllowedGroup()
+        create(provisioner, ALLOWED_URL)
+            .andExpect(status().isNotImplemented)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create without any content part still answers 501`() {
+        serveAllowedGroup()
+        mockMvc
+            .perform(multipart("/rest/api/2/repository").param("sshUrl", ALLOWED_URL).with(provisioner))
+            .andExpect(status().isNotImplemented)
+    }
 
     @Test
     fun `no token answers 401 with a JSON body on both reads`() {
@@ -114,6 +176,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
         provisioningPaths.forEach { path ->
             mockMvc.perform(post(path).param("sshUrl", SSH_URL)).andExpect(status().isMethodNotAllowed)
         }
+        mockMvc.perform(put("/rest/api/2/repository").param("sshUrl", SSH_URL)).andExpect(status().isMethodNotAllowed)
     }
 
     @Test

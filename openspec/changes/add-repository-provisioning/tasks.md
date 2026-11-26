@@ -90,11 +90,11 @@ The change is archived after the third pull request is merged.
 
 ## 9. Settings, contract and endpoint
 
-- [ ] 9.1 Add Apache Commons Compress; `vcs-facade.provisioning.max-content-size` (default
+- [x] 9.1 Add Apache Commons Compress; `vcs-facade.provisioning.max-content-size` (default
       50 MB); Spring multipart limits follow it.
-- [ ] 9.2 Error code `INVALID_CONTENT` with its exception; `VcsFacadeClient.createRepository`
+- [x] 9.2 Error code `INVALID_CONTENT` with its exception; `VcsFacadeClient.createRepository`
       (multipart, the zip as a file part). Test against a mock server: path, query, parts.
-- [ ] 9.3 `POST /rest/api/2/repository` behind the same security and allow-list (added to the
+- [x] 9.3 `POST /rest/api/2/repository` behind the same security and allow-list (added to the
       chain's matcher and exempted from CSRF with `ignoringRequestMatchers`); after the checks
       below it answers `501` until pull request 3.
 

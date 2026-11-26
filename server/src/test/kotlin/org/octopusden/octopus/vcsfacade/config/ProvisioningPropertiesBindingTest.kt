@@ -9,6 +9,7 @@ import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
 import org.springframework.boot.context.properties.bind.Bindable
 import org.springframework.boot.context.properties.bind.Binder
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource
+import org.springframework.util.unit.DataSize
 
 class ProvisioningPropertiesBindingTest {
     private val minimalService =
@@ -32,15 +33,18 @@ class ProvisioningPropertiesBindingTest {
     fun `provisioning defaults apply when no keys are set`() {
         val properties = bindProvisioning()
         assertFalse(properties.enabled)
+        assertEquals(DataSize.ofMegabytes(50), properties.maxContentSize)
     }
 
     @Test
-    fun `provisioning binds enabled`() {
+    fun `provisioning binds enabled and max-content-size`() {
         val properties =
             bindProvisioning(
                 "vcs-facade.provisioning.enabled" to "true",
+                "vcs-facade.provisioning.max-content-size" to "10MB",
             )
         assertTrue(properties.enabled)
+        assertEquals(DataSize.ofMegabytes(10), properties.maxContentSize)
     }
 
     @Test
