@@ -112,8 +112,8 @@ internal class ArchivePaths {
  * of the archive, so a chain like `a -> .` and `b -> a/..` cannot climb out of the root. A target that does not exist
  * in the archive is allowed as long as it stays inside the root.
  *
- * The work is bounded: a link is followed at most [MAX_HOPS] times, and all links of one zip together take at most
- * [maxSteps] steps (one per path segment processed).
+ * The work is bounded: a chain is at most [MAX_HOPS] links long, counting the link being checked, and all links of
+ * one zip together take at most [maxSteps] steps (one per path segment processed).
  */
 internal class SymlinkChains(
     private val paths: ArchivePaths,
