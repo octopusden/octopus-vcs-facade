@@ -246,6 +246,7 @@ class RepositoryStateProviderTest {
     fun `bitbucket empty repository answers 404 for its commits and is present without commits`() {
         givenBitbucketRepository()
         `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("no commits"))
+        bitbucketBranches()
         assertEquals(
             RepositoryState(RepositoryStatus.PRESENT, "m-1", null, hasCommits = false, rootCommitMarker = null),
             bitbucket.getRepositoryState("proj", "repo"),
@@ -256,6 +257,7 @@ class RepositoryStateProviderTest {
     fun `bitbucket empty repository answering an empty list is present without commits`() {
         givenBitbucketRepository()
         bitbucketPages(emptyList())
+        bitbucketBranches()
         assertEquals(false, bitbucket.getRepositoryState("proj", "repo").hasCommits)
     }
 
@@ -321,6 +323,7 @@ class RepositoryStateProviderTest {
     @Test
     fun `bitbucket not found on a later commits page is a failed read and not a missing repository`() {
         givenBitbucketRepository()
+        bitbucketBranches(branch("main", "c"))
         `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenAnswer { invocation ->
             val start = invocation.getArgument<Map<String, Any>>(2)["start"] as Int
             if (start == 0) {
@@ -338,5 +341,29 @@ class RepositoryStateProviderTest {
         bitbucketPages(listOf(bitbucketCommit("a", rootMessage)))
         `when`(bitbucketClient.getBranches(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("gone"))
         assertFailedRead { bitbucket.getRepositoryState("proj", "repo") }
+    }
+
+    @Test
+    fun `bitbucket not found on the first commits page of a vanished repository is a failed read`() {
+        givenBitbucketRepository()
+        `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("gone"))
+        `when`(bitbucketClient.getBranches(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("gone"))
+        assertFailedRead { bitbucket.getRepositoryState("proj", "repo") }
+    }
+
+    @Test
+    fun `bitbucket not found on the first commits page while branches exist is a failed read`() {
+        givenBitbucketRepository()
+        `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("gone"))
+        bitbucketBranches(branch("main", "a"))
+        assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
+    }
+
+    @Test
+    fun `bitbucket empty first commits page while branches exist is a failed read`() {
+        givenBitbucketRepository()
+        bitbucketPages(emptyList())
+        bitbucketBranches(branch("main", "a"))
+        assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
     }
 }

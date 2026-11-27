@@ -73,6 +73,10 @@ any write after the first commit; providers other than Bitbucket and Gitea.
   A freshly provisioned repository has one branch, so the answer is right there, and create does
   not use the field. Follow-up: expose the default branch in the Bitbucket client, then read it
   directly. Gitea reports `default_branch` itself.
+- **Bitbucket's empty repository.** An empty repository answers `404` for its commits, and so does one
+  that vanished mid-read. So that `404` (or an empty first page) counts as "no commits" only when the
+  branch list is empty too; branches without readable commits, or a "not found" for the branches,
+  is a failed read and answers `5xx`.
 - Any provider failure answers `5xx` with an error body. Only a provider "not found" for the
   repository becomes `MISSING`; a "not found" for the project or organisation does too.
 
