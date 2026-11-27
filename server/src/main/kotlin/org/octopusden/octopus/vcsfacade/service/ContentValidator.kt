@@ -1,5 +1,6 @@
 package org.octopusden.octopus.vcsfacade.service
 
+import org.apache.commons.compress.archivers.zip.UnicodePathExtraField
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
@@ -8,9 +9,7 @@ import org.octopusden.octopus.vcsfacade.exception.ContentTooLargeException
 import org.octopusden.octopus.vcsfacade.service.ZipContentEntry.Type
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
-import java.nio.charset.CodingErrorAction
 
 /**
  * Checks an uploaded zip before anything is created (design D6), reading it once, in memory:
@@ -88,6 +87,7 @@ class ContentValidator internal constructor(
         state: Collected,
     ) {
         val name = entry.name
+        if (garbledName(entry)) throw reject(name, "has a name that is not valid UTF-8")
         val path = resolveOrReject(name, name) { it }
         val isDirectory = entry.unixMode and FILE_TYPE_MASK == DIRECTORY || entry.isDirectory
         oddKind(entry, isDirectory)?.let { throw reject(name, it) }
@@ -282,12 +282,15 @@ private fun reject(
 /** [bytes] as UTF-8 text, or `null` when they are not valid UTF-8 (no replacement characters). */
 private fun strictUtf8(bytes: ByteArray): String? =
     try {
-        Charsets.UTF_8
-            .newDecoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT)
-            .decode(ByteBuffer.wrap(bytes))
-            .toString()
+        bytes.decodeToString(throwOnInvalidSequence = true)
     } catch (expected: CharacterCodingException) {
         null
     }
+
+/**
+ * Whether the entry's name bytes are not valid UTF-8. The zip library decodes names leniently (bad bytes become `?`),
+ * so such a name would silently become a different path. A name taken from a Unicode path extra field is decoded
+ * properly, so then the legacy raw bytes don't matter.
+ */
+private fun garbledName(entry: ZipArchiveEntry): Boolean =
+    entry.getExtraField(UnicodePathExtraField.UPATH_ID) == null && entry.rawName?.let { strictUtf8(it) == null } ?: false

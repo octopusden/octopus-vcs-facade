@@ -129,6 +129,25 @@ class ContentValidatorTest {
     }
 
     @Test
+    fun `an entry name that is not valid UTF-8 is rejected, not silently renamed`() {
+        val message = rejected(TestZips.zip { rawName(byteArrayOf('a'.code.toByte(), 0xFF.toByte())) }).message!!
+        assertTrue(message.contains("not valid UTF-8"), message)
+        // Two different bad names must not collapse into one and be reported as a duplicate.
+        val both = rejected(
+            TestZips.zip {
+                rawName(byteArrayOf('a'.code.toByte(), 0xFE.toByte()))
+                rawName(byteArrayOf('a'.code.toByte(), 0xFF.toByte()))
+            },
+        ).message!!
+        assertTrue(both.contains("not valid UTF-8"), both)
+    }
+
+    @Test
+    fun `a valid non-ASCII entry name is accepted`() {
+        assertEquals(listOf("café/ünïcødé.txt"), validator.validate(TestZips.zip { file("café/ünïcødé.txt") }).entries.map { it.path })
+    }
+
+    @Test
     fun `a symlink target that is not valid UTF-8 is rejected`() {
         val message = rejected(TestZips.zip { symlinkBytes("link", byteArrayOf('a'.code.toByte(), 0xFF.toByte())) }).message!!
         assertTrue(message.contains("not valid UTF-8"), message)
