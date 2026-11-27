@@ -166,6 +166,16 @@ class ContentValidatorTest {
     }
 
     @Test
+    fun `the root directory entry is measured and claimed once`() {
+        val message = rejected(TestZips.zip { directory("./", "data") }).message!!
+        assertTrue(message.contains("directory with content"), message)
+        rejected(TestZips.zip { directory("./").directory("./") })
+        rejected(TestZips.zip { directory("./").directory("a/../") })
+        rejected(TestZips.zip { directory("./", "0".repeat(2500)) }, ContentValidator(maxContentBytes = 200))
+        assertEquals(listOf("a/x"), validator.validate(TestZips.zip { directory("./").file("a/x") }).entries.map { it.path })
+    }
+
+    @Test
     fun `a directory below a file is rejected`() {
         rejected(TestZips.zip { file("a").directory("a/b/") })
     }

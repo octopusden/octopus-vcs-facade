@@ -83,7 +83,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
         mockMvc.perform(
             multipart("/rest/api/2/repository")
                 .file(MockMultipartFile("content", "content.zip", "application/zip", TestZips.zip { file("a.txt") }))
-                .param("sshUrl", sshUrl)
+                .queryParam("sshUrl", sshUrl)
                 .also { builder ->
                     marker?.let { builder.param("marker", it) }
                     branch?.let { builder.param("branch", it) }
@@ -133,7 +133,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
         mockMvc
             .perform(
                 multipart("/rest/api/2/repository")
-                    .param("sshUrl", ALLOWED_URL)
+                    .queryParam("sshUrl", ALLOWED_URL)
                     .param("marker", "m-1")
                     .param("branch", "main")
                     .with(provisioner),
@@ -159,7 +159,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     ) = mockMvc.perform(
         multipart("/rest/api/2/repository")
             .file(MockMultipartFile("content", "content.zip", "application/zip", zip))
-            .param("sshUrl", sshUrl)
+            .queryParam("sshUrl", sshUrl)
             .param("marker", marker)
             .param("branch", "main")
             .accept(MediaType.APPLICATION_JSON)
@@ -186,7 +186,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
         mockMvc
             .perform(
                 multipart("/rest/api/2/repository")
-                    .param("sshUrl", ALLOWED_URL)
+                    .queryParam("sshUrl", ALLOWED_URL)
                     .param("marker", "m-1")
                     .param("branch", "main")
                     .param("content", "not a file")

@@ -79,7 +79,9 @@ All take the repository SSH URL as the `sshUrl` query parameter and a bearer tok
 A missing group or repository is a normal `200` answer of the reads.
 
 The create runs these checks in order and stops at the first failure:
-permission (`401`/`403`), allow-list (`403`), request (`400`), content (`400`/`413`), then `501`.
+permission (`401`/`403`), allow-list (`403`), request (`400`), content (`400`/`413`), then `501`. The permission and
+the allow-list are settled before the upload is read, so an oversized upload from a caller who may not use the
+endpoint answers `403`, not `413`.
 
 The request rules: the `marker` is not blank, is a single line, has no leading or trailing whitespace and is at most
 255 characters, and the `branch` is given; otherwise `400 INVALID_REQUEST`. Without a `content` part there are no
@@ -89,7 +91,7 @@ The content rules: `content` is a file part (a plain form field is rejected) and
 path segment at any depth, no path is absolute or escapes the root, no symlink points outside the root (also through
 other symlinks of the zip), no path is used twice (or below a file), a directory entry carries no data, and the zip inflates to
 at most 10 times `max-content-size` in at most 100,000 entries; otherwise `400 INVALID_CONTENT` naming the first
-offending entry. Executable bits and symlinks inside the root are kept. A larger upload answers `413 INVALID_CONTENT`.
+offending entry (symlink chains are checked after every entry is read). Executable bits and symlinks inside the root are kept. A larger upload answers `413 INVALID_CONTENT`.
 
 Errors:
 

@@ -58,7 +58,14 @@ internal class ArchivePaths {
     }
 
     /** A directory entry, as opposed to one only implied by the files below it, which may be named once. */
-    fun claimDirectory(path: List<String>): String? = claim(path, PathNode.Kind.EXPLICIT_DIR)
+    fun claimDirectory(path: List<String>): String? = if (path.isEmpty()) claimRoot() else claim(path, PathNode.Kind.EXPLICIT_DIR)
+
+    /** An entry that names the root itself, such as `./`: allowed once, like any other directory entry. */
+    private fun claimRoot(): String? {
+        if (root.kind == PathNode.Kind.EXPLICIT_DIR) return "repeats the root directory"
+        root.kind = PathNode.Kind.EXPLICIT_DIR
+        return null
+    }
 
     private fun nodeAt(path: List<String>) = path.fold(root) { node, name -> checkNotNull(node.child(name)) }
 
@@ -120,7 +127,7 @@ internal class SymlinkChains(
 
     private var steps = 0L
 
-    /** The first symlink, in archive order, whose target leaves the root or never ends. */
+    /** The first symlink, in the order the zip names them, whose target leaves the root or never ends. */
     fun firstViolation(): Violation? =
         paths.symlinks.firstNotNullOfOrNull { link ->
             Walk(link).run()?.let { Violation(checkNotNull(link.entry), checkNotNull(link.target), it) }

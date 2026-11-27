@@ -2,6 +2,7 @@ package org.octopusden.octopus.vcsfacade.controller
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.enums.ParameterIn
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -15,16 +16,19 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidContentException
+import org.octopusden.octopus.vcsfacade.config.ProvisioningWebConfig
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
 import org.octopusden.octopus.vcsfacade.service.ContentValidator
 import org.octopusden.octopus.vcsfacade.service.CreateRequestChecks
+import org.octopusden.octopus.vcsfacade.service.ProvisioningTarget
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestAttribute
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
@@ -118,6 +122,7 @@ class ProvisioningController(
             "naming the first offending entry. Requires the CREATE_REPOSITORIES permission. " +
             "Nothing is created yet: once the permission, allow-list, request and content checks pass, the call answers 501.",
         security = [SecurityRequirement(name = BEARER_AUTH)],
+        parameters = [Parameter(name = "sshUrl", `in` = ParameterIn.QUERY, description = SSH_URL_DESCRIPTION, required = true)],
     )
     @ApiResponses(
         ApiResponse(
@@ -135,8 +140,8 @@ class ProvisioningController(
     @PreAuthorize("@permissionEvaluator.hasPermission('CREATE_REPOSITORIES')")
     @Suppress("UNUSED_PARAMETER", "UnusedParameter") // commitMessage is read by the create that follows
     fun createRepository(
-        @Parameter(description = "SSH URL of the repository, as configured for a VCS service", required = true)
-        @RequestParam("sshUrl") sshUrl: String,
+        // Resolved from the query string by `ProvisioningWebConfig.CreateTargetInterceptor`, before the upload is parsed.
+        @RequestAttribute(ProvisioningWebConfig.TARGET_ATTRIBUTE) target: ProvisioningTarget,
         // Optional here so an upload over the limit, whose parts are then unreadable, answers 413 and not 400.
         @Parameter(
             description = "Required, validated by the server (400 INVALID_REQUEST when missing or invalid): non-blank, one line, " +
@@ -159,7 +164,6 @@ class ProvisioningController(
         @RequestPart("content", required = false) content: MultipartFile?,
         request: HttpServletRequest,
     ): Nothing {
-        val target = provisioningTargetResolver.resolve(sshUrl)
         log.info("Create repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
         CreateRequestChecks.validate(marker, branch)
         // A `content` part without a filename is a form field, not a file: no MultipartFile, so it must not pass as "no content".
@@ -172,6 +176,7 @@ class ProvisioningController(
 
     companion object {
         const val BEARER_AUTH = "bearerAuth"
+        private const val SSH_URL_DESCRIPTION = "SSH URL of the repository, as configured for a VCS service"
 
         private val log = LoggerFactory.getLogger(ProvisioningController::class.java)
     }

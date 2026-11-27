@@ -19,7 +19,7 @@ import java.io.IOException
  * - nothing is written below a file or a symlink, no path is used twice, and a directory entry carries no data;
  * - the zip does not inflate past [UNCOMPRESSED_FACTOR] times [maxContentBytes], or hold more than [maxEntries] entries.
  *
- * The first offending entry is named.
+ * The first offending entry is named as the zip is read; symlink chains are checked after every entry is read.
  */
 @Suppress("ThrowsCount") // a validator rejects for many reasons, each with its own message
 class ContentValidator internal constructor(
@@ -87,9 +87,8 @@ class ContentValidator internal constructor(
         val name = entry.name
         val path = resolveOrReject(name, name) { it }
         val isDirectory = entry.unixMode and FILE_TYPE_MASK == DIRECTORY || entry.isDirectory
-        if (isDirectory && path.isEmpty()) return
         oddKind(entry, isDirectory)?.let { throw reject(name, it) }
-        if (path.isEmpty()) throw reject(name, "has no file name")
+        if (path.isEmpty() && !isDirectory) throw reject(name, "has no file name")
         val type = entryType(entry.unixMode)
         val read = measure(zip, entry, state, if (type == Type.SYMLINK) MAX_SYMLINK_TARGET else 0)
         if (isDirectory) {

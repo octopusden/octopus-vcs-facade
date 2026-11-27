@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.octopusden.cloud.commons.security.client.AuthServerClient
@@ -31,6 +32,7 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import java.io.ByteArrayOutputStream
 import java.net.URI
+import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -78,22 +80,23 @@ class ProvisioningUploadLimitTest {
         token: String? = "provisioner",
         content: ByteArray = ByteArray(fileSize) { 'a'.code.toByte() },
         filename: String? = "content.zip",
+        sshUrl: String? = ALLOWED_URL,
+        resetService: Boolean = true,
     ): HttpResponse<String> {
-        `when`(
-            jwtDecoder.decode(anyString()),
-        ).thenAnswer {
+        doAnswer {
             Jwt
                 .withTokenValue(it.getArgument(0))
                 .header("alg", "none")
                 .subject("u")
                 .build()
-        }
+        }.`when`(jwtDecoder).decode(anyString())
         `when`(authServerClient.getUserInfo("provisioner")).thenReturn(UserInfo(listOf("PROVISIONER"), emptyList()))
+        `when`(authServerClient.getUserInfo("stranger")).thenReturn(UserInfo(listOf("SOMETHING_ELSE"), emptyList()))
         val service = GiteaService(
             serviceProperties(VcsServiceType.GITEA, Provisioning(token = "t", allowedGroups = setOf("team-a"))),
             mock(GiteaClient::class.java),
         )
-        `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenReturn(service)
+        if (resetService) `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenReturn(service)
         val boundary = "test-boundary"
         val body = ByteArrayOutputStream()
             .apply {
@@ -108,8 +111,12 @@ class ProvisioningUploadLimitTest {
                 text("\r\n--$boundary--\r\n")
             }.toByteArray()
         val request = HttpRequest
-            .newBuilder(URI("http://localhost:$port/rest/api/2/repository?sshUrl=ssh%3A%2F%2Fgit%40gitea.example.org%2Fteam-a%2Frepo.git"))
-            .header("Content-Type", "multipart/form-data; boundary=$boundary")
+            .newBuilder(
+                URI(
+                    "http://localhost:$port/rest/api/2/repository" +
+                        sshUrl?.let { "?sshUrl=" + URLEncoder.encode(it, Charsets.UTF_8) }.orEmpty(),
+                ),
+            ).header("Content-Type", "multipart/form-data; boundary=$boundary")
             .header("Accept", "application/json")
             .apply { token?.let { header("Authorization", "Bearer $it") } }
             .POST(HttpRequest.BodyPublishers.ofByteArray(body))
@@ -124,6 +131,46 @@ class ProvisioningUploadLimitTest {
         val contentType = response.headers().firstValue("Content-Type").orElse("")
         assertTrue(contentType.startsWith("application/json"), contentType)
         assertTrue(response.body().contains("\"errorCode\":\"INVALID_CONTENT\""), response.body())
+    }
+
+    private fun assertAnswer(
+        response: HttpResponse<String>,
+        status: Int,
+        errorCode: String? = null,
+    ) {
+        assertEquals(status, response.statusCode(), response.body())
+        assertTrue(
+            response
+                .headers()
+                .firstValue("Content-Type")
+                .orElse("")
+                .startsWith("application/json"),
+            response.headers().toString(),
+        )
+        errorCode?.let { assertTrue(response.body().contains("\"errorCode\":\"$it\""), response.body()) }
+    }
+
+    @Test
+    fun `an over-limit upload without the permission answers 403, not 413`() {
+        assertAnswer(upload(fileSize = TOO_LARGE, token = "stranger"), 403)
+    }
+
+    @Test
+    fun `an over-limit upload for a group outside the allow-list answers 403 TARGET_NOT_ALLOWED, not 413`() {
+        assertAnswer(upload(fileSize = TOO_LARGE, sshUrl = OTHER_URL), 403, "TARGET_NOT_ALLOWED")
+    }
+
+    @Test
+    fun `an over-limit upload without an sshUrl answers 403 without the permission and 400 with it`() {
+        assertAnswer(upload(fileSize = TOO_LARGE, token = "stranger", sshUrl = null), 403)
+        assertAnswer(upload(fileSize = TOO_LARGE, sshUrl = null), 400, "INVALID_REQUEST")
+    }
+
+    @Test
+    fun `an upload to an unsupported VCS answers 400 INVALID_REQUEST before its body is read`() {
+        `when`(vcsManager.getVcsServiceForSshUrl(anyString())).thenThrow(IllegalStateException("no such service"))
+        val response = upload(fileSize = TOO_LARGE, sshUrl = "ssh://git@elsewhere/team-a/repo.git", resetService = false)
+        assertAnswer(response, 400, "INVALID_REQUEST")
     }
 
     @Test
@@ -142,5 +189,11 @@ class ProvisioningUploadLimitTest {
     @Test
     fun `an upload over the limit without a token is still 401`() {
         assertEquals(401, upload(fileSize = 4 * 1024, token = null).statusCode())
+    }
+
+    private companion object {
+        const val TOO_LARGE = 4 * 1024
+        const val ALLOWED_URL = "ssh://git@gitea.example.org/team-a/repo.git"
+        const val OTHER_URL = "ssh://git@gitea.example.org/other/repo.git"
     }
 }

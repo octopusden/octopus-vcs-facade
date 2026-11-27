@@ -167,7 +167,9 @@ Before anything is written, and before the repository is created:
   against the bytes actually read, not only the sizes the zip declares, and there are at most
   100,000 entries.
 
-A failed check answers `400 INVALID_CONTENT` naming the first offending entry; nothing is
+A failed check answers `400 INVALID_CONTENT` naming the first offending entry as the zip is read; symlink chains,
+which can only be judged once every entry is read, are checked after that, so a problem with a single entry anywhere
+in the zip is reported before a chain problem. Nothing is
 created. Unix modes are read with a zip library that exposes them (Apache Commons Compress), so
 executable bits survive. Symlinks inside the root are kept as symlinks (`120000`).
 
@@ -199,7 +201,9 @@ executable bits survive. Symlinks inside the root are kept as symlinks (`120000`
   disabled case needs its own `permitAll` chain (as CRS `AnonymousSecurityConfig` does);
   without it Spring Boot's default chain would put basic auth on every endpoint. Disabled, no
   `auth-server.*` settings are needed.
-- No token → `401`; a token without the permission → `403`.
+- No token → `401`; a token without the permission → `403`. For the create both are settled in the security
+  chain, and the allow-list in an interceptor that reads `sshUrl` from the query string, all before the multipart
+  body is parsed, so an oversized upload from an unauthorised caller or for a forbidden target answers `403`, not `413`.
 - Per VCS service, under `vcs-facade.vcs.services[].provisioning`:
   - a credential (`token`, or `username` and `password`) used only for creating and pushing;
   - `allowed-groups`: the Bitbucket project keys or Gitea organisations provisioning may touch.

@@ -115,7 +115,7 @@ The change is archived after the third pull request is merged.
 
 ## 12. Functional tests (both providers)
 
-- [ ] 12.1 Invalid request and invalid zip → `400`/`413` with nothing created; a valid request
+- [x] 12.1 Invalid request and invalid zip → `400`/`413` with nothing created; a valid request
       reaches `501`.
 
 ## 13. Docs
