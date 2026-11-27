@@ -164,7 +164,6 @@ class ProvisioningController(
         @RequestPart("content", required = false) content: MultipartFile?,
         request: HttpServletRequest,
     ): Nothing {
-        log.info("Create repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
         CreateRequestChecks.validate(marker, branch)
         // A `content` part without a filename is a form field, not a file: no MultipartFile, so it must not pass as "no content".
         if (content == null && request.getParameter("content") != null) {

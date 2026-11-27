@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
 import org.octopusden.octopus.vcsfacade.service.ProvisioningTargetResolver
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.servlet.HandlerInterceptor
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry
@@ -42,7 +43,9 @@ class ProvisioningWebConfig(
         ): Boolean {
             if (request.method == "POST") {
                 val sshUrl = queryParameter(request.queryString, "sshUrl") ?: throw InvalidRequestException("The sshUrl must be given")
-                request.setAttribute(TARGET_ATTRIBUTE, targetResolver.resolve(sshUrl))
+                val target = targetResolver.resolve(sshUrl)
+                log.info("Create repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
+                request.setAttribute(TARGET_ATTRIBUTE, target)
             }
             return true
         }
@@ -67,6 +70,8 @@ class ProvisioningWebConfig(
     }
 
     companion object {
+        private val log = LoggerFactory.getLogger(ProvisioningWebConfig::class.java)
+
         const val CREATE_PATH = "/rest/api/2/repository"
         const val TARGET_ATTRIBUTE = "provisioningTarget"
     }
