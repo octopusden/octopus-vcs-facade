@@ -77,6 +77,7 @@ class ProvisioningUploadLimitTest {
         fileSize: Int,
         token: String? = "provisioner",
         content: ByteArray = ByteArray(fileSize) { 'a'.code.toByte() },
+        filename: String? = "content.zip",
     ): HttpResponse<String> {
         `when`(
             jwtDecoder.decode(anyString()),
@@ -100,7 +101,8 @@ class ProvisioningUploadLimitTest {
                 listOf("marker" to "m-1", "branch" to "main").forEach { (name, value) ->
                     text("--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n")
                 }
-                text("--$boundary\r\nContent-Disposition: form-data; name=\"content\"; filename=\"content.zip\"\r\n")
+                val fileAttribute = filename?.let { "; filename=\"$it\"" }.orEmpty()
+                text("--$boundary\r\nContent-Disposition: form-data; name=\"content\"$fileAttribute\r\n")
                 text("Content-Type: application/zip\r\n\r\n")
                 write(content)
                 text("\r\n--$boundary--\r\n")
@@ -128,6 +130,13 @@ class ProvisioningUploadLimitTest {
     fun `an upload within the limit reaches the handler`() {
         val response = upload(fileSize = 0, content = TestZips.zip { file("a.txt", "x") })
         assertEquals(501, response.statusCode(), response.body())
+    }
+
+    @Test
+    fun `a content part without a filename is a form field and answers 400 INVALID_CONTENT`() {
+        val response = upload(fileSize = 0, content = TestZips.zip { file("a.txt", "x") }, filename = null)
+        assertEquals(400, response.statusCode(), response.body())
+        assertTrue(response.body().contains("\"errorCode\":\"INVALID_CONTENT\""), response.body())
     }
 
     @Test

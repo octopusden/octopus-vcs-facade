@@ -181,6 +181,23 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
     }
 
     @Test
+    fun `create with a content part that is not a file answers 400 INVALID_CONTENT and calls no VCS`() {
+        val client = serveAllowedGroup()
+        mockMvc
+            .perform(
+                multipart("/rest/api/2/repository")
+                    .param("sshUrl", ALLOWED_URL)
+                    .param("marker", "m-1")
+                    .param("branch", "main")
+                    .param("content", "not a file")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .with(provisioner),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.errorCode").value("INVALID_CONTENT"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
     fun `create with a valid zip answers 501 and calls no VCS`() {
         val client = serveAllowedGroup()
         createWithZip(TestZips.zip { executable("run.sh").file("src/a.txt").symlink("link", "src/a.txt") })

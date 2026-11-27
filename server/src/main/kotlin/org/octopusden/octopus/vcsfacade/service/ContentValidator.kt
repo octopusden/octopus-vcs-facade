@@ -15,16 +15,20 @@ import java.io.IOException
  * - it opens as a zip;
  * - no entry has a `.git` path segment, is absolute, or leaves the root once `..` and `\` are resolved;
  * - no symlink points outside the root;
- * - nothing is written below a file or a symlink, and no path is used twice;
+ * - a symlink is followed through the other symlinks of the zip before it counts as inside the root;
+ * - nothing is written below a file or a symlink, no path is used twice, and a directory entry carries no data;
  * - the zip does not inflate past [UNCOMPRESSED_FACTOR] times [maxContentBytes], or hold more than [maxEntries] entries.
  *
  * The first offending entry is named.
  */
 @Suppress("ThrowsCount") // a validator rejects for many reasons, each with its own message
-class ContentValidator(
+class ContentValidator internal constructor(
     private val maxContentBytes: Long,
-    private val maxEntries: Int = MAX_ENTRIES,
+    private val maxEntries: Int,
+    private val maxSymlinkSteps: Long,
 ) {
+    constructor(maxContentBytes: Long, maxEntries: Int = MAX_ENTRIES) : this(maxContentBytes, maxEntries, SymlinkChains.MAX_STEPS)
+
     /**
      * @throws ContentTooLargeException when [content] is over the size limit
      * @throws InvalidContentException naming the first offending entry
@@ -55,6 +59,9 @@ class ContentValidator(
                 throw InvalidContentException("Entry '${entry.name.escaped()}' cannot be read")
             }
         }
+        SymlinkChains(state.paths, maxSymlinkSteps).firstViolation()?.let {
+            throw reject(it.entry, "is a symlink whose target '${it.target.escaped()}' ${it.problem}")
+        }
         return ValidatedZip(content, state.entries, state.namesInZip)
     }
 
@@ -67,8 +74,7 @@ class ContentValidator(
     private class Collected {
         val entries = mutableListOf<ZipContentEntry>()
         val namesInZip = HashMap<String, String>()
-        val files = HashSet<String>()
-        val directories = HashSet<String>()
+        val paths = ArchivePaths()
         var declaredTotal = 0L
         var actualTotal = 0L
     }
@@ -80,21 +86,40 @@ class ContentValidator(
     ) {
         val name = entry.name
         val path = resolveOrReject(name, name) { it }
-        val kind = entry.unixMode and FILE_TYPE_MASK
-        if (kind == DIRECTORY || entry.isDirectory) return
-        if (kind != 0 && kind != REGULAR_FILE && kind != SYMLINK) throw reject(name, "is neither a file, a directory nor a symlink")
+        val isDirectory = entry.unixMode and FILE_TYPE_MASK == DIRECTORY || entry.isDirectory
+        if (isDirectory && path.isEmpty()) return
+        oddKind(entry, isDirectory)?.let { throw reject(name, it) }
         if (path.isEmpty()) throw reject(name, "has no file name")
-        state.declaredTotal += maxOf(entry.size, 0)
-        if (state.declaredTotal > maxContentBytes * UNCOMPRESSED_FACTOR) throw tooBig(name)
         val type = entryType(entry.unixMode)
-        val read = read(zip, entry, state, if (type == Type.SYMLINK) MAX_SYMLINK_TARGET else 0)
-        if (entry.size >= 0 && entry.size != read.size) {
-            throw reject(name, "holds ${read.size} bytes, not the ${entry.size} its header says")
+        val read = measure(zip, entry, state, if (type == Type.SYMLINK) MAX_SYMLINK_TARGET else 0)
+        if (isDirectory) {
+            if (read.size > 0) throw reject(name, "is a directory with content")
+            state.paths.claimDirectory(path)?.let { throw reject(name, it) }
+            return
         }
-        if (type == Type.SYMLINK) checkSymlink(name, path, read)
-        claim(name, path, state)
+        val target = if (type == Type.SYMLINK) checkSymlink(name, path, read) else null
+        val claimed = if (target == null) state.paths.claimFile(path) else state.paths.claimSymlink(path, name, target)
+        claimed?.let { throw reject(name, it) }
         state.entries += ZipContentEntry(path.joinToString("/"), type, read.size)
         state.namesInZip[path.joinToString("/")] = name
+    }
+
+    /**
+     * Counts the entry's declared size, then reads it through to count what it really holds; a directory is read too.
+     */
+    private fun measure(
+        zip: ZipFile,
+        entry: ZipArchiveEntry,
+        state: Collected,
+        keep: Long,
+    ): EntryRead {
+        state.declaredTotal += maxOf(entry.size, 0)
+        if (state.declaredTotal > maxContentBytes * UNCOMPRESSED_FACTOR) throw tooBig(entry.name)
+        val read = read(zip, entry, state, keep)
+        if (entry.size >= 0 && entry.size != read.size) {
+            throw reject(entry.name, "holds ${read.size} bytes, not the ${entry.size} its header says")
+        }
+        return read
     }
 
     /**
@@ -128,11 +153,12 @@ class ContentValidator(
         name: String,
         path: List<String>,
         read: EntryRead,
-    ) {
+    ): String {
         if (read.size > MAX_SYMLINK_TARGET) throw reject(name, "is a symlink with a target of more than $MAX_SYMLINK_TARGET bytes")
         val target = String(read.kept, Charsets.UTF_8)
         if (target.isBlank()) throw reject(name, "is a symlink with no target")
         resolveOrReject(target, name, path.dropLast(1)) { "is a symlink whose target '${target.escaped()}' $it" }
+        return target
     }
 
     private fun resolveOrReject(
@@ -177,26 +203,6 @@ class ContentValidator(
         val problem: String,
     ) : Exception(problem)
 
-    private fun claim(
-        name: String,
-        path: List<String>,
-        state: Collected,
-    ) {
-        val joined = path.joinToString("/")
-        if (joined in state.files) throw reject(name, "repeats the path '${joined.escaped()}'")
-        if (joined in state.directories) throw reject(name, "is a file where an earlier entry made a directory '${joined.escaped()}'")
-        for (end in 1 until path.size) {
-            if (path.take(end).joinToString("/") in state.files) throw reject(name, "is below an earlier file or symlink")
-        }
-        state.files += joined
-        for (end in 1 until path.size) state.directories += path.take(end).joinToString("/")
-    }
-
-    private fun reject(
-        entry: String,
-        problem: String,
-    ) = InvalidContentException("Entry '${entry.escaped()}' $problem")
-
     private fun tooBig(entry: String) =
         InvalidContentException(
             "Entry '${entry.escaped()}' makes the uncompressed size exceed ${maxContentBytes * UNCOMPRESSED_FACTOR} bytes",
@@ -214,6 +220,15 @@ class ContentValidator(
         private const val MAX_SYMLINK_TARGET = 4096L
         private const val BUFFER_SIZE = 8192
         private val DRIVE = Regex("^[A-Za-z]:")
+
+        private fun oddKind(
+            entry: ZipArchiveEntry,
+            isDirectory: Boolean,
+        ): String? {
+            val kind = entry.unixMode and FILE_TYPE_MASK
+            val known = isDirectory || kind == 0 || kind == REGULAR_FILE || kind == SYMLINK
+            return if (known) null else "is neither a file, a directory nor a symlink"
+        }
 
         private fun entryType(unixMode: Int) =
             when {
@@ -233,7 +248,7 @@ private val LINE_BREAKS = setOf('\u007f', '\u0085', '\u2028', '\u2029')
  * The name as it may appear in a message: entry names come from the caller, so control characters and line or
  * paragraph separators are written out, and a very long name is cut.
  */
-private fun String.escaped(): String {
+internal fun String.escaped(): String {
     val builder = StringBuilder()
     for (char in take(MAX_NAME_IN_MESSAGE)) {
         if (char < ' ' || char in LINE_BREAKS) {
@@ -245,3 +260,8 @@ private fun String.escaped(): String {
     if (length > MAX_NAME_IN_MESSAGE) builder.append("...")
     return builder.toString()
 }
+
+private fun reject(
+    entry: String,
+    problem: String,
+) = InvalidContentException("Entry '${entry.escaped()}' $problem")

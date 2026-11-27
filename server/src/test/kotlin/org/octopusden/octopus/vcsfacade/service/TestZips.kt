@@ -30,13 +30,17 @@ class TestZips {
         target: String,
     ) = file(name, target, SYMLINK)
 
-    fun directory(name: String) =
-        apply {
-            val entry = ZipArchiveEntry(name.trimEnd('/') + "/")
-            entry.unixMode = DIRECTORY
-            zip.putArchiveEntry(entry)
-            zip.closeArchiveEntry()
-        }
+    /** The name is used as given when it ends with a slash, so `a/./` and `./` can be written. */
+    fun directory(
+        name: String,
+        content: String = "",
+    ) = apply {
+        val entry = ZipArchiveEntry(if (name.endsWith("/")) name else "$name/")
+        entry.unixMode = DIRECTORY
+        zip.putArchiveEntry(entry)
+        zip.write(content.toByteArray())
+        zip.closeArchiveEntry()
+    }
 
     fun bytes(): ByteArray {
         zip.finish()

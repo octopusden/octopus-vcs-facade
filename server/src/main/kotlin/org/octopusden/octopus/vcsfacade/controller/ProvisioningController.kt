@@ -10,9 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.security.SecurityScheme
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.servlet.http.HttpServletRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.ErrorResponse
 import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
+import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidContentException
 import org.octopusden.octopus.vcsfacade.exception.ProvisioningNotImplementedException
 import org.octopusden.octopus.vcsfacade.security.ConditionalOnProvisioningEnabled
 import org.octopusden.octopus.vcsfacade.service.ContentValidator
@@ -150,14 +152,20 @@ class ProvisioningController(
         @RequestParam("commitMessage", required = false) commitMessage: String?,
         @Parameter(
             description = "A zip with the initial files, sent as a file part. 400 INVALID_CONTENT unless it opens as a zip, has no " +
-                "`.git` path segment, no absolute or escaping path, no symlink pointing outside, no duplicate path, " +
+                "`.git` path segment, no absolute or escaping path, no symlink pointing outside (also through other symlinks), " +
+                "no duplicate path, no directory entry with data, " +
                 "and inflates to at most 10 times the size limit in at most 100,000 entries",
         )
         @RequestPart("content", required = false) content: MultipartFile?,
+        request: HttpServletRequest,
     ): Nothing {
         val target = provisioningTargetResolver.resolve(sshUrl)
         log.info("Create repository {}/{} on VCS service {}", target.group, target.repository, target.service.id)
         CreateRequestChecks.validate(marker, branch)
+        // A `content` part without a filename is a form field, not a file: no MultipartFile, so it must not pass as "no content".
+        if (content == null && request.getParameter("content") != null) {
+            throw InvalidContentException("The content must be sent as a file part")
+        }
         content?.let { contentValidator.validate(it.bytes) }
         throw ProvisioningNotImplementedException("Repository create is not implemented yet")
     }

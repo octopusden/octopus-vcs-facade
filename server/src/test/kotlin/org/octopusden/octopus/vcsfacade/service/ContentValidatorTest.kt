@@ -3,6 +3,7 @@ package org.octopusden.octopus.vcsfacade.service
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -11,6 +12,7 @@ import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidContentEx
 import org.octopusden.octopus.vcsfacade.exception.ContentTooLargeException
 import org.octopusden.octopus.vcsfacade.service.ZipContentEntry.Type
 import java.io.ByteArrayOutputStream
+import java.time.Duration
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -81,6 +83,103 @@ class ContentValidatorTest {
         val links = zip.entries.filter { it.type == Type.SYMLINK }
         assertEquals(listOf("link", "a/up"), links.map { it.path })
         assertEquals("target.txt".length.toLong(), links.first().size)
+    }
+
+    @Test
+    fun `symlinks that climb out of the root through each other are rejected, in either order`() {
+        val first = rejected(TestZips.zip { symlink("a", ".").symlink("b", "a/..") })
+        assertTrue(first.message!!.contains("'b'"), first.message)
+        rejected(TestZips.zip { symlink("b", "a/..").symlink("a", ".") })
+        rejected(TestZips.zip { symlink("d/up", "..").symlink("x", "d/up/..") })
+    }
+
+    @Test
+    fun `a legitimate chain of symlinks is accepted, a dangling target inside the root too`() {
+        val zip = validator.validate(
+            TestZips.zip {
+                symlink("x", "lib/file")
+                symlink("lib", "sub")
+                symlink("sub", "real")
+                file("real/file")
+                symlink("dangling", "nowhere/at/all")
+            },
+        )
+        assertEquals(listOf("x", "lib", "sub", "real/file", "dangling"), zip.entries.map { it.path })
+    }
+
+    @Test
+    fun `symlinks that loop are rejected`() {
+        val message = rejected(TestZips.zip { symlink("a", "b").symlink("b", "a") }).message!!
+        assertTrue(message.contains("loop"), message)
+        rejected(TestZips.zip { symlink("self", "self") })
+    }
+
+    @Test
+    fun `a dangling target is followed by depth, so an escape behind it is still found`() {
+        rejected(TestZips.zip { symlink("l", "missing/../../x") })
+        rejected(TestZips.zip { symlink("d/l", "a/b/../../../../x") })
+        validator.validate(TestZips.zip { symlink("l", "missing/../x").symlink("d/m", "a/b/../../../x") })
+    }
+
+    @Test
+    fun `a very deep entry name validates quickly`() {
+        val deep = List(20_000) { "a" }.joinToString("/") + "/f"
+        assertTimeoutPreemptively(Duration.ofSeconds(5)) {
+            assertEquals(1, validator.validate(TestZips.zip { file(deep).directory("a/") }).entries.size)
+        }
+    }
+
+    @Test
+    fun `many symlinks with long targets are checked within the step budget, and fast`() {
+        val target = List(1500) { "a" }.joinToString("/")
+        val zip = TestZips.zip { (1..300).forEach { symlink("l$it", target) } }
+        assertTimeoutPreemptively(Duration.ofSeconds(5)) { validator.validate(zip) }
+        // The same links, chained through one another, cost hops times the target length each.
+        val chained = TestZips.zip { (1..300).forEach { symlink("c$it", "c${it % 300 + 1}/$target") } }
+        assertTimeoutPreemptively(Duration.ofSeconds(10)) { rejected(chained) }
+    }
+
+    @Test
+    fun `symlinks that take too many steps to check are rejected`() {
+        val zip = TestZips.zip { (1..10).forEach { symlink("l$it", "a/b/c/d") } }
+        val small = ContentValidator(1024 * 1024, ContentValidator.MAX_ENTRIES, 20)
+        assertTrue(rejected(zip, small).message!!.contains("too many steps"))
+        ContentValidator(1024 * 1024, ContentValidator.MAX_ENTRIES, 1000).validate(zip)
+    }
+
+    @Test
+    fun `a file then a directory of the same path is rejected`() {
+        rejected(TestZips.zip { file("a").directory("a/") })
+        rejected(TestZips.zip { symlink("a", "b").directory("a/") })
+    }
+
+    @Test
+    fun `a directory named twice is rejected, also after normalisation`() {
+        rejected(TestZips.zip { directory("a/").directory("a/./") })
+        rejected(TestZips.zip { directory("a/").directory("a/") })
+    }
+
+    @Test
+    fun `a directory entry with data is rejected`() {
+        val message = rejected(TestZips.zip { directory("a/", "data") }).message!!
+        assertTrue(message.contains("directory with content"), message)
+    }
+
+    @Test
+    fun `a directory below a file is rejected`() {
+        rejected(TestZips.zip { file("a").directory("a/b/") })
+    }
+
+    @Test
+    fun `a directory entry before or after the files below it is fine, and it is no entry itself`() {
+        assertEquals(listOf("a/x"), validator.validate(TestZips.zip { file("a/x").directory("a/") }).entries.map { it.path })
+        assertEquals(listOf("a/x"), validator.validate(TestZips.zip { directory("a/").file("a/x") }).entries.map { it.path })
+        assertEquals(emptyList<ZipContentEntry>(), validator.validate(TestZips.zip { directory("./") }).entries)
+    }
+
+    @Test
+    fun `the bytes of a directory entry count towards the inflated total`() {
+        rejected(TestZips.zip { directory("a/", "0".repeat(2500)) }, ContentValidator(maxContentBytes = 200))
     }
 
     @Test

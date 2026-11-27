@@ -85,8 +85,9 @@ The request rules: the `marker` is not blank, is a single line, has no leading o
 255 characters, and the `branch` is given; otherwise `400 INVALID_REQUEST`. Without a `content` part there are no
 content checks.
 
-The content rules: the part opens as a zip, no entry has a `.git` path segment at any depth, no path is absolute or
-escapes the root, no symlink points outside the root, no path is used twice (or below a file), and the zip inflates to
+The content rules: `content` is a file part (a plain form field is rejected) and opens as a zip, no entry has a `.git`
+path segment at any depth, no path is absolute or escapes the root, no symlink points outside the root (also through
+other symlinks of the zip), no path is used twice (or below a file), a directory entry carries no data, and the zip inflates to
 at most 10 times `max-content-size` in at most 100,000 entries; otherwise `400 INVALID_CONTENT` naming the first
 offending entry. Executable bits and symlinks inside the root are kept. A larger upload answers `413 INVALID_CONTENT`.
 

@@ -185,7 +185,7 @@ When create made the repository but could not push the content, it SHALL answer
 
 Create SHALL check the zip before creating the repository and SHALL answer
 `400 INVALID_CONTENT`, creating nothing, when the zip does not open, contains an entry with a
-`.git` path segment, contains an absolute path or a path or symlink that escapes the repository
+`.git` path segment, contains an absolute path or a path or symlink (also through other symlinks of the zip) that escapes the repository
 root. An upload larger than `vcs-facade.provisioning.max-content-size` SHALL answer `413`.
 
 #### Scenario: Zip with a .git directory

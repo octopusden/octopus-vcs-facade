@@ -153,11 +153,14 @@ Read the state first, then:
 
 Before anything is written, and before the repository is created:
 
-- the part is a zip that opens;
+- `content` is a file part (with a filename), not a plain form field, and is a zip that opens;
 - no entry has a path segment `.git`;
 - no entry is absolute or escapes the root after normalising `..`; no symlink points outside the
-  root;
-- no two entries have the same path;
+  root, where a target is resolved as a file system would, through the other symlinks of the
+  archive (`a -> .` with `b -> a/..` escapes), with at most 40 hops and no loops; a target that
+  does not exist stays allowed while it is inside the root;
+- no two entries have the same path; a directory entry carries no data, follows the same path
+  rules, and may be named once (a directory only implied by files below it is fine);
 - the upload is at most `vcs-facade.provisioning.max-content-size` (default 50 MB); Spring's
   multipart limits are set to match, and a larger upload answers `413`;
 - **zip-bomb guard:** the entries inflate to at most 10 × `max-content-size` in total, checked
