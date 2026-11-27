@@ -76,29 +76,33 @@ class BitbucketService(
         // Without `until` the provider lists the default branch. An empty repository has no commits to list and
         // answers 404 (or an empty list). The same 404 also comes from a repository that vanished, so it proves
         // nothing alone: the branches below must be empty too before the repository counts as empty.
-        val firstPage = try {
-            client.getCommits(group, repository, mapOf("limit" to ENTITY_LIMIT, "start" to 0))
-        } catch (e: NotFoundException) {
-            null
+        val readFirstPage = {
+            try {
+                client.getCommits(group, repository, mapOf("limit" to ENTITY_LIMIT, "start" to 0))
+            } catch (e: NotFoundException) {
+                null
+            }
         }
-        val head = firstPage?.values?.firstOrNull()
+        val commitsBeforeBranches = readFirstPage()
         // From here on the repository is known to exist: a "not found" is a failed read, not a missing repository.
         val branches = readOfFoundRepository<NotFoundException, _>(group, repository) {
             client.getBranches(group, repository)
         }
+        // A push may have landed between the two reads, so commits that looked absent are read once more.
+        val firstPage =
+            if (commitsBeforeBranches?.values.isNullOrEmpty() && branches.isNotEmpty()) readFirstPage() else commitsBeforeBranches
+        val head = firstPage?.values?.firstOrNull()
         check(head != null || branches.isEmpty()) {
-            "Repository '$group/$repository' has branches but no readable commits"
+            "Repository '$group/$repository' has branches but its default branch has no commits: " +
+                "the default branch is missing or the repository changed during the read"
         }
-        val root = firstPage?.takeIf { head != null }?.let {
+        val root = firstPage?.takeIf { head != null }?.let { page ->
             readOfFoundRepository<NotFoundException, _>(group, repository) {
-                RootCommitWalk.find(bitbucketCommitPages(client, group, repository, it))
+                RootCommitWalk.find(bitbucketCommitPages(client, group, repository, page))
             }
         }
         // The client cannot read the default branch itself; it is named only when a single branch points at the head.
-        val defaultBranch = head
-            ?.let { branches.filter { branch -> branch.latestCommit == head.id } }
-            ?.singleOrNull()
-            ?.displayId
+        val defaultBranch = head?.let { h -> branches.singleOrNull { it.latestCommit == h.id } }?.displayId
         return presentRepositoryState(bitbucketRepository.description, defaultBranch, root)
             .also { log.trace("<= getRepositoryState({}, {}): {}", group, repository, it) }
     }

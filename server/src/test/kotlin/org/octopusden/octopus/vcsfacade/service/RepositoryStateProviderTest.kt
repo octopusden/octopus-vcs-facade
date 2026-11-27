@@ -8,6 +8,8 @@ import org.mockito.ArgumentMatchers.anyMap
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.octopusden.octopus.infrastructure.bitbucket.client.BitbucketClient
 import org.octopusden.octopus.infrastructure.bitbucket.client.dto.BitbucketBranch
@@ -356,7 +358,10 @@ class RepositoryStateProviderTest {
         givenBitbucketRepository()
         `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("gone"))
         bitbucketBranches(branch("main", "a"))
-        assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
+        val e = assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
+        assertTrue(e.message!!.contains("has branches but its default branch has no commits"), "message: ${e.message}")
+        // read once more because a push may have landed in between
+        verify(bitbucketClient, times(2)).getCommits(anyString(), anyString(), anyMap())
     }
 
     @Test
@@ -364,6 +369,32 @@ class RepositoryStateProviderTest {
         givenBitbucketRepository()
         bitbucketPages(emptyList())
         bitbucketBranches(branch("main", "a"))
-        assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
+        val e = assertThrows(IllegalStateException::class.java) { bitbucket.getRepositoryState("proj", "repo") }
+        assertTrue(e.message!!.contains("has branches but its default branch has no commits"), "message: ${e.message}")
+        verify(bitbucketClient, times(2)).getCommits(anyString(), anyString(), anyMap())
+    }
+
+    @Test
+    fun `bitbucket commits pushed between the commits read and the branches read are found by the re-read`() {
+        givenBitbucketRepository()
+        bitbucketBranches(branch("main", "a"))
+        val commits = BitbucketEntityList(listOf(bitbucketCommit("a", rootMessage)), 1, true, 0, 100, null)
+        `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap()))
+            .thenThrow(BitbucketNotFoundException("no commits yet"))
+            .thenReturn(commits)
+        assertEquals(
+            RepositoryState(RepositoryStatus.PRESENT, "m-1", "main", hasCommits = true, rootCommitMarker = "m-1"),
+            bitbucket.getRepositoryState("proj", "repo"),
+        )
+    }
+
+    @Test
+    fun `bitbucket empty repository reads the commits once and the branches once`() {
+        givenBitbucketRepository()
+        `when`(bitbucketClient.getCommits(anyString(), anyString(), anyMap())).thenThrow(BitbucketNotFoundException("no commits"))
+        bitbucketBranches()
+        bitbucket.getRepositoryState("proj", "repo")
+        verify(bitbucketClient, times(1)).getCommits(anyString(), anyString(), anyMap())
+        verify(bitbucketClient, times(1)).getBranches(anyString(), anyString(), anyMap())
     }
 }
