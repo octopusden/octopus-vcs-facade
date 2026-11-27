@@ -116,6 +116,25 @@ class ContentValidatorTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = ["..\u0000/inside", "a\u0000b", "\u0000"])
+    fun `a symlink target with a NUL is rejected, since checkout would cut it there`(target: String) {
+        val message = rejected(TestZips.zip { symlink("link", target) }).message!!
+        assertTrue(message.contains("NUL"), message)
+    }
+
+    @Test
+    fun `an entry name with a NUL is rejected`() {
+        val message = rejected(TestZips.zip { file("a\u0000b.txt") }).message!!
+        assertTrue(message.contains("NUL"), message)
+    }
+
+    @Test
+    fun `a symlink target that is not valid UTF-8 is rejected`() {
+        val message = rejected(TestZips.zip { symlinkBytes("link", byteArrayOf('a'.code.toByte(), 0xFF.toByte())) }).message!!
+        assertTrue(message.contains("not valid UTF-8"), message)
+    }
+
+    @ParameterizedTest
     @ValueSource(booleans = [false, true])
     fun `a chain of 40 symlinks is accepted and one of 41 is rejected, in either order`(reverse: Boolean) {
         fun chain(count: Int) =

@@ -30,6 +30,18 @@ class TestZips {
         target: String,
     ) = file(name, target, SYMLINK)
 
+    /** A symlink whose target is given as raw bytes, which need not be valid UTF-8. */
+    fun symlinkBytes(
+        name: String,
+        target: ByteArray,
+    ) = apply {
+        val entry = ZipArchiveEntry(name)
+        entry.unixMode = SYMLINK
+        zip.putArchiveEntry(entry)
+        zip.write(target)
+        zip.closeArchiveEntry()
+    }
+
     /** The name is used as given when it ends with a slash, so `a/./` and `./` can be written. */
     fun directory(
         name: String,

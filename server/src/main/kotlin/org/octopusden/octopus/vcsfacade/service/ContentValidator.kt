@@ -8,6 +8,9 @@ import org.octopusden.octopus.vcsfacade.exception.ContentTooLargeException
 import org.octopusden.octopus.vcsfacade.service.ZipContentEntry.Type
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 
 /**
  * Checks an uploaded zip before anything is created (design D6), reading it once, in memory:
@@ -154,7 +157,8 @@ class ContentValidator internal constructor(
         read: EntryRead,
     ): String {
         if (read.size > MAX_SYMLINK_TARGET) throw reject(name, "is a symlink with a target of more than $MAX_SYMLINK_TARGET bytes")
-        val target = String(read.kept, Charsets.UTF_8)
+        // Git stores the raw bytes, so the text checked here must be exactly what they decode to.
+        val target = strictUtf8(read.kept) ?: throw reject(name, "is a symlink whose target is not valid UTF-8")
         if (target.isBlank()) throw reject(name, "is a symlink with no target")
         // Only the shape here; whether `..` leaves the root is decided by SymlinkChains, which follows other symlinks
         // (`a -> dir/sub`, `b -> a/../..` stays inside, though a plain reading of `b` climbs out).
@@ -178,13 +182,15 @@ class ContentValidator internal constructor(
      * The segments of [raw], resolved against [base].
      *
      * @param containParents whether a `..` above the root is a problem; when not, it is left for a later check
-     * @throws PathProblem when the path is absolute, has a `.git` segment, or cannot stay inside the root
+     * @throws PathProblem when the path has a NUL, is absolute, has a `.git` segment, or cannot stay inside the root
      */
     private fun resolve(
         raw: String,
         base: List<String>,
         containParents: Boolean,
     ): List<String> {
+        // A NUL ends the path on a file system and in Git's checkout: `..\u0000/inside` would become `..`.
+        if (raw.contains('\u0000')) throw PathProblem("has a NUL character")
         val separated = raw.replace('\\', '/')
         if (separated.startsWith("/") || DRIVE.containsMatchIn(separated)) throw PathProblem("is an absolute path")
         val segments = separated.split('/')
@@ -272,3 +278,16 @@ private fun reject(
     entry: String,
     problem: String,
 ) = InvalidContentException("Entry '${entry.escaped()}' $problem")
+
+/** [bytes] as UTF-8 text, or `null` when they are not valid UTF-8 (no replacement characters). */
+private fun strictUtf8(bytes: ByteArray): String? =
+    try {
+        Charsets.UTF_8
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(bytes))
+            .toString()
+    } catch (expected: CharacterCodingException) {
+        null
+    }
