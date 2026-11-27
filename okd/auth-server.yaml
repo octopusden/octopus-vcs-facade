@@ -1,0 +1,95 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: test-auth-server
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-auth-server-config
+  data:
+    auth-server.json: |-
+      ${AUTH_SERVER_MAPPINGS_CONTENT}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-auth-server
+    labels:
+      app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-auth-server
+  spec:
+    restartPolicy: Never
+    activeDeadlineSeconds: ${{ACTIVE_DEADLINE_SECONDS}}
+    containers:
+      - name: auth-server
+        image: ${DOCKER_REGISTRY}/wiremock/wiremock:${WIREMOCK_IMAGE_TAG}
+        # The root directory is a writable emptyDir (the container runs under an arbitrary user id);
+        # the mappings sit in it as a read-only ConfigMap mount.
+        args:
+          - --local-response-templating
+          - --root-dir=/wiremock-root
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "400m"
+            memory: "512Mi"
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /realms/ft/.well-known/openid-configuration
+            port: 8080
+          periodSeconds: 5
+        volumeMounts:
+          - mountPath: /wiremock-root
+            name: auth-server-root
+          - mountPath: /wiremock-root/mappings
+            name: auth-server-mappings
+    volumes:
+      - name: auth-server-root
+        emptyDir: {}
+      - name: auth-server-mappings
+        configMap:
+          name: ${DEPLOYMENT_PREFIX}-auth-server-config
+          items:
+            - key: auth-server.json
+              path: auth-server.json
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-auth-server-service
+  spec:
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app.kubernetes.io/name: ${DEPLOYMENT_PREFIX}-auth-server
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: ${DEPLOYMENT_PREFIX}-auth-server-route
+  spec:
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: ${DEPLOYMENT_PREFIX}-auth-server-service
+parameters:
+- description: Unique deployment prefix
+  name: DEPLOYMENT_PREFIX
+  required: true
+- description: Active deadline seconds
+  name: ACTIVE_DEADLINE_SECONDS
+  required: true
+- description: Docker registry
+  name: DOCKER_REGISTRY
+  required: true
+- description: Tag of wiremock/wiremock image
+  name: WIREMOCK_IMAGE_TAG
+  required: true
+- description: WireMock mappings of the stub auth server (JSON)
+  name: AUTH_SERVER_MAPPINGS_CONTENT
+  required: true

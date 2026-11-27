@@ -1,0 +1,46 @@
+schema: spec-driven
+
+context: |
+  VCS Facade: a Spring Boot (MVC) service with one read/write API over Bitbucket and
+  Gitea, addressed by a repository's SSH URL. Modules: `server` (the service),
+  `common` (DTOs and error codes shared with clients), `client` (the Feign client),
+  `ft` (functional tests against real Bitbucket and Gitea in Docker or OKD),
+  `test-common`. Provider calls go through octopus-external-systems-client.
+
+  Cross-service decisions are recorded in the components registry's ADRs
+  (docs/registry/adr in octopus-components-registry-service). This repository owns
+  its own endpoint contracts and state tables; a choice only vcs-facade cares about
+  is recorded here, not in a new ADR.
+
+rules:
+  proposal:
+    - Written in English.
+    - State what changes for a caller of the API, not which files move.
+    - Name the ADR decision the change implements, and any dependency on another
+      repository's release.
+    - This repository is open source. Never mention internal tracker keys or links,
+      customer or organisation names, or internal hostnames.
+  specs:
+    - Describe observable behaviour at the HTTP API, not implementation. A reader must
+      be able to tell whether the service conforms without opening the source.
+    - Give the status code and error code for every failure a caller must tell apart.
+    - Include the permission and settings that govern a gated behaviour.
+  tasks:
+    - "Test-first: each task that changes behaviour starts with a failing test, then
+      the production code. Do not group tests into a final task."
+    - Behaviour that depends on a real provider is covered in `ft` on both Bitbucket
+      and Gitea, not only with unit tests.
+
+operations:
+  apply:
+    guidance:
+      - Run ./gradlew build (unit tests and static checks) before reporting a task
+        done; run the ft suite for both test.profile=bitbucket and test.profile=gitea
+        before reporting a group done.
+  archive:
+    guidance:
+      - Fold the delta into openspec/specs/ and move the change directory to
+        openspec/changes/archive/<created>-<name>/, where <created> is the date in the
+        change's .openspec.yaml.
+      - "Archive after the change merges, not before: the proposal and the spec delta
+        are what reviewers read on the PR."

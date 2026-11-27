@@ -11,6 +11,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
@@ -107,6 +108,13 @@ class VcsServiceSshUrlParsingTest {
         properties: VcsProperties.Service,
     ) : VcsService(properties) {
         override fun getRepositories(): Sequence<Repository> = TODO()
+
+        override fun groupExists(group: String): Boolean = TODO()
+
+        override fun getRepositoryState(
+            group: String,
+            repository: String,
+        ): RepositoryState = TODO()
 
         override fun findRepository(
             group: String,

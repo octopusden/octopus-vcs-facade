@@ -9,7 +9,6 @@ import feign.Request
 import feign.httpclient.ApacheHttpClient
 import feign.jackson.JacksonDecoder
 import feign.jackson.JacksonEncoder
-import feign.slf4j.Slf4jLogger
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
@@ -17,6 +16,7 @@ import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetryer
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
+import org.slf4j.LoggerFactory
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -24,10 +24,12 @@ class ClassicVcsFacadeClient(
     apiParametersProvider: VcsFacadeClientParametersProvider,
     private val mapper: ObjectMapper,
 ) : VcsFacadeClient {
+    private val bearerTokenSupplier = { apiParametersProvider.getBearerToken() }
     private var client = createClient(
         apiParametersProvider.getApiUrl(),
         mapper,
         apiParametersProvider.getTimeRetryInMillis(),
+        bearerTokenSupplier,
     )
 
     constructor(apiParametersProvider: VcsFacadeClientParametersProvider) : this(
@@ -114,12 +116,16 @@ class ClassicVcsFacadeClient(
 
     override fun indexReport(scanRequired: Boolean?) = client.indexReport(scanRequired)
 
+    override fun getGroupExistence(sshUrl: String) = client.getGroupExistence(sshUrl)
+
+    override fun getRepositoryState(sshUrl: String) = client.getRepositoryState(sshUrl)
+
     @Suppress("unused")
     fun setUrl(
         apiUrl: String,
         timeRetryInMillis: Int,
     ) {
-        client = createClient(apiUrl, mapper, timeRetryInMillis)
+        client = createClient(apiUrl, mapper, timeRetryInMillis, bearerTokenSupplier)
     }
 
     companion object {
@@ -133,15 +139,18 @@ class ClassicVcsFacadeClient(
             apiUrl: String,
             objectMapper: ObjectMapper,
             timeRetryInMillis: Int,
+            bearerTokenSupplier: () -> String?,
         ): VcsFacadeClient =
             Feign
                 .builder()
                 .client(ApacheHttpClient())
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
-                .logger(Slf4jLogger(VcsFacadeClient::class.java))
+                .logger(AuthorizationRedactingLogger(LoggerFactory.getLogger(VcsFacadeClient::class.java)))
                 .logLevel(Logger.Level.FULL)
                 .encoder(JacksonEncoder(objectMapper))
-                .responseInterceptor(VcsFacadeResponseInterceptor(objectMapper))
+                .requestInterceptor { template ->
+                    bearerTokenSupplier()?.let { template.header("Authorization", "Bearer $it") }
+                }.responseInterceptor(VcsFacadeResponseInterceptor(objectMapper))
                 .retryer(VcsFacadeRetryer(timeRetryInMillis))
                 .decoder(JacksonDecoder(objectMapper))
                 .errorDecoder(VcsFacadeErrorDecoder(objectMapper))

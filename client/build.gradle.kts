@@ -48,6 +48,9 @@ java {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
+    // Interface members with a body become real default methods, so a client implementation compiled before
+    // such a member was added keeps working; DefaultImpls stay for callers compiled against older versions.
+    compilerOptions.freeCompilerArgs.add("-Xjvm-default=all-compatibility")
 }
 
 dependencyManagement {
@@ -63,4 +66,10 @@ dependencies {
     api("io.github.openfeign:feign-slf4j")
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
     api("com.fasterxml.jackson.core:jackson-databind")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("org.junit.jupiter:junit-jupiter-params")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    // Gradle no longer puts the JUnit Platform launcher on the test runtime classpath itself.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

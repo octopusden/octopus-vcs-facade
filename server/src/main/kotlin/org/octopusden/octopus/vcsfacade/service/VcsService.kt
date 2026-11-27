@@ -7,6 +7,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.PullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
+import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.client.common.dto.Tag
 import org.octopusden.octopus.vcsfacade.config.VcsProperties
 import org.octopusden.octopus.vcsfacade.dto.HashOrRefOrDate
@@ -19,11 +20,23 @@ abstract class VcsService(
     val id = vcsServiceProperties.id.lowercase()
     val type = vcsServiceProperties.type
     val indexing = vcsServiceProperties.indexing
-    protected val httpUrl = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
+    private val provisioning = vcsServiceProperties.provisioning?.takeIf { it.hasCredential }
+    private val provisioningAllowedGroups = provisioning
+        ?.allowedGroups
+        .orEmpty()
+        .map { it.lowercase() }
+        .toSet()
+    protected val httpUrl = httpUrlOf(vcsServiceProperties)
     protected val sshUrl = vcsServiceProperties.sshUrl.lowercase().trimEnd(':', '/')
     private val sshUrlRegex = "${Regex.escape(
         sshUrl,
     )}[:/]${if (type == VcsServiceType.BITBUCKET) "(?:scm/)?" else ""}((?:[^/]+/)+)([^/]+)\\.git".toRegex()
+
+    /**
+     * Whether provisioning may touch [group]: the service has a provisioning credential and lists the group.
+     * [parse] lowercases, so the comparison ignores case (Bitbucket project keys are upper case).
+     */
+    fun isProvisioningAllowed(group: String) = provisioning != null && group.lowercase() in provisioningAllowedGroups
 
     fun isSupported(sshUrl: String) = sshUrlRegex.matches(sshUrl.lowercase())
 
@@ -33,6 +46,17 @@ abstract class VcsService(
         }
 
     abstract fun getRepositories(): Sequence<Repository>
+
+    /**
+     * Whether the Bitbucket project or Gitea organisation exists, as the provisioning credential sees it.
+     * Only the provider's own "not found" means `false`; any other failure propagates.
+     */
+    abstract fun groupExists(group: String): Boolean
+
+    abstract fun getRepositoryState(
+        group: String,
+        repository: String,
+    ): RepositoryState
 
     abstract fun findRepository(
         group: String,
@@ -140,4 +164,11 @@ abstract class VcsService(
     abstract fun findCommitsWithFiles(issueKey: String): Sequence<CommitWithFiles>
 
     abstract fun findPullRequests(issueKey: String): Sequence<PullRequest>
+
+    companion object {
+        /**
+         * The API base URL as the services use it.
+         */
+        fun httpUrlOf(vcsServiceProperties: VcsProperties.Service) = vcsServiceProperties.httpUrl.lowercase().trimEnd('/')
+    }
 }

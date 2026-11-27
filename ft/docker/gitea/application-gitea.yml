@@ -7,6 +7,14 @@ vcs-facade:
         ssh-url: ssh://git@${VCS_FACADE_VCS_HOST}
         username: test-admin
         password: test-admin
+        provisioning:
+          username: test-admin
+          password: test-admin
+          # `test` holds the repositories of the tests, `absentgroup` is allowed but does not exist;
+          # any other group is refused.
+          allowed-groups:
+            - test
+            - absentgroup
   opensearch:
     host: ${VCS_FACADE_OPENSEARCH_HOST}
     ssl: false

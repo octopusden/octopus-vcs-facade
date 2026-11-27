@@ -86,6 +86,11 @@ class UnknownJsonFieldToleranceTest {
                 Arguments.of(CreatePullRequest::class.java, """{"sourceBranch":"s","targetBranch":"t","title":"ti","description":"d"}"""),
                 Arguments.of(CreateTag::class.java, """{"name":"v1.0","hashOrRef":"master","message":"m"}"""),
                 Arguments.of(ErrorResponse::class.java, """{"errorCode":"OTHER","errorMessage":"m"}"""),
+                Arguments.of(GroupExistence::class.java, """{"exists":true}"""),
+                Arguments.of(
+                    RepositoryState::class.java,
+                    """{"status":"PRESENT","marker":"m","defaultBranch":"main","hasCommits":true,"rootCommitMarker":"r"}""",
+                ),
                 Arguments.of(RetryResponse::class.java, """{"retryAfter":0,"requestId":"r"}"""),
             )
     }

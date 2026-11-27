@@ -47,6 +47,8 @@ objects:
               value: ${VCS_FACADE_VCS_HOST}
             - name: DEFERRED_RESULT_VALKEY_HOST
               value: ${DEFERRED_RESULT_VALKEY_HOST}
+            - name: AUTH_SERVER_URL
+              value: ${AUTH_SERVER_URL}
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -115,6 +117,9 @@ parameters:
     required: true
   - description: Deferred result Valkey host
     name: DEFERRED_RESULT_VALKEY_HOST
+    required: true
+  - description: Auth server URL, as the server reaches it (the stub in functional tests)
+    name: AUTH_SERVER_URL
     required: true
   - description: application-dev.yml content
     name: APPLICATION_DEV_CONTENT

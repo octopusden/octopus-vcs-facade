@@ -212,6 +212,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.security:spring-security-oauth2-resource-server")
+    implementation("org.springframework.security:spring-security-oauth2-jose")
+    implementation("org.octopusden.octopus-cloud-commons:octopus-security-common:${properties["octopus-cloud-commons.version"]}")
     implementation("org.springframework.retry:spring-retry")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -226,6 +230,7 @@ dependencies {
     implementation("org.octopusden.octopus.octopus-external-systems-clients:gitea-client:${properties["external-systems-client.version"]}")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation(project(":test-common"))
     // Gradle no longer puts the JUnit Platform launcher on the test runtime classpath itself.
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
