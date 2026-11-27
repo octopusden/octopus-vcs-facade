@@ -94,6 +94,14 @@ class ContentValidatorTest {
     }
 
     @Test
+    fun `a target whose parent steps go through another symlink is judged after following it, in either order`() {
+        // a -> dir/sub, so a/../.. is dir/sub/../.., the root: inside, though a plain reading of b climbs out
+        validator.validate(TestZips.zip { directory("dir/sub/").symlink("a", "dir/sub").symlink("b", "a/../..") })
+        validator.validate(TestZips.zip { directory("dir/sub/").symlink("b", "a/../..").symlink("a", "dir/sub") })
+        rejected(TestZips.zip { directory("dir/sub/").symlink("a", "dir/sub").symlink("b", "a/../../..") })
+    }
+
+    @Test
     fun `a legitimate chain of symlinks is accepted, a dangling target inside the root too`() {
         val zip = validator.validate(
             TestZips.zip {

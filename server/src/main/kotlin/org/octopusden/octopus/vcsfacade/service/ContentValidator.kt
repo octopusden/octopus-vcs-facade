@@ -156,7 +156,9 @@ class ContentValidator internal constructor(
         if (read.size > MAX_SYMLINK_TARGET) throw reject(name, "is a symlink with a target of more than $MAX_SYMLINK_TARGET bytes")
         val target = String(read.kept, Charsets.UTF_8)
         if (target.isBlank()) throw reject(name, "is a symlink with no target")
-        resolveOrReject(target, name, path.dropLast(1)) { "is a symlink whose target '${target.escaped()}' $it" }
+        // Only the shape here; whether `..` leaves the root is decided by SymlinkChains, which follows other symlinks
+        // (`a -> dir/sub`, `b -> a/../..` stays inside, though a plain reading of `b` climbs out).
+        resolveOrReject(target, name, path.dropLast(1), containParents = false) { "is a symlink whose target '${target.escaped()}' $it" }
         return target
     }
 
@@ -164,9 +166,10 @@ class ContentValidator internal constructor(
         raw: String,
         entry: String,
         base: List<String> = emptyList(),
+        containParents: Boolean = true,
         describe: (String) -> String,
     ) = try {
-        resolve(raw, base)
+        resolve(raw, base, containParents)
     } catch (expected: PathProblem) {
         throw reject(entry, describe(expected.problem))
     }
@@ -174,11 +177,13 @@ class ContentValidator internal constructor(
     /**
      * The segments of [raw], resolved against [base].
      *
+     * @param containParents whether a `..` above the root is a problem; when not, it is left for a later check
      * @throws PathProblem when the path is absolute, has a `.git` segment, or cannot stay inside the root
      */
     private fun resolve(
         raw: String,
         base: List<String>,
+        containParents: Boolean,
     ): List<String> {
         val separated = raw.replace('\\', '/')
         if (separated.startsWith("/") || DRIVE.containsMatchIn(separated)) throw PathProblem("is an absolute path")
@@ -189,8 +194,11 @@ class ContentValidator internal constructor(
             when (segment) {
                 "", "." -> Unit
                 ".." -> {
-                    if (resolved.isEmpty()) throw PathProblem("escapes the repository root")
-                    resolved.removeAt(resolved.size - 1)
+                    if (resolved.isNotEmpty()) {
+                        resolved.removeAt(resolved.size - 1)
+                    } else if (containParents) {
+                        throw PathProblem("escapes the repository root")
+                    }
                 }
                 else -> resolved += segment
             }
