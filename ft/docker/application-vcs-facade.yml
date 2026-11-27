@@ -4,6 +4,8 @@ vcs-facade:
     retry-interval-secs: 1
   provisioning:
     enabled: true
+    # Small, so the over-limit test sends a payload of about a megabyte.
+    max-content-size: 1MB
 deferred-result:
   enabled: true
   namespace: "vcs-facade:deferred-result"

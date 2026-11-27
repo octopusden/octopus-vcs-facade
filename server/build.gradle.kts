@@ -215,6 +215,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.security:spring-security-oauth2-resource-server")
     implementation("org.springframework.security:spring-security-oauth2-jose")
+    implementation("org.apache.commons:commons-compress:${properties["commons-compress.version"]}")
     implementation("org.octopusden.octopus-cloud-commons:octopus-security-common:${properties["octopus-cloud-commons.version"]}")
     implementation("org.springframework.retry:spring-retry")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

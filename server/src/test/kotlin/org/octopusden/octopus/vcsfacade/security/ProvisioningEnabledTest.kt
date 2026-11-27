@@ -14,12 +14,14 @@ import org.octopusden.octopus.infrastructure.gitea.client.dto.GiteaRepository
 import org.octopusden.octopus.vcsfacade.client.common.dto.Repository
 import org.octopusden.octopus.vcsfacade.config.VcsProperties.Service.Provisioning
 import org.octopusden.octopus.vcsfacade.dto.VcsServiceType
+import org.octopusden.octopus.vcsfacade.service.TestZips
 import org.octopusden.octopus.vcsfacade.service.impl.GiteaService
 import org.octopusden.octopus.vcsfacade.service.serviceProperties
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.context.ContextConfiguration
@@ -27,7 +29,9 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.request.RequestPostProcessor
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -68,6 +72,158 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
                 .accept(MediaType.APPLICATION_JSON)
                 .also { builder -> auth?.let { builder.with(it) } },
         )
+
+    // No CSRF token anywhere below: the create is exempted from it.
+    private fun create(
+        auth: RequestPostProcessor? = null,
+        sshUrl: String = SSH_URL,
+        marker: String? = "m-1",
+        branch: String? = "main",
+    ): ResultActions =
+        mockMvc.perform(
+            multipart("/rest/api/2/repository")
+                .file(MockMultipartFile("content", "content.zip", "application/zip", TestZips.zip { file("a.txt") }))
+                .queryParam("sshUrl", sshUrl)
+                .also { builder ->
+                    marker?.let { builder.param("marker", it) }
+                    branch?.let { builder.param("branch", it) }
+                }.accept(MediaType.APPLICATION_JSON)
+                .also { builder -> auth?.let { builder.with(it) } },
+        )
+
+    @Test
+    fun `create without a token answers 401 with a JSON body`() {
+        create()
+            .andExpect(status().isUnauthorized)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorMessage").isNotEmpty)
+    }
+
+    @Test
+    fun `create with a token without the permission answers 403 with a JSON body`() {
+        create(stranger)
+            .andExpect(status().isForbidden)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorMessage").isNotEmpty)
+    }
+
+    @Test
+    fun `create for a group outside the allow-list answers 403 TARGET_NOT_ALLOWED and calls no VCS`() {
+        val client = serveAllowedGroup()
+        create(provisioner, "ssh://git@gitea.example.org/other/repo.git")
+            .andExpect(status().isForbidden)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create for an allowed group answers 501 with a JSON body and calls no VCS`() {
+        val client = serveAllowedGroup()
+        create(provisioner, ALLOWED_URL)
+            .andExpect(status().isNotImplemented)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorCode").value("OTHER"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create without any content part still answers 501`() {
+        serveAllowedGroup()
+        mockMvc
+            .perform(
+                multipart("/rest/api/2/repository")
+                    .queryParam("sshUrl", ALLOWED_URL)
+                    .param("marker", "m-1")
+                    .param("branch", "main")
+                    .with(provisioner),
+            ).andExpect(status().isNotImplemented)
+    }
+
+    @Test
+    fun `create with an invalid marker or a missing branch answers 400 INVALID_REQUEST and calls no VCS`() {
+        val client = serveAllowedGroup()
+        listOf("m 1\nx" to "main", " m-1" to "main", "m".repeat(256) to "main", "m-1" to null, "m-1" to " ", null to "main").forEach {
+            create(provisioner, ALLOWED_URL, it.first, it.second)
+                .andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+        }
+        verifyNoInteractions(client)
+    }
+
+    private fun createWithZip(
+        zip: ByteArray,
+        sshUrl: String = ALLOWED_URL,
+        marker: String = "m-1",
+    ) = mockMvc.perform(
+        multipart("/rest/api/2/repository")
+            .file(MockMultipartFile("content", "content.zip", "application/zip", zip))
+            .queryParam("sshUrl", sshUrl)
+            .param("marker", marker)
+            .param("branch", "main")
+            .accept(MediaType.APPLICATION_JSON)
+            .with(provisioner),
+    )
+
+    @Test
+    fun `create with an invalid zip answers 400 INVALID_CONTENT naming the entry and calls no VCS`() {
+        val client = serveAllowedGroup()
+        createWithZip(TestZips.zip { file("ok.txt").file("a/.git/HEAD") })
+            .andExpect(status().isBadRequest)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.errorCode").value("INVALID_CONTENT"))
+            .andExpect(jsonPath("$.errorMessage").value(org.hamcrest.Matchers.containsString("a/.git/HEAD")))
+        createWithZip("not a zip".toByteArray())
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.errorCode").value("INVALID_CONTENT"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create with a content part that is not a file answers 400 INVALID_CONTENT and calls no VCS`() {
+        val client = serveAllowedGroup()
+        mockMvc
+            .perform(
+                multipart("/rest/api/2/repository")
+                    .queryParam("sshUrl", ALLOWED_URL)
+                    .param("marker", "m-1")
+                    .param("branch", "main")
+                    .param("content", "not a file")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .with(provisioner),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.errorCode").value("INVALID_CONTENT"))
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `create with a valid zip answers 501 and calls no VCS`() {
+        val client = serveAllowedGroup()
+        createWithZip(TestZips.zip { executable("run.sh").file("src/a.txt").symlink("link", "src/a.txt") })
+            .andExpect(status().isNotImplemented)
+        verifyNoInteractions(client)
+    }
+
+    @Test
+    fun `the request is checked before the zip, the allow-list before both`() {
+        serveAllowedGroup()
+        val badZip = TestZips.zip { file("../x") }
+        createWithZip(badZip, marker = " bad")
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+        createWithZip(badZip, sshUrl = "ssh://git@gitea.example.org/other/repo.git", marker = " bad")
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
+    }
+
+    @Test
+    fun `the allow-list is checked before the request`() {
+        serveAllowedGroup()
+        create(provisioner, "ssh://git@gitea.example.org/other/repo.git", marker = " bad", branch = null)
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.errorCode").value("TARGET_NOT_ALLOWED"))
+    }
 
     @Test
     fun `no token answers 401 with a JSON body on both reads`() {
@@ -114,6 +270,7 @@ class ProvisioningEnabledTest : ExistingEndpointsTest() {
         provisioningPaths.forEach { path ->
             mockMvc.perform(post(path).param("sshUrl", SSH_URL)).andExpect(status().isMethodNotAllowed)
         }
+        mockMvc.perform(put("/rest/api/2/repository").param("sshUrl", SSH_URL)).andExpect(status().isMethodNotAllowed)
     }
 
     @Test

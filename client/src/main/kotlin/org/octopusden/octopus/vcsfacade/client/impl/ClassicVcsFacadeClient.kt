@@ -6,6 +6,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import feign.Feign
 import feign.Logger
 import feign.Request
+import feign.form.FormEncoder
 import feign.httpclient.ApacheHttpClient
 import feign.jackson.JacksonDecoder
 import feign.jackson.JacksonEncoder
@@ -13,6 +14,7 @@ import org.octopusden.octopus.vcsfacade.client.VcsFacadeClient
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeErrorDecoder
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeResponseInterceptor
 import org.octopusden.octopus.vcsfacade.client.VcsFacadeRetryer
+import org.octopusden.octopus.vcsfacade.client.ZipFilePartEncoder
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.SearchIssuesInRangesRequest
@@ -120,6 +122,14 @@ class ClassicVcsFacadeClient(
 
     override fun getRepositoryState(sshUrl: String) = client.getRepositoryState(sshUrl)
 
+    override fun createRepository(
+        sshUrl: String,
+        marker: String,
+        branch: String,
+        commitMessage: String?,
+        content: ByteArray?,
+    ) = client.createRepository(sshUrl, marker, branch, commitMessage, content)
+
     @Suppress("unused")
     fun setUrl(
         apiUrl: String,
@@ -147,7 +157,7 @@ class ClassicVcsFacadeClient(
                 .options(Request.Options(30, TimeUnit.SECONDS, 30, TimeUnit.SECONDS, true))
                 .logger(AuthorizationRedactingLogger(LoggerFactory.getLogger(VcsFacadeClient::class.java)))
                 .logLevel(Logger.Level.FULL)
-                .encoder(JacksonEncoder(objectMapper))
+                .encoder(ZipFilePartEncoder(FormEncoder(JacksonEncoder(objectMapper))))
                 .requestInterceptor { template ->
                     bearerTokenSupplier()?.let { template.header("Authorization", "Bearer $it") }
                 }.responseInterceptor(VcsFacadeResponseInterceptor(objectMapper))

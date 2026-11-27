@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryState
 import org.octopusden.octopus.vcsfacade.client.common.dto.RepositoryStatus
+import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidContentException
 import org.octopusden.octopus.vcsfacade.client.common.exception.InvalidRequestException
 import org.octopusden.octopus.vcsfacade.client.common.exception.NotFoundException
 import org.octopusden.octopus.vcsfacade.client.common.exception.TargetNotAllowedException
@@ -95,6 +96,7 @@ class ProvisioningReadClientTest {
 
     @ParameterizedTest(name = "{0} -> {2}")
     @CsvSource(
+        "INVALID_CONTENT,400,INVALID_CONTENT",
         "INVALID_REQUEST,400,INVALID_REQUEST",
         "TARGET_NOT_ALLOWED,403,TARGET_NOT_ALLOWED",
         "NOT_FOUND,404,NOT_FOUND",
@@ -108,6 +110,7 @@ class ProvisioningReadClientTest {
         server.responseBody = """{"errorCode":"$code","errorMessage":"boom"}"""
         val exception = assertThrows(Exception::class.java) { client.getRepositoryState(SSH_URL) }
         val expectedType = when (expected) {
+            "INVALID_CONTENT" -> InvalidContentException::class.java
             "INVALID_REQUEST" -> InvalidRequestException::class.java
             "TARGET_NOT_ALLOWED" -> TargetNotAllowedException::class.java
             else -> NotFoundException::class.java

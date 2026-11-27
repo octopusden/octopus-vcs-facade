@@ -91,6 +91,10 @@ class UnknownJsonFieldToleranceTest {
                     RepositoryState::class.java,
                     """{"status":"PRESENT","marker":"m","defaultBranch":"main","hasCommits":true,"rootCommitMarker":"r"}""",
                 ),
+                Arguments.of(
+                    CreateRepositoryResult::class.java,
+                    """{"created":true,"state":{"status":"PRESENT","marker":"m","defaultBranch":"main","hasCommits":true}}""",
+                ),
                 Arguments.of(RetryResponse::class.java, """{"retryAfter":0,"requestId":"r"}"""),
             )
     }

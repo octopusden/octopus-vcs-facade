@@ -153,18 +153,23 @@ Read the state first, then:
 
 Before anything is written, and before the repository is created:
 
-- the part is a zip that opens;
+- `content` is a file part (with a filename), not a plain form field, and is a zip that opens;
 - no entry has a path segment `.git`;
 - no entry is absolute or escapes the root after normalising `..`; no symlink points outside the
-  root;
-- no two entries have the same path;
+  root, where a target is resolved as a file system would, through the other symlinks of the
+  archive (`a -> .` with `b -> a/..` escapes), with at most 40 hops and no loops; a target that
+  does not exist stays allowed while it is inside the root;
+- no two entries have the same path; a directory entry carries no data, follows the same path
+  rules, and may be named once (a directory only implied by files below it is fine);
 - the upload is at most `vcs-facade.provisioning.max-content-size` (default 50 MB); Spring's
   multipart limits are set to match, and a larger upload answers `413`;
 - **zip-bomb guard:** the entries inflate to at most 10 × `max-content-size` in total, checked
   against the bytes actually read, not only the sizes the zip declares, and there are at most
   100,000 entries.
 
-A failed check answers `400 INVALID_CONTENT` naming the first offending entry; nothing is
+A failed check answers `400 INVALID_CONTENT` naming the first offending entry as the zip is read; symlink chains,
+which can only be judged once every entry is read, are checked after that, so a problem with a single entry anywhere
+in the zip is reported before a chain problem. Nothing is
 created. Unix modes are read with a zip library that exposes them (Apache Commons Compress), so
 executable bits survive. Symlinks inside the root are kept as symlinks (`120000`).
 
@@ -196,7 +201,9 @@ executable bits survive. Symlinks inside the root are kept as symlinks (`120000`
   disabled case needs its own `permitAll` chain (as CRS `AnonymousSecurityConfig` does);
   without it Spring Boot's default chain would put basic auth on every endpoint. Disabled, no
   `auth-server.*` settings are needed.
-- No token → `401`; a token without the permission → `403`.
+- No token → `401`; a token without the permission → `403`. For the create both are settled in the security
+  chain, and the allow-list in an interceptor that reads `sshUrl` from the query string, all before the multipart
+  body is parsed, so an oversized upload from an unauthorised caller or for a forbidden target answers `403`, not `413`.
 - Per VCS service, under `vcs-facade.vcs.services[].provisioning`:
   - a credential (`token`, or `username` and `password`) used only for creating and pushing;
   - `allowed-groups`: the Bitbucket project keys or Gitea organisations provisioning may touch.

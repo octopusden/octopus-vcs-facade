@@ -7,6 +7,7 @@ import org.octopusden.octopus.vcsfacade.client.common.dto.Branch
 import org.octopusden.octopus.vcsfacade.client.common.dto.Commit
 import org.octopusden.octopus.vcsfacade.client.common.dto.CommitWithFiles
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreatePullRequest
+import org.octopusden.octopus.vcsfacade.client.common.dto.CreateRepositoryResult
 import org.octopusden.octopus.vcsfacade.client.common.dto.CreateTag
 import org.octopusden.octopus.vcsfacade.client.common.dto.GroupExistence
 import org.octopusden.octopus.vcsfacade.client.common.dto.IndexReport
@@ -157,4 +158,23 @@ interface VcsFacadeClient {
     fun getRepositoryState(
         @Param("sshUrl") sshUrl: String,
     ): RepositoryState
+
+    /**
+     * Creates the repository and pushes [content] (a zip) to [branch], or settles on what is already there. Safe to repeat.
+     * Needs a bearer token.
+     *
+     * @param marker stored as the repository description and as a trailer of the root commit
+     * @param branch the default branch
+     * @param commitMessage the message of the root commit, the server's default when `null`
+     * @param content a zip with the initial files, no push when `null`
+     */
+    @RequestLine("POST rest/api/2/repository?sshUrl={sshUrl}")
+    @Headers("Content-Type: multipart/form-data")
+    fun createRepository(
+        @Param("sshUrl") sshUrl: String,
+        @Param("marker") marker: String,
+        @Param("branch") branch: String,
+        @Param("commitMessage") commitMessage: String? = null,
+        @Param("content") content: ByteArray? = null,
+    ): CreateRepositoryResult
 }

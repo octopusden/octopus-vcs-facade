@@ -90,38 +90,38 @@ The change is archived after the third pull request is merged.
 
 ## 9. Settings, contract and endpoint
 
-- [ ] 9.1 Add Apache Commons Compress; `vcs-facade.provisioning.max-content-size` (default
+- [x] 9.1 Add Apache Commons Compress; `vcs-facade.provisioning.max-content-size` (default
       50 MB); Spring multipart limits follow it.
-- [ ] 9.2 Error code `INVALID_CONTENT` with its exception; `VcsFacadeClient.createRepository`
+- [x] 9.2 Error code `INVALID_CONTENT` with its exception; `VcsFacadeClient.createRepository`
       (multipart, the zip as a file part). Test against a mock server: path, query, parts.
-- [ ] 9.3 `POST /rest/api/2/repository` behind the same security and allow-list (added to the
+- [x] 9.3 `POST /rest/api/2/repository` behind the same security and allow-list (added to the
       chain's matcher and exempted from CSRF with `ignoringRequestMatchers`); after the checks
       below it answers `501` until pull request 3.
 
 ## 10. Request checks
 
-- [ ] 10.1 Failing tests: blank, multi-line, whitespace-padded or over-255 marker; missing
+- [x] 10.1 Failing tests: blank, multi-line, whitespace-padded or over-255 marker; missing
       `branch` → `400 INVALID_REQUEST`, no VCS call.
-- [ ] 10.2 `CreateRequestChecks`.
+- [x] 10.2 `CreateRequestChecks`.
 
 ## 11. Zip checks
 
-- [ ] 11.1 Failing tests: not a zip; `.git/` entry at the root and nested (`a/.git/HEAD`);
+- [x] 11.1 Failing tests: not a zip; `.git/` entry at the root and nested (`a/.git/HEAD`);
       absolute path; `../` escape; symlink pointing outside; duplicate paths; over the size
       limit → `413`; a valid zip unpacks with its executable bits and internal symlinks.
-- [ ] 11.2 `ContentValidator`, reading the entries with Commons Compress straight from the
+- [x] 11.2 `ContentValidator`, reading the entries with Commons Compress straight from the
       upload (no temporary directory); a zip-bomb guard of 10 times `max-content-size`
       uncompressed and 100,000 entries.
 
 ## 12. Functional tests (both providers)
 
-- [ ] 12.1 Invalid request and invalid zip → `400`/`413` with nothing created; a valid request
+- [x] 12.1 Invalid request and invalid zip → `400`/`413` with nothing created; a valid request
       reaches `501`.
 
 ## 13. Docs
 
-- [ ] 13.1 README: `max-content-size` and the content rules.
-- [ ] 13.2 OpenAPI annotations on the create endpoint, with the statuses so far.
+- [x] 13.1 README: `max-content-size` and the content rules.
+- [x] 13.2 OpenAPI annotations on the create endpoint, with the statuses so far.
 
 # Pull request 3: create
 
