@@ -115,6 +115,19 @@ class ContentValidatorTest {
         assertEquals(listOf("x", "lib", "sub", "real/file", "dangling"), zip.entries.map { it.path })
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = [false, true])
+    fun `a chain of 40 symlinks is accepted and one of 41 is rejected, in either order`(reverse: Boolean) {
+        fun chain(count: Int) =
+            TestZips.zip {
+                file("target.txt", "data")
+                val indices = if (reverse) (count downTo 1) else (1..count)
+                indices.forEach { symlink("l$it", if (it == count) "target.txt" else "l${it + 1}") }
+            }
+        validator.validate(chain(40))
+        assertTrue(rejected(chain(41)).message!!.contains("more than 40 symlinks"))
+    }
+
     @Test
     fun `symlinks that loop are rejected`() {
         val message = rejected(TestZips.zip { symlink("a", "b").symlink("b", "a") }).message!!

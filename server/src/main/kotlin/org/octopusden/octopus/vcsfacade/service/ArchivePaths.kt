@@ -151,7 +151,9 @@ internal class SymlinkChains(
 
         /** How many names below [current] are past the end of what the archive holds; only counted, never looked up. */
         private var missing = 0
-        private var hops = 0
+
+        // The link being checked is the first hop: a chain of 40 links is the most allowed, as on Linux (MAXSYMLINKS).
+        private var hops = 1
         private val frames = ArrayDeque(listOf(Frame(link.targetSegments)))
 
         fun run(): String? {
